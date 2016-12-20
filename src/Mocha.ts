@@ -23,16 +23,15 @@ class Mocha extends Task {
         this.pure_function = false;
 
         // check mocha installation
-        if ( ! this.stat_sync( path.resolve( args.launch_dir, "node_modules", "@types", "mocha" ) ) )
-            this.run_install_cmd( "npm", args.launch_dir, [ "npm", "install", "@types/mocha" ] );
-        if ( ! this.stat_sync( path.resolve( args.launch_dir, "node_modules", "mocha" ) ) )
-            this.run_install_cmd( "npm", args.launch_dir, [ "npm", "install", "mocha" ] );
+        try { this.stat_sync( path.resolve( args.launch_dir, "node_modules", "@types", "mocha" ) ); }
+        catch ( e ) { this.run_install_cmd( "npm", args.launch_dir, [ "npm", "install", "@types/mocha" ] ); } 
+        try { this.stat_sync( path.resolve( args.launch_dir, "node_modules", "mocha" ) ); }
+        catch ( e ) { this.run_install_cmd( "npm", args.launch_dir, [ "npm", "install", "mocha" ] ); }
 
         // helper to get arg values
         const av = ( n: string | number ): string => {
             return typeof n == 'string' ? n : this.children[ n ].outputs[ 0 ];
         };
-
 
         // get, register and make the input compilation nodes
         async.reduce( args.entry_points, new Array<string>(), ( cns, entry_point, cb_reduce ) => {
@@ -51,7 +50,9 @@ class Mocha extends Task {
         }, ( err, cns ) => {
             if ( err ) return done( true );
             // call mocha
-            this.spawn_sync( av( args.mocha ) || path.resolve( args.launch_dir, "node_modules", ".bin", "mocha" ), [ '-c', '--reporter', av( args.mocha_reporter ), ...cns ] );
+            let cmd_args = [ '-c', ...cns ];
+            if ( av( args.mocha_reporter ) )cmd_args.unshift( '--reporter', av( args.mocha_reporter ) );
+            this.spawn_sync( av( args.mocha ) || path.resolve( args.launch_dir, "node_modules", ".bin", "mocha" ), cmd_args );
             done( false );
         } );
     }
