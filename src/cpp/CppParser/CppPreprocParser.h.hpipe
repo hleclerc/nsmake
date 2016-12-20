@@ -1,0 +1,71 @@
+# HELPERS
+read_dec[ num ] =
+    ( digit { num =            *data - '0'; } )
+    ( digit { num = 10 * num + *data - '0'; } )**
+
+read_hex[ num ] =
+    ( digit { num =            *data - '0'; } ) | ( 'A' .. 'F' { num =            *data - 'A'; } ) | ( 'a' .. 'f' { num =            *data - 'a'; } )
+    ( digit { num = 16 * num + *data - '0'; } ) | ( 'A' .. 'F' { num = 16 * num + *data - 'A'; } ) | ( 'a' .. 'f' { num = 16 * num + *data - 'a'; } )**
+
+op[ char, name ] =
+    char { ast_data.reg( new AstData::Node( AstData::name ), AstData::GRP_name ); }
+
+va[ char, name ] =
+    char { ast_data.reg( new AstData::Node( AstData::name ), -1 ); }
+
+# NUMBERS
+number_hex =
+    '0x'
+    read_hex[ "num" ]
+    { ast_data.reg( new AstData::Node( AstData::NUMBER, num ), -1 ); }
+    'L'??
+
+number_dec =
+    read_dec[ "num" ]
+    { ast_data.reg( new AstData::Node( AstData::NUMBER, num ), -1 ); }
+    'L'??
+
+variable =
+    clr_str[ "res" ]
+    '_' | alpha add_str[ "res" ]
+    ( '_' | alnum add_str[ "res" ] )**
+    { ast_data.reg( new AstData::Node( AstData::VARIABLE, 0, std::move( res ) ), -1 ); }
+
+com_l = '//' ( any - lf )**
+com_b = '/*' any* '*/'
+
+# MAIN
+main = (
+    com_l                         |
+    com_b                         |
+    va[ '##'     , "PLACEMAKER" ] |
+    op[ '<='     , "INF_EQ"     ] |
+    op[ '>='     , "SUP_EQ"     ] |
+    op[ '=='     , "EQU"        ] |
+    op[ '!='     , "NEQ"        ] |
+    op[ '&&'     , "AND_LOG"    ] |
+    op[ '||'     , "OR_LOG"     ] |
+    op[ '<<'     , "SHL"        ] |
+    op[ '>>'     , "SHR"        ] |
+    va[ '('      , 'LFT_PAR'    ] |
+    va[ ')'      , 'RGT_PAR'    ] |
+    va[ ','      , 'COMMA'      ] |
+    op[ '!'      , "NOT_LOG"    ] |
+    op[ '~'      , "NOT_BIN"    ] |
+    op[ '*'      , "MUL"        ] |
+    op[ '/'      , "DIV"        ] |
+    op[ '%'      , "MOD"        ] |
+    op[ '+'      , "ADD"        ] |
+    op[ '-'      , "SUB"        ] |
+    op[ '<'      , "INF"        ] |
+    op[ '>'      , "SUP"        ] |
+    op[ '&'      , "AND_BIN"    ] |
+    op[ '^'      , "XOR_BIN"    ] |
+    op[ '|'      , "OR_BIN"     ] |
+    op[ ':'      , "DBL_DOT"    ] |
+    op[ '?'      , "QUESTION"   ] |
+    number_hex                    |
+    number_dec                    |
+    variable                      |
+    any
+)**

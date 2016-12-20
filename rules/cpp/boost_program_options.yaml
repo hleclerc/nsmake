@@ -1,0 +1,8 @@
+includes: [ boost/program_options.hpp ]
+flag_sets:
+  - systems:   []
+    lib_names: [ boost_program_options, boost_system, pthread ]
+load_sets:
+  - systems: [ Ubuntu, Debian ]
+    command: apt-get install libboost-dev
+    root:    true

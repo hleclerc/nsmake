@@ -1,0 +1,17 @@
+includes: [ libxml/tree.h ]
+flag_sets:
+  - systems:   []
+    inc_paths: [ ext/libxml2/include/libxml2, /usr/include/libxml2 ]
+    lib_paths: [ ext/libxml2/lib ]
+    lib_names: [ xml2 ]
+load_sets:
+  - systems: [ Ubuntu, Debian ]
+    command: apt-get install libxml2
+    root:    true
+  - systems: []
+    command: "wget ftp://xmlsoft.org/libxml2/libxml2-2.9.4.tar.gz &&
+              tar xzf libxml2-2.9.4.tar.gz &&
+              cd libxml2-2.9.4 &&
+              ./configure --without-python --prefix=`pwd`/ext/libxml2 &&
+              make &&
+              make install"

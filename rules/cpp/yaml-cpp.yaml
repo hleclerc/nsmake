@@ -1,0 +1,8 @@
+includes: [ yaml-cpp/yaml.h ]
+flag_sets:
+  - systems:   []
+    lib_names: [ yaml-cpp ]
+load_sets:
+  - systems: [ Ubuntu, Debian ]
+    command: apt-get install libyaml-cpp-dev
+    root:    true

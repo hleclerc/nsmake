@@ -1,0 +1,6 @@
+includes: [ boost/process.hpp ]
+flag_sets:
+  - inc_paths: [ ext/boost-process ]
+    lib_names: [ boost_system ]
+load_sets:
+  - command: mkdir -p ext && cd ext && git clone https://github.com/BorisSchaeling/boost-process.git boost-process
