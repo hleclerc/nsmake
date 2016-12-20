@@ -9,14 +9,16 @@
     "nsmake": "dist/nsmake.js"
   },
   "scripts": {
-    "test": "mocha test/*.ts"
+    "test": "mocha test/*.ts",
+    "prepublish": "tsc"
   },
   "repository": {
     "type": "git",
-    "url": "git@hleclerc:github.com/nsmake"
+    "url": "git@github.com:hleclerc/nsmake.git"
   },
   "keywords": [
     "construction",
+    "pack",
     "make",
     "build"
   ],
