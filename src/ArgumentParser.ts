@@ -266,14 +266,17 @@ class ArgumentParser {
         if ( allowed_universes.length ) lst.push( filuni = `universe${ allowed_universes.length > 1 ? `s [${ allowed_universes.join( ', ' ) }]` :  " '" + allowed_universes[ 0 ] + "'" }` );
         const filter = lst.length ? ` for ${ lst.join( ' and ' ) }` : "";
 
-        // usege line.
+        // usage line.
         if ( allowed_missions.length ) {
             for( let mission of allowed_missions ) {
+                res += `Description of mission '${ mission }':\n`;
+                add_line( '  ', this.missions.get( mission ).description );
+
                 let args = [];
                 get_arg_messages( ( title, msg ) => args.push( `[${ title }]` ) );
                 args.push( mission ); 
                 get_positional_messages( mission, ( title, msg ) => args.push( title ) );
-                res += `Usage${ filter }:\n`;
+                res += `\nUsage${ filter }:\n`;
                 add_line( '  ', `${ this.prg_name } ${ args.join( ' ' ) }` );
             }
             res += `\n`;

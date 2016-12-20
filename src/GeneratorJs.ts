@@ -7,6 +7,7 @@ import ArgumentParser                      from "./ArgumentParser";
 import { ArgsJsDepFactory }                from "./JsDepFactory";
 import Generator                           from "./Generator";
 import { ExecutorArgs }                    from "./Executor";
+import { MochaArgs }                       from "./Mocha";
 import * as async                          from 'async';
 import * as path                           from 'path';
 
@@ -27,11 +28,11 @@ class GeneratorJs extends Generator {
         p.add_argument( [], [ 'js' ], 'nodejs', 'Set name of the nodejs executable (to run javascript)' );
 
         // missions
-        p.set_mission_description( 'run'  , [ 'js' ], 'compile and execute', [ "exe", "html" ]                                           );
-        p.set_mission_description( 'exe'  , [ 'js' ], 'make an executable'                                                               );
-        p.set_mission_description( 'lib'  , [ 'js' ], 'make a library'                                                                   );
-        p.set_mission_description( 'html' , [ 'js' ], 'make a html file (+ dependencies) from a js-like entry point'                     );
-        p.set_mission_description( 'mocha', [ 'js' ], 'run tests using mocha (with transpilation, concatenation, ... managed by nsmake)' );
+        p.set_mission_description( 'run'  , [ 'js' ], 'Compile and execute', [ "exe", "html" ]                                           );
+        p.set_mission_description( 'exe'  , [ 'js' ], 'Make an executable'                                                               );
+        p.set_mission_description( 'lib'  , [ 'js' ], 'Mmake a library'                                                                  );
+        p.set_mission_description( 'html' , [ 'js' ], 'Make a html file (+ dependencies, like css, ...) from a js-like entry point'      );
+        p.set_mission_description( 'mocha', [ 'js' ], 'Run tests using mocha (with transpilation, concatenation, ... managed by nsmake)' );
 
         const missions = [ 'run', 'exe', 'lib', 'html', 'mocha' ];
         p.add_argument( missions, [ 'js' ], 'js-env'               , 'set javascript target environment (nodejs|browser)'                             , "string"  );
@@ -67,8 +68,8 @@ class GeneratorJs extends Generator {
                 // make .js from .ts or .coffee or ...
                 const basename = target.substr( 0, target.length - t_ext.length );
                 return async.forEachSeries( [
-                    ...GeneratorJs.ts_ext.map( ext => ({ ext, cn_type: "TypescriptCompiler"  , make_cn: ch => this.make_typescript_compiler  ( ch ) }) ),
-                    ...GeneratorJs.cs_ext.map( ext => ({ ext, cn_type: "CoffeescriptCompiler", make_cn: ch => this.make_coffeescript_compiler( ch ) }) )
+                    ...GeneratorJs.ts_ext.map( ext => ({ ext, make_cn: ch => this.make_typescript_compiler  ( ch ) }) ),
+                    ...GeneratorJs.cs_ext.map( ext => ({ ext, make_cn: ch => this.make_coffeescript_compiler( ch ) }) )
                 ], ( trial, cb_ext ) => {
                     this.env.get_compilation_node( basename + trial.ext, cwd, for_found, cn => {
                         cb_ext( cn ? trial.make_cn( cn ) : null );
@@ -92,8 +93,9 @@ class GeneratorJs extends Generator {
                 entry_points  : args.entry_points || [],
                 mocha         : ga( this.env.arg_rec( "mocha" ) ),
                 mocha_reporter: ga( this.env.arg_rec( "mocha_reporter" ) ),
-                args          : args // hum...
-            } ) ); //  || path.resolve( this.env.cur_dir, "node_modules", ".bin", "mocha" )
+                args          : args, // hum...
+                launch_dir    : this.env.cwd
+            } as MochaArgs ) ); //  || path.resolve( this.env.cur_dir, "node_modules", ".bin", "mocha" )
         }
 
         //
@@ -163,7 +165,7 @@ class GeneratorJs extends Generator {
         // if we have a .js file, or if we can make it ?
         if ( args.entry_point != undefined ) {
             const en = cns[ args.entry_point ].outputs[ 0 ];
-            if ( path.extname( en ) == ".js" )
+            if ( path.extname( en ) == ".js" || path.extname( en ) == ".jsx" )
                 return with_a_dot_js( cns[ args.entry_point ] );
 
             const name_js = en.slice( 0, en.length - path.extname( en ).length ) + ".js";

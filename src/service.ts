@@ -17,6 +17,7 @@ adt( "JsParser"              );
 adt( "Executor"              );
 adt( "Codegen"               );
 adt( "Linker"                );
+adt( "Mocha"                 );
 adt( "Sleep"                 );
 
 // helpers for communication

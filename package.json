@@ -32,7 +32,8 @@
     "@types/lodash": "^4.14.43",
     "@types/mocha": "^2.2.33",
     "@types/node": "0.0.2",
-    "@types/rimraf": "0.0.28"
+    "@types/rimraf": "0.0.28",
+    "babel-preset-react": "^6.16.0"
   },
   "dependencies": {
     "async": "^2.1.4",

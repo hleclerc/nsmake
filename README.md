@@ -22,7 +22,7 @@ Features specific to the js world:
 * make an `.html` file to load and execute a javascript and its dependency in a browser (with of course the possibility to use templates for the static content),
 * Typescript/Coffeescript/JSX support,
 * support for arbitrary babel plugins and presets,
-* support for several testing frameworks (mocha, ...),
+* support for testing frameworks (mocha, ...),
 * full handling of sourcemaps,
 * preprocessing of all the js file (with commands like `ifdef`, `define`, `run`, ...).
 

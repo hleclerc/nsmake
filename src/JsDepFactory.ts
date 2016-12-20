@@ -288,8 +288,6 @@ class JsDepFactory extends Task {
         sm.append( rem );
 
         // minification
-        this.note( `args.min: ${ args.min }` );
-        
         if ( args.min ) {
             this.note( `sm.src_content: ${ sm.src_content }` );
             var nout = babel.transform( sm.src_content, {
@@ -330,7 +328,7 @@ class JsDepFactory extends Task {
         }
          
         // write result
-        this.note( `Emission of '${ this._js_name }'` );
+        this.note( `Emission of '${ this._js_name }' (+ .manifest and .map)` );
         this.write_file_sync( this._js_name, sm.src_content );
         this.write_file_sync( map_name, sm.toString( this._js_name ) );
         this.write_file_sync( manifest_name, JSON.stringify( manifest ) );

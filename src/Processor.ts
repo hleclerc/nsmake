@@ -721,7 +721,7 @@ class Processor {
                     if ( cwd.startsWith( env.cwd ) ) {
                         const new_node_modules_dir = path.resolve( env.cwd, "node_modules" );
                         return fs.mkdir( new_node_modules_dir, err => {
-                            if ( err ) {
+                            if ( err && err.code != 'EEXIST' ) {
                                 env.com.error( cn, `Impossible to create directory ${ new_node_modules_dir }` );
                                 return require_cb( null, '' );
                             }

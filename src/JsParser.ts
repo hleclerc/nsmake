@@ -189,7 +189,8 @@ function parser( js_parser: JsParser, exe_data: ExeDataJsParser, js_env: string 
 export default
 class JsParser extends Task {
     exec( args: ArgsJsParser ) {
-        const orig_name = this.children[ 0 ].exe_data.orig_name || this.children[ 0 ].outputs[ 0 ];
+        const js_name = this.children[ 0 ].outputs[ 0 ];
+        const orig_name = this.children[ 0 ].exe_data.orig_name || js_name;
 
         // new exe_data, with first trivial arguments
         let exe_data = this.exe_data = new ExeDataJsParser();
@@ -221,6 +222,8 @@ class JsParser extends Task {
             }
             presets.push( [ "env", ea ] );
         }
+        if ( path.extname( js_name ) == ".jsx" )
+            presets.push( "react" );
 
         if ( presets.length ) {
             var nout = babel.transform( sm.src_content, {
