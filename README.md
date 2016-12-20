@@ -32,7 +32,7 @@ Features specific to the native executable world:
 
 # Tutorials
 
-* [compilation of a generic web application](https://github.com/hleclerc/nsmake/wiki/Compilation-generic-web-application)
+* [compilation of a generic web application](https://github.com/hleclerc/nsmake/wiki/Tutorial:-compilation-of-a-generic-web-application)
 * [compilation of a C++ executable](https://github.com/hleclerc/nsmake/wiki/Tutorial:-compilation-of-a-C---executable)
 
 
