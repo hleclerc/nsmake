@@ -17,10 +17,23 @@ Nsmake tries to be
 * fast "nothing to do" builds (as other nodes in the graph, parsing ones are cached, and results are condensed to allow fast "change analyses").
 * Freeing of your source tree: in addition to a significant reduction of need for boilerplates and configuration files, nsmake tries as much as possible to generate files in build directories, leaving your source tree as beautiful as when you created it :)
 
+Features specific to the js world:
+* concatenation, minification, with full support for Hot Module Reload,
+* make an `.html` file to load and execute a javascript and its dependency in a browser (with of course the possibility to use templates for the static content),
+* Typescript/Coffeescript/JSX support,
+* support for arbitrary babel plugins and presets,
+* support for several testing frameworks (mocha, ...),
+* full handling of sourcemaps,
+* preprocessing of all the js file (with commands like `ifdef`, `define`, `run`, ...).
+
+Features specific to the native executable world:
+* fully compliant C/C++ preprocessor (with additional specific features, like NSMAKE_CMD, ...),
+* automatic handling of flag and downloads for library.
+
 # Tutorials
 
-* [a generic web application](link)
-* [a C++ executable](link)
+* [compilation of a generic web application](https://github.com/hleclerc/nsmake/wiki/Compilation-generic-web-application)
+* [compilation of a C++ executable](https://github.com/hleclerc/nsmake/wiki/Tutorial:-compilation-of-a-C---executable)
 
 
 <!-- * NSMake is friendly with code generation. For instance, a lot of tools make a first pass to find the dependencies, but this is incompatible with code generation where the result changes the graph. NSMake uses dynamic dependencies and the concept of "additional children" (nodes created during the compilation). Furthermore, it is bundled with "generators" that allow different kind of code generation. -->
