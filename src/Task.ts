@@ -105,7 +105,7 @@ abstract class Task {
         return JSON.stringify( [ type, children.map( sgn => JSON.parse( sgn ) ), args ] );
     }
 
-    /** */
+    /** @param dist: optionnal root target directory (e.g. for public files) */
     new_build_file( orig = "", ext = "", dist = "" ): string {
         return this._send_and_wait( { action: "new_build_file", orig, ext, dist } ).name;
     }
@@ -116,7 +116,7 @@ abstract class Task {
     }
 
     /** */
-    spawn_sync( executable: string, args: Array<string>, local_execution = false, redirect = '' ): number {
+    spawn_sync( executable: string, args: Array<string>, local_execution = false, redirect = '', mandatory = true ): number {
         // display
         this.announcement( `${ [ executable, ...args ].join( " " ) }${ redirect ? " > " + redirect : "" }` );
 
@@ -128,12 +128,13 @@ abstract class Task {
 
         // execution inside the service
         const cp = child_process.spawnSync( executable, args );
-        if ( cp.error )
-            throw cp.error;
+        if ( cp.error ) {
+            if ( mandatory )
+                throw cp.error;
+            return -1;
+        }
         if ( cp.stderr.length )
             this.error( cp.stderr.toString() );
-        if ( cp.status )
-            throw '';
 
         // outputs        
         if ( redirect ) {
@@ -141,6 +142,11 @@ abstract class Task {
             this.generated.push( redirect );
         } else if ( cp.stdout.length )
             this.info( cp.stdout.toString() );
+
+        // status
+        if ( mandatory && cp.status )
+            throw '';
+        return cp.status;
     }
 
     /** */
@@ -177,6 +183,11 @@ abstract class Task {
     rel_with_dot( from: string, to: string ) : string {
          let res = path.relative( from, to );
          return res.startsWith( '.' + path.sep ) || res.startsWith( '..' + path.sep ) ? res : './' + res;
+    }
+
+    /** helper to get arg values when a string is expected but if it is a number, it refers to a child */
+    av( n: string | number ): string {
+        return typeof n == 'string' ? n : this.children[ n ].outputs[ 0 ];
     }
 
     /** */

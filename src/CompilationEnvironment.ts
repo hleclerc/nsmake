@@ -123,9 +123,9 @@ class CompilationEnvironment {
     }
 
     /** */
-    arg_rec( name: string ): any {
+    arg_rec( name: string, default_value = null ): any {
         if ( this.args[ name ] ) return this.args[ name ];
-        return this.parent ? this.parent.arg_rec( name ) : null; 
+        return this.parent ? this.parent.arg_rec( name, default_value ) : default_value;
     }
 
     com        : CommunicationEnvironment; /** client link */

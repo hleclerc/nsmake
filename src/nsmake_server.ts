@@ -21,7 +21,7 @@ function send_end( connection: net.Socket, code: string | number ) {
 }
 
 /** launch a build seq. return a function to be called if a stop is wanted */
-function parse_and_build( c: net.Socket, proc: Processor, cwd: string, nb_columns: number, argv: Array<string> ) : () => void {
+function parse_and_build( c: net.Socket, proc: Processor, cwd: string, nb_columns: number, isTTY: boolean, argv: Array<string> ) : () => void {
     // define common argument types (mission independant)
     var p = new ArgumentParser( path.basename( argv[ 0 ] ), 'an hopefully less dummy build system', '0.0.1' );
     p.add_argument( [], [], 'v,version'  , 'get version number'                                                                       , 'boolean' );
@@ -31,7 +31,7 @@ function parse_and_build( c: net.Socket, proc: Processor, cwd: string, nb_column
     p.add_argument( [], [], 'watch-delay', 'if -w or --watch and method==polling, delay between tests, in ms'                                     );
 
     // make a new environment
-    let env = new CompilationEnvironment( new CommunicationEnvironment( c, proc, nb_columns ), cwd );
+    let env = new CompilationEnvironment( new CommunicationEnvironment( c, proc, nb_columns, isTTY ), cwd );
     env.decl_additional_options( p );
 
     // read arguments from the command line. args will contain number where CompilationNode are expected (numbers are indices to targets)
@@ -130,8 +130,8 @@ const server = net.createServer( c => {
                 switch ( args[ 0 ] ) {
                 case "build":
                     try {
-                        const cur_dir = args[ 1 ], nb_columns = Number( args[ 2 ] );
-                        end_func = parse_and_build( c, proc, cur_dir, nb_columns, args.slice( 3 ) );
+                        const cur_dir = args[ 1 ], nb_columns = Number( args[ 2 ] ), isTTY = Boolean( args[ 3 ] );
+                        end_func = parse_and_build( c, proc, cur_dir, nb_columns, isTTY, args.slice( 4 ) );
                     } catch ( e ) {
                         try {
                             send_end( c, `Message from the nsmake server: ${ e.stack }\n` );

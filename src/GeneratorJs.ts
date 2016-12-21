@@ -36,8 +36,10 @@ class GeneratorJs extends Generator {
 
         const missions = [ 'run', 'exe', 'lib', 'html', 'mocha' ];
         p.add_argument( missions, [ 'js' ], 'js-env'               , 'set javascript target environment (nodejs|browser)'                             , "string"  );
-        p.add_argument( missions, [ 'js' ], 'target-browsers'      , 'shortcut to set target browser(s) in babel-preset-env, list of strings separated by commas. ' +
-                                                                     'Ex of value: "last 2 versions, safari >= 7"'                                    , "string*" );
+        p.add_argument( missions, [ 'js' ], 'target-browsers'      , 'shortcut to set target browser(s) in babel-preset-env, list of strings separated ' +
+                                                                     'by commas. Ex of value: "last 2 versions, safari >= 7"'                         , "string*" );
+        p.add_argument( missions, [ 'js' ], 'target-testing-env'   , 'where to launch the test, list of strings separated by commas. Can be nodejs are any ' +
+                                                                     'target supported by karma launcher (e.g. chrome, firefox, phantomjs, ...)'      , "string*" );
         p.add_argument( missions, [ 'js' ], 'babel-env-arguments'  , 'set arguments for babel-preset-env in YAML format without the surrounding braces ' +
                                                                      '(@see https://github.com/babel/babel-preset-env). ' + 
                                                                      'Ex of value: "targets:{browsers:[\'last 2 versions\']}"'                        , "string"  );
@@ -90,11 +92,13 @@ class GeneratorJs extends Generator {
         // run with mocha ?
         if ( args.mission == "mocha" ) {
             return cb( this.env.com.proc.pool.New( "Mocha", [], {
-                entry_points  : args.entry_points || [],
-                mocha         : ga( this.env.arg_rec( "mocha" ) ),
-                mocha_reporter: ga( this.env.arg_rec( "mocha_reporter" ) ),
-                args          : args, // hum...
-                launch_dir    : this.env.cwd
+                target_testing_env: [].concat( ...this.env.arg_rec( "target_testing_env", [ "nodejs" ] ).map( x => x.split( "," ) ) ),
+                entry_points      : args.entry_points || [],
+                mocha             : ga( this.env.arg_rec( "mocha" ) ),
+                mocha_reporter    : ga( this.env.arg_rec( "mocha_reporter" ) ),
+                args              : args, // hum...
+                launch_dir        : this.env.cwd,
+                color             : this.env.com.color,
             } as MochaArgs ) ); //  || path.resolve( this.env.cur_dir, "node_modules", ".bin", "mocha" )
         }
 

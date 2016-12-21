@@ -594,10 +594,10 @@ class Processor {
                                 const id = this.waiting_spw.size.toString();
                                 service.status = "waiting";
                                 service.env.com.spawn_local( id, args );
-                                this.waiting_spw.set( id, { env: service.env, cb: () => {
+                                this.waiting_spw.set( id, { env: service.env, cb: ( code: number ) => {
                                     this.waiting_spw.delete( id );
                                     service.status = "active";
-                                    send( { action: 'spawn_local', code: args.code } );
+                                    send( { action: 'spawn_local', code } );
                                 } } );
                                 break;
                             }
@@ -783,7 +783,7 @@ class Processor {
     _spawn_is_done( id: string, code: number ) {
         const sd = this.waiting_spw.get( id );
         if ( sd )
-            sd.cb();
+            sd.cb( code );
     }
 
     new_build_file( cwd: string, orig: string, ext: string, dist: string, cb: ( err, name ) => void ) {
@@ -819,7 +819,7 @@ class Processor {
     services             = new Array<Service>();
     building             = false;
     waiting_cns          = new Array<{ env: CompilationEnvironment, cn: CompilationNode }>();
-    waiting_spw          = new Map<string,{ env: CompilationEnvironment, cb: () => void }>();
+    waiting_spw          = new Map<string,{ env: CompilationEnvironment, cb: ( code: number ) => void }>();
     waiting_build_seqs   = new Array<{ at_launch_cb: () => void, cb: ( done_cb: () => void ) => void }>(); 
     current_install_cmds = new Set<string>();
     waiting_install_cmds = new Array< { com: CommunicationEnvironment, cn: CompilationNode, category: string, cwd: string, cmd: Array<string> | string, cb: ( err: boolean ) => void } >();
