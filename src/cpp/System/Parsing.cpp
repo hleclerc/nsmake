@@ -356,3 +356,6 @@ void replace_all( std::string &str, const std::string &from, const std::string &
 }
 
 
+bool is_absolute( const std::string &filename ) {
+    return filename.size() && ( filename[ 0 ] == '/' || filename[ 0 ] == '\\' );
+}

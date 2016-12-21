@@ -18,8 +18,6 @@ export interface MochaArgs {
 
 export default
 class Mocha extends Task {
-    static attributes = [ "args", "mocha", "reporter" ];
-
     exec( args: MochaArgs, done: ( err: boolean ) => void ) {
         // we want to redo the call each time we relaunch the mission
         this.pure_function = false;

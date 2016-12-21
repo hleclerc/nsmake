@@ -13,6 +13,7 @@ class ExeDataGenCompiler {
     lib_names            = new Array<string>();
     lib_paths            = new Array<string>();
     inc_paths            = new Array<string>();
+    obj_names            = new Array<string>();
     // data from nsmake cmds
     // ext_libs             = new Array<{ name: string, url: string, glob: string }>();
 }

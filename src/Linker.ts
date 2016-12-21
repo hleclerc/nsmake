@@ -40,10 +40,10 @@ class Linker extends Task {
             for( ; num_obj_to_read < this.objects.length; ++num_obj_to_read ) {
                 const res = this.objects[ num_obj_to_read ];
 
-                // we have something to be compiled along the header file
-                for( const include of res.exe_data.includes || [] ) {
-                    const wo_ext = include.slice( 0, include.length - path.extname( include ).length );
-                    const object = this.get_first_filtered_target_signature( [ wo_ext + ".o" ], path.dirname( include ) );
+                // we have something to be compiled along the header file ?
+                for( const moj of [ ...( res.exe_data.includes || [] ), ...( res.exe_data.obj_names || [] ) ] ) {
+                    const wo_ext = moj.slice( 0, moj.length - path.extname( moj ).length );
+                    const object = this.get_first_filtered_target_signature( [ wo_ext + ".o" ], path.dirname( moj ) );
                     if ( object && this.objects.every( x => x.signature != object.signature ) && new_obj_sgns.every( x => x != object.signature ) )
                         new_obj_sgns.push( object.signature );
                 }

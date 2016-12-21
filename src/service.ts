@@ -18,6 +18,7 @@ adt( "Executor"              );
 adt( "Codegen"               );
 adt( "Linker"                );
 adt( "Mocha"                 );
+adt( "Gtest"                 );
 adt( "Sleep"                 );
 
 // helpers for communication

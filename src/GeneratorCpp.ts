@@ -6,6 +6,7 @@ import { ArgsCppCompiler }                 from "./CppCompiler";
 import Generator                           from "./Generator";
 import { ExecutorArgs }                    from "./Executor";
 import { ArgsLinker }                      from "./Linker";
+import { GtestArgs }                       from "./Gtest";
 import * as async                          from 'async';
 import * as path                           from 'path';
 import * as os                             from 'os';
@@ -29,11 +30,13 @@ class GeneratorCpp extends Generator {
         // p.add_argument( [], [ 'cpp' ], 'nodejs', 'Set name of the nodejs executable (to run javascript)' );
 
         // missions
-        p.set_mission_description( 'run'  , [ 'cpp' ], 'compile and execute', [ "exe", "lib" ] );
-        p.set_mission_description( 'exe'  , [ 'cpp' ], 'make an executable'                    );
-        p.set_mission_description( 'lib'  , [ 'cpp' ], 'make a library'                        );
+        p.set_mission_description( 'run'  , [ 'cpp' ], 'compile and execute', [ "exe", "lib" ]                            );
+        p.set_mission_description( 'exe'  , [ 'cpp' ], 'make an executable'                                               );
+        p.set_mission_description( 'lib'  , [ 'cpp' ], 'make a library'                                                   );
+        p.set_mission_description( 'gtest', [ 'cpp' ], 'launch tests using gtest (google test). It takes entry points, ' +
+                'that can be glob patterns and launch all the tests found in these entries'                               );
 
-        const comp_missions = [ 'lib', 'exe', 'run' ], universes = [ 'cpp', 'c', 'fortran', 'asm' ];
+        const comp_missions = [ 'lib', 'exe', 'run', 'gtest' ], universes = [ 'cpp', 'c', 'fortran', 'asm' ];
         p.add_argument( comp_missions, universes, 'output,o'      , 'set name(s) of the output file(s), separated by a comma if several are expected' , 'path*'   );
         p.add_argument( comp_missions, universes, "include-path,I", "Add the directory arg to the list of directories to be searched for header files", 'path*'   );
         p.add_argument( comp_missions, universes, "library-path,L", "Add the directory arg to the list of directories to be searched for libraries"   , 'path*'   );
@@ -47,6 +50,7 @@ class GeneratorCpp extends Generator {
         p.add_argument( comp_missions, universes, "ld"            , "Set default linker"                                                                          );
 
         // p.add_positionnal_argument( [ 'exe', 'lib' ], 'entry_point', 'Entry point (sourcefile)', 'cn' );
+        p.add_positional_argument( [ 'gtest' ], 'entry_points', 'Entry points. Glob patterns are accepted', 'string*' );
     }
 
     get_gcn_funcs( funcs: Array<GcnItem> ) {
@@ -72,6 +76,16 @@ class GeneratorCpp extends Generator {
     get_mission_node( for_found: FileDependencies, cb: ( cn: CompilationNode ) => void ): void {
         // shortcuts
         const args = this.env.args, cns = this.env.cns;
+
+        // run with mocha ?
+        if ( args.mission == "gtest" ) {
+            return cb( this.env.com.proc.pool.New( "Gtest", [], {
+                entry_points      : args.entry_points || [],
+                args              : args, // hum...
+                launch_dir        : this.env.cwd,
+                color             : this.env.com.color,
+            } as GtestArgs ) ); //  || path.resolve( this.env.cur_dir, "node_modules", ".bin", "mocha" )
+        }
 
         // if we have a .o or something that generates a .o, we can make a lib, an executable, run it, ...
         const with_a_dot_o = cn_o => {

@@ -46,6 +46,8 @@ int main() {
                 task.exe_data[ "lib_paths" ].append( inc );
             for( const auto &inc : cp.lib_names )
                 task.exe_data[ "lib_names" ].append( inc );
+            for( const auto &inc : cp.obj_names )
+                task.exe_data[ "obj_names" ].append( inc );
         } catch ( std::string msg ) {
             if ( msg.length() ) task.error( msg );
             task.err = true;

@@ -1,6 +1,7 @@
 
 export default 
 class LibRulesGenCompiler {
+    yaml_name : string;
     includes ?: Array<string>;
     flag_sets?: Array<{
         systems  ?: Array<string>,

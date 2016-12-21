@@ -36,6 +36,7 @@ template<class Op> void  read_variable            ( unsigned *lb, const char *&b
 std::string              content_of               ( const std::string &filename );
 
 std::string              dirname                  ( const std::string &filename );
+bool                     is_absolute              ( const std::string &filename );
 std::string              relative_to              ( const std::string &dir, const std::string &filename );
 
 std::vector<std::string> split                    ( const std::string &str, char sep );

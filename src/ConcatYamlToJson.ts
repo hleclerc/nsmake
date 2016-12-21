@@ -6,7 +6,9 @@ import * as path from "path";
 export interface ConcatYamlToJsonArgs {
 }
 
-/** executable or items args number => num in children
+/** read .yaml files in directory(ies) specified by children, concatenate the result in a json with
+ *   name: name of the .yaml file
+ *   data: data in the .yaml file
  */
 export default
 class ConcatYamlToJson extends Task {
@@ -16,9 +18,10 @@ class ConcatYamlToJson extends Task {
             const dir = ch.outputs[ 0 ];
             for( let name of this.read_dir_sync( dir ) ) {
                 if ( name.toLowerCase().endsWith( ".yaml" ) ) {
-                    res.push( yaml.safeLoad( this.read_file_sync( 
+                    const data = yaml.safeLoad( this.read_file_sync( 
                         this.get_filtered_target( path.resolve( dir, name ), dir ).name
-                    ).toString() ) );
+                    ).toString() );
+                    res.push( { name, data } );
                 }
             }
         }

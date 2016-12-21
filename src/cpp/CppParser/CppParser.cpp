@@ -228,6 +228,11 @@ void CppParser::_nsmake( const char *b, const char *e, Read *read ) {
         lib_names.push_back( cf( 1 ) );
         return;
     }
+    if ( spl[ 0 ] == "obj_name" ) {
+        if ( nspl.size() < 2 ) throw "'//// nsmake obj_name' is supposed to be followed by 1 argument";
+        obj_names.push_back( resolve( read->dir, cf( 1 ) ) );
+        return;
+    }
 
     throw "'" + spl[ 0 ] + "' is not a known command";
 }
@@ -419,7 +424,7 @@ std::string CppParser::substitution( const std::string &str, Read *read, const c
                     if ( arguments.size() != 1 )
                         return c_error( "'__has_include[__]' expects exactly one argument", od, read );
                     // send a request, wait for an answer
-                    std::vector<std::string> to_try = include_try_list( read->dir, { arguments[ 0 ].first, arguments[ 0 ].second }, 0 );
+                    std::vector<std::string> to_try = include_try_list( read->dir, task.args[ "launch_dir" ].asString(), { arguments[ 0 ].first, arguments[ 0 ].second }, 0 );
                     Task::NumAndSignature nas = task.get_first_filtered_target_signature( to_try, read->dir );
                     return repl( nas ? "1" : "0" );
                 }
@@ -429,7 +434,7 @@ std::string CppParser::substitution( const std::string &str, Read *read, const c
                     if ( arguments.size() != 1 )
                         return c_error( "'__has_include_next[__]' expects exactly one argument", od, read );
                     // send a request, wait for an answer
-                    std::vector<std::string> to_try = include_try_list( read->dir, { arguments[ 0 ].first, arguments[ 0 ].second }, get_num_path( read ) + 1 );
+                    std::vector<std::string> to_try = include_try_list( read->dir, task.args[ "launch_dir" ].asString(), { arguments[ 0 ].first, arguments[ 0 ].second }, get_num_path( read ) + 1 );
                     Task::NumAndSignature nas = task.get_first_filtered_target_signature( to_try, read->dir );
                     return repl( nas ? "1" : "0" );
                 }
@@ -606,13 +611,16 @@ void CppParser::read_rules() {
     Json::Reader reader;
     reader.parse( task.read_file_sync( task.children[ 1 ].outputs[ 0 ] ), data );
 
-    for( const Json::Value &item : data ) {
-        for( const Json::Value &include : item[ "includes" ] ) {
+    for( Json::Value &item : data ) {
+        if ( item[ "data" ].isNull() )
+            continue;
+        for( Json::Value &include : item[ "data" ][ "includes" ] ) {
             std::string str = include.asString();
             auto iter = inc_rules.find( str );
             if ( iter != inc_rules.end() )
                 task.error( "Rule for include <" + str + "> appears twice in yaml rule files." );
-            inc_rules.insert( iter, std::make_pair( str, item ) );
+            item[ "data" ][ "yaml_name" ] = item[ "name" ];
+            inc_rules.insert( iter, std::make_pair( str, item[ "data" ] ) );
         }
     }
 }
@@ -690,7 +698,7 @@ void CppParser::_include( const char *b, const char *e, Read *read, const char *
         std::string inc_str{ b + 1, e - 1 };
         include_strs.insert( inc_str );
 
-        std::vector<std::string> to_try = include_try_list( *b == '"' ? read->dir : "", inc_str, min_num_path );
+        std::vector<std::string> to_try = include_try_list( *b == '"' ? read->dir : "", task.args[ "launch_dir" ].asString(), inc_str, min_num_path );
 
         // get signature
         Task::NumAndSignature nas = task.get_first_filtered_target_signature( to_try, read->dir );
@@ -750,10 +758,18 @@ bool CppParser::load_library( const Json::Value &jd ) {
     return true;
 }
 
-std::vector<std::string> CppParser::include_try_list( std::string cur_dir, std::string basename, unsigned min_num_path ) {
+std::vector<std::string> CppParser::include_try_list( std::string cur_dir, std::string launch_dir, std::string basename, unsigned min_num_path ) {
+    // absolute name
     std::vector<std::string> to_try;
+    if ( is_absolute( basename ) ) {
+        to_try.push_back( basename );
+        return to_try;
+    }
+
+    // #include "..." => current directory
     if ( cur_dir.size() )
         to_try.push_back( cur_dir + "/" + basename );
+
 
     // there's a rule for this include ?
     auto iter = inc_rules.find( basename );
@@ -761,16 +777,15 @@ std::vector<std::string> CppParser::include_try_list( std::string cur_dir, std::
         for( Json::Value set: iter->second[ "flag_sets" ] ) {
             if ( task.system_is_in( from_json( set[ "systems" ] ), from_json( task.args[ "system" ] ) ) ) {
                 for( Json::Value inc_path : set[ "inc_paths" ] )
-                    push_back_unique( inc_paths, resolve( cur_dir, inc_path.asString() ) );
+                    push_back_unique( inc_paths, resolve( launch_dir, inc_path.asString() ) );
                 for( Json::Value lib_path : set[ "lib_paths" ] )
-                    push_back_unique( lib_paths, resolve( cur_dir, lib_path.asString() ) );
+                    push_back_unique( lib_paths, resolve( launch_dir, lib_path.asString() ) );
                 for( Json::Value lib_name : set[ "lib_names" ] )
                     push_back_unique( lib_names, lib_name.asString() );
                 break;
             }
         }
     }
-
 
     for( const std::string &dir : inc_paths )
         to_try.push_back( dir + "/" + basename );

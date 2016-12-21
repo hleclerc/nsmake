@@ -66,7 +66,7 @@ struct CppParser {
     bool                 is_in              ( std::string file, const std::string &dir ) const;
     void                 read_rules         ();
     void                 read_base_info     ();
-    StringVec            include_try_list   ( std::string cur_dir, std::string basename, unsigned min_num_path );
+    StringVec            include_try_list   ( std::string cur_dir, std::string launch_dir, std::string basename, unsigned min_num_path );
     bool                 load_library       ( const Json::Value &jd );
 
 
@@ -113,6 +113,7 @@ struct CppParser {
     StringVec            inc_paths;
     StringVec            lib_paths;
     StringVec            lib_names;
+    StringVec            obj_names;
 };
 
 #endif // CppParser_H

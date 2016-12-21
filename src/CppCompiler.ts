@@ -227,10 +227,13 @@ class CppCompiler extends Task {
     read_rules() {
         const data = JSON.parse( this.read_file_sync( this.children[ 1 ].outputs[ 0 ] ).toString() );
         for( const item of data ) {
-            for( const include of item.includes || [] ) {
+            if ( ! item.data )
+                continue;
+            for( const include of item.data.includes || [] ) {
                 if ( this.inc_rules.has( include ) )
                     this.error( `Rule for include <${ include }> appears twice in yaml rule files.` );
-                this.inc_rules.set( include, item );
+                item.data.yaml_name = item.name;
+                this.inc_rules.set( include, item.data );
             }
         }
     }
