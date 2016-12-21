@@ -54,14 +54,14 @@ class GeneratorCpp extends Generator {
     }
 
     get_gcn_funcs( funcs: Array<GcnItem> ) {
-        funcs.push( { prio: 0, func: ( target: string, output: string, cwd: string, cb: ( cn: CompilationNode ) => void, for_found: FileDependencies ): void => {
+        funcs.push( { prio: 0, func: ( target: string, output: string, cwd: string, cb: ( cn: CompilationNode ) => void, for_found: FileDependencies, care_about_target: boolean ): void => {
             // make .o from .cpp or .c or ...
             const t_ext = path.extname( target );
             if ( t_ext == ".o" ) {
                 const basename = target.substr( 0, target.length - t_ext.length);
                 return async.forEachSeries( [
-                    ...GeneratorCpp.cpp_ext.map( ext => ({ ext, make_cn: ch => this.make_cpp_compiler( ch ) }) ),
-                    ...GeneratorCpp.c_ext  .map( ext => ({ ext, make_cn: ch => this.make_cpp_compiler( ch ) }) ),
+                    ...GeneratorCpp.cpp_ext.map( ext => ({ ext, make_cn: ch => this.make_cpp_compiler( ch, care_about_target ? target : "" ) }) ),
+                    ...GeneratorCpp.c_ext  .map( ext => ({ ext, make_cn: ch => this.make_cpp_compiler( ch, care_about_target ? target : "" ) }) ),
                 ], ( trial, cb_ext ) => {
                     this.env.get_compilation_node( basename + trial.ext, cwd, for_found, cn => {
                         cb_ext( cn ? trial.make_cn( cn ) : null );
@@ -151,13 +151,14 @@ class GeneratorCpp extends Generator {
         return cb( null );
     }
 
-    make_cpp_compiler( cn: CompilationNode ): CompilationNode {
+    make_cpp_compiler( cn: CompilationNode, output: string ): CompilationNode {
         const ncc = `CppCompiler@${ path.resolve( __dirname, "..", "..", "src", "cpp", "main_cpp_services.cpp" ) }`;
         return this.env.New( this.env.args.cpp_bootstrap ? "CppCompiler": ncc, [ cn, this.cpp_rules_cn(), this.base_include_paths_cn(),  ], {
             define    : [],
             system    : os.platform(),
             launch_dir: this.env.cwd,
             inc_paths : include_path( this.env.args ),
+            output,
         } as ArgsCppCompiler );
     }
 

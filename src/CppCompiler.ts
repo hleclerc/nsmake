@@ -11,6 +11,7 @@ interface ArgsCppCompiler {
     system    : string;
     launch_dir: string;
     inc_paths : Array<string>;
+    output    : string;
 }
 
 /** executable or items args number => num in children
@@ -51,7 +52,7 @@ class CppCompiler extends Task {
         }
 
         // name of the output file
-        const o_name = this.new_build_file( orig_name, ".o" );
+        const o_name = args.output || this.new_build_file( orig_name, ".o" );
         this.outputs = [ o_name ];
 
         // args

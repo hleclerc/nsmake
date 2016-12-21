@@ -20,7 +20,7 @@ int main() {
             }
 
             // arguments
-            string o_name = task.new_build_file( cpp_name, ".o" );
+            string o_name = task.args[ "output" ].isString() ? task.args[ "output" ].asString() : task.new_build_file( cpp_name, ".o" );
             std::vector<std::string> args;
             args.push_back( "-c" );
             args.push_back( "-o" );
@@ -36,18 +36,12 @@ int main() {
 
             // update of exe_data
             task.exe_data[ "orig_name" ] = task.children[ 0 ].exe_data[ "orig_name" ].isString() ?
-                        task.children[ 0 ].exe_data[ "orig_name" ].asString() :
-                        cpp_name;
-            for( const auto &inc : cp.includes )
-                task.exe_data[ "includes" ].append( inc );
-            for( const auto &inc : cp.include_strs )
-                task.exe_data[ "include_strs" ].append( inc );
-            for( const auto &inc : cp.lib_paths )
-                task.exe_data[ "lib_paths" ].append( inc );
-            for( const auto &inc : cp.lib_names )
-                task.exe_data[ "lib_names" ].append( inc );
-            for( const auto &inc : cp.obj_names )
-                task.exe_data[ "obj_names" ].append( inc );
+                        task.children[ 0 ].exe_data[ "orig_name" ].asString() : cpp_name;
+            for( const auto &inc : cp.includes     ) task.exe_data[ "includes"     ].append( inc );
+            for( const auto &inc : cp.include_strs ) task.exe_data[ "include_strs" ].append( inc );
+            for( const auto &inc : cp.lib_paths    ) task.exe_data[ "lib_paths"    ].append( inc );
+            for( const auto &inc : cp.lib_names    ) task.exe_data[ "lib_names"    ].append( inc );
+            for( const auto &inc : cp.obj_names    ) task.exe_data[ "obj_names"    ].append( inc );
         } catch ( std::string msg ) {
             if ( msg.length() ) task.error( msg );
             task.err = true;

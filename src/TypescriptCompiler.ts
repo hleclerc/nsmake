@@ -9,6 +9,7 @@ export interface TypescriptCompilerArgs {
     js_env         : string;
     launch_dir     : string;
     nb_columns     : number;
+    output         : string;
 }
 
 export
@@ -95,8 +96,8 @@ class TypescriptCompiler extends Task {
             }
 
             // outputs
-            const nsm = this.new_build_file( orig_name, ".js.map" );
-            const njs = this.new_build_file( orig_name, ".js" );
+            const nsm = args.output ? args.output + ".map" : this.new_build_file( orig_name, ".js.map" );
+            const njs = args.output || this.new_build_file( orig_name, ".js" );
             this.outputs = [ njs, nsm ];
 
             // remove all //# sourceMappingURL=.... TODO: something context sensitive

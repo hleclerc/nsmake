@@ -64,14 +64,14 @@ class GeneratorJs extends Generator {
     }
 
     get_gcn_funcs( funcs: Array<GcnItem> ) {
-        funcs.push( { prio: 0, func: ( target: string, output: string, cwd: string, cb: ( cn: CompilationNode ) => void, for_found: FileDependencies ): void => {
+        funcs.push( { prio: 0, func: ( target: string, output: string, cwd: string, cb: ( cn: CompilationNode ) => void, for_found: FileDependencies, care_about_target: boolean ): void => {
             const t_ext = path.extname( target );
             if ( t_ext == ".js" ) {
                 // make .js from .ts or .coffee or ...
                 const basename = target.substr( 0, target.length - t_ext.length );
                 return async.forEachSeries( [
-                    ...GeneratorJs.ts_ext.map( ext => ({ ext, make_cn: ch => this.make_typescript_compiler  ( ch ) }) ),
-                    ...GeneratorJs.cs_ext.map( ext => ({ ext, make_cn: ch => this.make_coffeescript_compiler( ch ) }) )
+                    ...GeneratorJs.ts_ext.map( ext => ({ ext, make_cn: ch => this.make_typescript_compiler  ( ch, care_about_target ? target : "" ) }) ),
+                    ...GeneratorJs.cs_ext.map( ext => ({ ext, make_cn: ch => this.make_coffeescript_compiler( ch, care_about_target ? target : "" ) }) )
                 ], ( trial, cb_ext ) => {
                     this.env.get_compilation_node( basename + trial.ext, cwd, for_found, cn => {
                         cb_ext( cn ? trial.make_cn( cn ) : null );
@@ -179,17 +179,19 @@ class GeneratorJs extends Generator {
         return cb( null );
     }
 
-    make_typescript_compiler( ch: CompilationNode ): CompilationNode {
+    make_typescript_compiler( ch: CompilationNode, output: string ): CompilationNode {
         return this.env.New( "TypescriptCompiler", [ ch ], {
             no_implicit_any: this.env.args.no_implicit_any || false,
             js_env         : js_env( this.env.args ),
             nb_columns     : this.env.com.nb_columns,
             launch_dir     : this.env.cwd,
+            output,
         } as TypescriptCompilerArgs );
     }
 
-    make_coffeescript_compiler( ch: CompilationNode ): CompilationNode {
+    make_coffeescript_compiler( ch: CompilationNode, output: string ): CompilationNode {
         return this.env.New( "CoffeescriptCompiler", [ ch ], {
+            output,
         } as CoffeescriptCompilerArgs );
     }
 

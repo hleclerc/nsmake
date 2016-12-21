@@ -3,8 +3,7 @@ import * as path from "path"
 var cs = require( "coffee-script" );
 
 export interface CoffeescriptCompilerArgs {
-    // js_env: string;
-    // output: string;
+    output: string;
 }
 
 export
@@ -68,8 +67,8 @@ class CoffeescriptCompiler extends Task {
         }
 
         // save content
-        const nsm = this.new_build_file( orig_name, ".js.map" );
-        const njs = this.new_build_file( orig_name, ".js" );
+        const nsm = args.output ? args.output + ".map" : this.new_build_file( orig_name, ".js.map" );
+        const njs = args.output || this.new_build_file( orig_name, ".js" );
 
         cmp.js += `\n//# sourceMappingURL=${ path.relative( path.dirname( njs ), nsm ) }`;
         this.write_file_sync( nsm, cmp.v3SourceMap );

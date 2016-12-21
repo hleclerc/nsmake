@@ -52,8 +52,8 @@ abstract class Task {
     }
 
     /** get signature for generator of `target`. This version does not launch execution  */
-    get_filtered_target_signatures( targets: Array<string>, cwd: string, mandatory = true ): Array<string> {
-        const res = this._send_and_wait( { action: "get_filtered_target_signatures", targets, cwd } ).signatures;
+    get_filtered_target_signatures( targets: Array<string>, cwd: string, mandatory = true, care_about_target = false ): Array<string> {
+        const res = this._send_and_wait( { action: "get_filtered_target_signatures", targets, cwd, care_about_target } ).signatures;
         if ( res.some( x => ! x ) ) {
             for( let num = 0; num < targets.length; ++num )
                 if ( ! res[ num ] )

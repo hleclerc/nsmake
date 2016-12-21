@@ -491,7 +491,7 @@ class Processor {
                                 async.map( args.targets, ( target: string, cb ) => {
                                     service.env.get_compilation_node( target, args.cwd, service.cn.file_dependencies, ncn => {
                                         cb( null, ncn ? ncn.signature : '' );
-                                    } );
+                                    }, args.care_about_target );
                                 }, ( err, signatures ) => {
                                     send( { action: 'get_filtered_target_signatures', signatures } );
                                 } );

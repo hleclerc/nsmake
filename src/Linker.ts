@@ -66,7 +66,7 @@ class Linker extends Task {
         // const add_flags = lib_type == "dynamic" ? [ "-fpic" ] : [];
         let ext: string, cmd_args = [] as Array<string>, ld = "g++", lib_type = "exe";
         switch ( lib_type ) {
-            case "static" : ext = '.a';   cmd_args.push( 'rc' ); ld = "this.ar"; break;
+            case "static" : ext = '.a';   cmd_args.push( 'rc' ); ld = "ar"; break;
             case "dynamic": ext = '.so';  cmd_args.push( '-shared', '-o' ); break;
             default       : ext = '.exe'; cmd_args.push( '-o' );
         }
