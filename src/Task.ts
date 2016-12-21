@@ -96,8 +96,8 @@ abstract class Task {
     }
 
     /** return true if error */
-    run_install_cmd( category: string, cwd: string, cmd: Array<string> | string ): boolean {
-        return this._send_and_wait( { action: "run_install_cmd", category, cwd, cmd } ).err;
+    run_install_cmd( category: string, cwd: string, cmd: Array<string> | string, prerequ = [] as Array<string> ): boolean {
+        return this._send_and_wait( { action: "run_install_cmd", category, cwd, cmd, prerequ } ).err;
     }
 
     /** children = array of signatures */

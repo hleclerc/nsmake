@@ -1,0 +1,11 @@
+includes: [ gtest/gtest.h ]
+flag_sets:
+  - systems:   []
+    lib_names: [ gtest, pthread ]
+    lib_paths: [ ext/googletest/install/lib ]
+    inc_paths: [ ext/googletest/install/include ]
+load_sets:
+  - systems: []
+    prerequ: [ cmake ]
+    command: mkdir -p ext/googletest && cd ext/googletest && git clone https://github.com/google/googletest.git src && cd src && cmake -DCMAKE_INSTALL_PREFIX=../install . && make install 
+    

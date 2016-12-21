@@ -1,0 +1,6 @@
+- systems: []
+  prerequ: []
+  command: which cmake || sudo apt-get install cmake
+
+
+ 

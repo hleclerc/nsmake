@@ -1,6 +1,7 @@
 #ifndef PARSING_H
 #define PARSING_H
 
+#include <algorithm>
 #include <iostream>
 #include <vector>
 #include <string>
@@ -41,6 +42,11 @@ std::vector<std::string> split                    ( const std::string &str, char
 std::string              join                     ( const std::vector<std::string> &str, const std::string &sep );
 std::string              resolve                  ( const std::string &a, const std::string &b );
 
+template<class L,class T>
+void push_back_unique( L &lst, T &&val ) { // TODO: tidying up (place relevant stuff in relevant files, ...)
+    if ( std::find( lst.begin(), lst.end(), val ) == lst.end() )
+        lst.emplace_back( std::move( val ) );
+}
 
 // implementation --------------
 template<class Op>

@@ -8,6 +8,7 @@ import SpRepr                   from "./SpRepr";
 import Pool                     from "./Pool";
 import Db                       from "./Db";
 import * as child_process       from 'child_process';
+import * as yaml                from "js-yaml";
 import * as lodash              from 'lodash';
 import * as crypto              from 'crypto';
 import * as rimraf              from 'rimraf';
@@ -112,7 +113,7 @@ class Processor {
         //
         let ids_to_del = new Array<string>();
         this.waiting_spw.forEach( ( sd, id ) => {
-            if ( sd.env && sd.env.com == com )
+            if ( sd.com == com )
                 ids_to_del.push( id );
         } );
         for( const id of ids_to_del )
@@ -591,14 +592,11 @@ class Processor {
                                 } );
                                 break;
                             case "spawn_local": {
-                                const id = this.waiting_spw.size.toString();
                                 service.status = "waiting";
-                                service.env.com.spawn_local( id, args );
-                                this.waiting_spw.set( id, { env: service.env, cb: ( code: number ) => {
-                                    this.waiting_spw.delete( id );
+                                this._spawn_local( service.env.com, args.executable, args.args || [], args.redirect || "", code => {
                                     service.status = "active";
                                     send( { action: 'spawn_local', code } );
-                                } } );
+                                } );
                                 break;
                             }
                             case "spawn":
@@ -613,7 +611,7 @@ class Processor {
                                 cp.on( "close", ( code, signal ) => { send( { action: 'spawn', code } ); } );
                                 break;
                             case "run_install_cmd":
-                                this._install_cmd( service.env.com, service.cn, args.category, args.cwd, args.cmd, err => {
+                                this._install_cmd( service.env.com, service.cn, args.category, args.cwd, args.cmd, args.prerequ, err => {
                                     send( { action: 'run_install_cmd', err } );
                                 } );
                                 break;
@@ -654,6 +652,24 @@ class Processor {
             this._make_cp_for_cat( category, com, init_cp );
         else
             init_cp( child_process.fork( `${ __dirname }/service.js` ), false );
+    }
+
+    _spawn_local( com: CommunicationEnvironment, executable: string, args: Array<string>, redirect: string, cb: ( code: number ) => void ) {
+        const id = this.waiting_spw.size.toString();
+        com.spawn_local( id, executable, args, redirect );
+        this.waiting_spw.set( id, { com, cb: ( code: number ) => {
+            this.waiting_spw.delete( id );
+            cb( code );
+        } } );
+    }
+
+    _exec_local( com: CommunicationEnvironment, cmd: string, redirect: string, cb: ( code: number ) => void ) {
+        const id = this.waiting_spw.size.toString();
+        com.exec_local( id, cmd, redirect );
+        this.waiting_spw.set( id, { com, cb: ( code: number ) => {
+            this.waiting_spw.delete( id );
+            cb( code );
+        } } );
     }
 
     /** make child process for a given "category" (which is actually the path of the service entry point) */
@@ -733,7 +749,7 @@ class Processor {
                     return require_cb( null, '' );
                 }
                 //
-                this._install_cmd( env.com, cn, "npm", path.dirname( node_modules_dir ), [ "npm", 'install', typescript ? `@types/` + str : str ], err => err ? require_cb( null, '' ) : test_from( node_modules_dir, false ) );
+                this._install_cmd( env.com, cn, "npm", path.dirname( node_modules_dir ), [ "npm", 'install', typescript ? `@types/` + str : str ], [], err => err ? require_cb( null, '' ) : test_from( node_modules_dir, false ) );
             };
 
             // local, or look for a 'node_modules' directory, starting from cwd
@@ -744,8 +760,18 @@ class Processor {
         }, cb_find_require );
     }
 
-    /** ex category: npm... */
-    _install_cmd( com: CommunicationEnvironment, cn: CompilationNode, category: string, cwd: string, cmd: Array<string> | string, cb: ( err: boolean ) => void ) {
+    /** ex of category: npm... */
+    _install_cmd( com: CommunicationEnvironment, cn: CompilationNode, category: string, cwd: string, cmd: Array<string> | string, prerequ: Array<string>, cb: ( err: boolean ) => void ) {
+        async.forEach( prerequ, ( req: string, cb_prerequ ) => {
+            this._check_prerequ( com, cn, cwd, req, cb_prerequ );
+        }, ( err_prerequ ) => {
+            if ( err_prerequ ) return cb( true );
+            this.__install_cmd( com, cn, category, cwd, cmd, cb );
+        } );
+    }
+
+    /** ex of category: npm... */
+    __install_cmd( com: CommunicationEnvironment, cn: CompilationNode, category: string, cwd: string, cmd: Array<string> | string, cb: ( err: boolean ) => void ) {
         const key = category + ":" + cwd;
         if ( this.current_install_cmds.has( key ) )
             return this.waiting_install_cmds.push( { com, cn, category, cwd, cmd, cb } );
@@ -755,18 +781,52 @@ class Processor {
             this.current_install_cmds.delete( key );
             if ( this.waiting_install_cmds.length ) {
                 const item = this.waiting_install_cmds.shift();
-                this._install_cmd( item.com, item.cn, item.category, item.cwd, item.cmd, item.cb );
+                this.__install_cmd( item.com, item.cn, item.category, item.cwd, item.cmd, item.cb );
             }
         }
 
         com.announcement( cn, typeof cmd == "string" ? cmd : cmd.join( " " ) );
-        const cp = typeof cmd == "string" ?
-            child_process.exec( cmd, { cwd } ) : 
-            child_process.spawn( cmd[ 0 ], cmd.slice( 1 ), { cwd } );
-        cp.stdout.on( "data", buffer => com.info ( cn, buffer.toString(), false ) );
-        cp.stderr.on( "data", buffer => com.error( cn, buffer.toString(), false ) );
-        cp.on( "error", err => { com.error( cn, err.toString() ); cont(); cb( true ); } );
-        cp.on( "close", ( code, signal ) => { cont(); cb( Boolean( code || signal ) ); } );
+        //
+        typeof cmd == "string" ?
+            this._exec_local( com, cmd, "", ( code: number ) => { cont(); cb( code != 0 ); } ) :
+            this._spawn_local( com, cmd[ 0 ], cmd.slice( 1 ), "", ( code: number ) => { cont(); cb( code != 0 ); } );
+
+        // const cp = typeof cmd == "string" ?
+        //     child_process.exec( cmd, { cwd } ) : 
+        //     child_process.spawn( cmd[ 0 ], cmd.slice( 1 ), { cwd } );
+        // cp.stdout.on( "data", buffer => com.info ( cn, buffer.toString(), false ) );
+        // cp.stderr.on( "data", buffer => com.error( cn, buffer.toString(), false ) );
+        // cp.on( "error", err => { com.error( cn, err.toString() ); cont(); cb( true ); } );
+        // cp.on( "close", ( code, signal ) => { cont(); cb( Boolean( code || signal ) ); } );
+    }
+
+    _check_prerequ( com: CommunicationEnvironment, cn: CompilationNode, cwd: string, req: string, cb: ( err: boolean ) => void ) {
+        // try to find prerequ
+        let trials = [ path.resolve( __dirname, "..", "..", "rules", "prerequ", req + ".yaml" ) ];
+        async.forEachSeries( trials, ( trial, cbt ) => {
+            fs.readFile( trial, ( err, data ) => cbt( err ? null : data.toString() ) );
+        }, ( data: string ) => {
+            if ( ! data ) {
+                com.error( cn, `Prerequisite '${ req }' not found (looked into ${ JSON.stringify( trials ) })` );
+                return cb( true );
+            }
+            try {
+                const jd = yaml.load( data );
+                
+                // load_sets:
+                //   - systems: []
+                //     prerequ: []
+                //     command: which cmake || sudo apt-get install cmake
+                //process. js.check_cmd
+                for( const ls of jd ) {
+                    this._install_cmd( com, cn, "prerequ", cwd, ls.command, ls.prerequ, cb );
+                    break; // TODO: test ls.system
+                }
+            } catch ( e ) {
+                com.error( cn, `error while parsing ${data} from ${ trials }: ` + e.toString() );
+                cb( true );
+            }
+        } );
     }
 
     static _find_node_modules_directory( cn: CompilationNode, cwd: string, typescript: boolean, cb: ( tn: string ) => void ) {
@@ -819,7 +879,7 @@ class Processor {
     services             = new Array<Service>();
     building             = false;
     waiting_cns          = new Array<{ env: CompilationEnvironment, cn: CompilationNode }>();
-    waiting_spw          = new Map<string,{ env: CompilationEnvironment, cb: ( code: number ) => void }>();
+    waiting_spw          = new Map<string,{ com: CommunicationEnvironment, cb: ( code: number ) => void }>();
     waiting_build_seqs   = new Array<{ at_launch_cb: () => void, cb: ( done_cb: () => void ) => void }>(); 
     current_install_cmds = new Set<string>();
     waiting_install_cmds = new Array< { com: CommunicationEnvironment, cn: CompilationNode, category: string, cwd: string, cmd: Array<string> | string, cb: ( err: boolean ) => void } >();

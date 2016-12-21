@@ -39,12 +39,14 @@ public:
     CnData             get_cn_data                        ( std::string signature );                                               ///< get outputs/exe_data of a Compilation Node. children = array of signatures
     std::string        new_build_file                     ( std::string orig_name, std::string ext = "", std::string dist = "" );  ///<
     int                spawn_sync                         ( std::string cwd, std::string cmd, std::vector<std::string> args );     ///<
-    bool               run_install_cmd                    ( std::string category, std::string cwd, std::string cmd );              ///< return true if error
+    bool               run_install_cmd                    ( std::string category, std::string cwd, std::string cmd, std::vector<std::string> prerequ = {} ); ///< return true if error
     void               register_aliases                   ( const std::vector<std::pair<std::string,std::string>> &aliases, std::string cur_dir );     ///<
     std::string        nsmake_cmd                         ( const std::vector<std::string> &args, const std::string &cwd );        ///<
     std::string        nsmake_run                         ( const std::vector<std::string> &args, const std::string &cwd );        ///<
     CnData             run_mission_node                   ( const Json::Value &args, const std::vector<std::string> &signatures ); ///< in args, stuff which is described as a number whereas a string would be expected means that the string is the output of signature[ the number ]
     std::string        make_signature                     ( std::string type, std::vector<std::string> children_signatures, Json::Value args );
+
+    static bool        system_is_in                       ( const std::vector<std::string> &systems, const std::string &system );
 
     static void        _send                              ( const Json::Value &args );
     static Json::Value _send_and_wait                     ( const Json::Value &args );

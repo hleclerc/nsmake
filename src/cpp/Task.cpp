@@ -116,8 +116,8 @@ int Task::spawn_sync( std::string cwd, std::string cmd, std::vector<std::string>
     return from_json( res[ "code" ] );
 }
 
-bool Task::run_install_cmd( std::string category, std::string cwd, std::string cmd ) {
-    Json::Value res = SAWA( "run_install_cmd", "category", category, "cwd", cwd, "cmd", cmd );
+bool Task::run_install_cmd( std::string category, std::string cwd, std::string cmd, std::vector<std::string> prerequ ) {
+    Json::Value res = SAWA( "run_install_cmd", "category", category, "cwd", cwd, "cmd", cmd, "prerequ", prerequ );
     return from_json( res[ "err" ] );
 }
 
@@ -142,6 +142,15 @@ std::string Task::make_signature( std::string type, std::vector<std::string> chi
     res.append( chv  );
     res.append( args );
     return json_stringify( res );
+}
+
+bool Task::system_is_in( const std::vector<std::string> &systems, const std::string &system ) {
+    if ( systems.size() == 0 )
+        return true;
+    for( const std::string &trial : systems )
+        if ( trial == system )
+            return true;
+    return false;
 }
 
 std::string Task::nsmake_cmd( const std::vector<std::string> &args, const std::string &cwd ) {

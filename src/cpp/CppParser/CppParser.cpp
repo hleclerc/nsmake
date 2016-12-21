@@ -697,9 +697,8 @@ void CppParser::_include( const char *b, const char *e, Read *read, const char *
         if ( nas.signature.empty() ) {
             // try to load the library
             auto iter = inc_rules.find( inc_str );
-            if ( iter != inc_rules.end() ) {
-                PM( "TODO: load library for", iter->second );
-            }
+            if ( iter != inc_rules.end() )
+                load_library( iter->second );
 
             // try again
             nas = task.get_first_filtered_target_signature( to_try, read->dir );
@@ -737,10 +736,42 @@ void CppParser::_include( const char *b, const char *e, Read *read, const char *
     parse( filename, dir, content_of( filename ), read, true, num_path );
 }
 
+bool CppParser::load_library( const Json::Value &jd ) {
+    Json::Value load_sets = jd[ "load_sets" ];
+    if ( load_sets.isNull() )
+        return false;
+    for( Json::Value set: load_sets ) {
+        if ( ! task.system_is_in( from_json( set[ "systems" ] ), from_json( task.args[ "system" ] ) ) )
+            continue;
+        if ( task.run_install_cmd( from_json( set[ "command" ] ), from_json( task.args[ "launch_dir" ] ),
+                                   from_json( set[ "command" ] ), from_json( set[ "prerequ" ] ) ) == false )
+            break;
+    }
+    return true;
+}
+
 std::vector<std::string> CppParser::include_try_list( std::string cur_dir, std::string basename, unsigned min_num_path ) {
     std::vector<std::string> to_try;
     if ( cur_dir.size() )
         to_try.push_back( cur_dir + "/" + basename );
+
+    // there's a rule for this include ?
+    auto iter = inc_rules.find( basename );
+    if ( iter != inc_rules.end() ) {
+        for( Json::Value set: iter->second[ "flag_sets" ] ) {
+            if ( task.system_is_in( from_json( set[ "systems" ] ), from_json( task.args[ "system" ] ) ) ) {
+                for( Json::Value inc_path : set[ "inc_paths" ] )
+                    push_back_unique( inc_paths, resolve( cur_dir, inc_path.asString() ) );
+                for( Json::Value lib_path : set[ "lib_paths" ] )
+                    push_back_unique( lib_paths, resolve( cur_dir, lib_path.asString() ) );
+                for( Json::Value lib_name : set[ "lib_names" ] )
+                    push_back_unique( lib_names, lib_name.asString() );
+                break;
+            }
+        }
+    }
+
+
     for( const std::string &dir : inc_paths )
         to_try.push_back( dir + "/" + basename );
     for( const std::string &dir : cmd_include_paths )
