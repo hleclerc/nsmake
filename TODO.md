@@ -9,5 +9,3 @@
    
 * `system` field in loaders/flag handlers (something more accurate, canonical...)
 * ext_lib (cdn)
-
-* care_about_target -> si ligne de commande

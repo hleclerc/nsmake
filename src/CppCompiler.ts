@@ -1,14 +1,16 @@
-import LibRulesGenCompiler from "./LibRulesGenCompiler"
-import ExeDataGenCompiler  from "./ExeDataGenCompiler"
-import { pu }              from "./ArrayUtil"
-import Task                from "./Task"
-import * as path           from "path";
-import * as fs             from "fs";
+import LibRulesGenCompiler   from "./LibRulesGenCompiler"
+import ExeDataGenCompiler    from "./ExeDataGenCompiler"
+import { SystemInfo,
+        is_compatible_with } from "./SystemInfo"
+import { pu }                from "./ArrayUtil"
+import Task                  from "./Task"
+import * as path             from "path";
+import * as fs               from "fs";
 
 export
 interface ArgsCppCompiler {
     define    : Array<string>;
-    system    : string;
+    system    : SystemInfo;
     launch_dir: string;
     inc_paths : Array<string>;
     output    : string;
@@ -239,9 +241,9 @@ class CppCompiler extends Task {
         }
     }
 
-    for_system<T extends { systems?: string[] }>( system: string, set: Array<T> ): T {
+    for_system<T extends { systems?: string[] }>( system: SystemInfo, set: Array<T> ): T {
         for( const val of set )
-            if ( ! val.systems || val.systems.length == 0 || val.systems.indexOf( system ) >= 0 )
+            if ( is_compatible_with( system, val.systems ) )
                 return val;
         return null;
     }

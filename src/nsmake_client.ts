@@ -4,7 +4,7 @@
  */
 import SpRepr             from "./SpRepr"
 import Pager              from "./Pager"
-import * as child_process from 'child_process';
+import * as child_process from 'child_process'
 import * as path          from 'path'
 import * as net           from 'net'
 

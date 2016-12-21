@@ -20,7 +20,7 @@ int main() {
             }
 
             // arguments
-            string o_name = task.args[ "output" ].isString() ? task.args[ "output" ].asString() : task.new_build_file( cpp_name, ".o" );
+            string o_name = task.args[ "output" ].isString() && task.args[ "output" ].asString().size() ? task.args[ "output" ].asString() : task.new_build_file( cpp_name, ".o" );
             std::vector<std::string> args;
             args.push_back( "-c" );
             args.push_back( "-o" );

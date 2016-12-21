@@ -46,7 +46,7 @@ public:
     CnData             run_mission_node                   ( const Json::Value &args, const std::vector<std::string> &signatures ); ///< in args, stuff which is described as a number whereas a string would be expected means that the string is the output of signature[ the number ]
     std::string        make_signature                     ( std::string type, std::vector<std::string> children_signatures, Json::Value args );
 
-    static bool        system_is_in                       ( const std::vector<std::string> &systems, const std::string &system );
+    static bool        system_is_in                       ( const std::vector<std::string> &systems, const Json::Value &sys );
 
     static void        _send                              ( const Json::Value &args );
     static Json::Value _send_and_wait                     ( const Json::Value &args );

@@ -4,6 +4,7 @@ import CompilationEnvironment   from "./CompilationEnvironment"
 import FileDependencies         from "./FileDependencies"
 import CompilationNode          from "./CompilationNode"
 import ArgumentParser           from './ArgumentParser';
+import { SystemInfo }           from "./SystemInfo"
 import Processor                from "./Processor"
 import SpRepr                   from "./SpRepr"
 import * as rimraf              from 'rimraf';
@@ -11,6 +12,7 @@ import * as async               from 'async';
 import * as path                from 'path';
 import * as net                 from 'net'
 import * as fs                  from 'fs'
+const getos = require( 'getos' );
 
 // helpers for basic communication to the client
 function send_out( connection: net.Socket, msg : string ) { connection.write( `I  ${ SpRepr.encode( msg + "\n" ) }\n` ); }
@@ -109,66 +111,78 @@ const nsmake_dir = process.argv[ 2 ];
 const fifo_file  = process.argv[ 3 ];
 const info_file  = process.argv[ 4 ];
 
-// central task manager
-let proc = new Processor( nsmake_dir );
-process.on( 'exit', code => { proc.kill_all(); } );
+// get os information
+getos( ( err, si ) => {
+    if ( err ) return console.error( `Error while trying to get os information: ${ err }` );
+    const system_info = {
+        os      : si.os,
+        dist    : si.dist,
+        codename: si.codename,
+        release : Number( si.release ),
+    } as SystemInfo;
 
-// creation of the server connection 
-const server = net.createServer( c => {
-    // if interruption of the client
-    let end_func = null as () => void;
-    c.on( 'end', () => { if ( end_func ) end_func(); } );
+    // central task manager
+    let proc = new Processor( nsmake_dir, system_info );
+    process.on( 'exit', code => { proc.kill_all(); } );
 
-    // if data coming from the client
-    let lines = "";
-    c.on( 'data', ( data ) => {
-        lines += data.toString();
-        const index_lf = lines.lastIndexOf( "\n" );
-        if ( index_lf >= 0 ) {
-            for( const line of lines.slice( 0, index_lf ).split( "\n" ) ) {
-                const args = line.split( " " ).map( x => SpRepr.decode( x ) );
-                switch ( args[ 0 ] ) {
-                case "build":
-                    try {
-                        const cur_dir = args[ 1 ], nb_columns = Number( args[ 2 ] ), isTTY = Boolean( args[ 3 ] );
-                        end_func = parse_and_build( c, proc, cur_dir, nb_columns, isTTY, args.slice( 4 ) );
-                    } catch ( e ) {
+    // creation of the server connection 
+    const server = net.createServer( c => {
+        // if interruption of the client
+        let end_func = null as () => void;
+        c.on( 'end', () => { if ( end_func ) end_func(); } );
+
+        // if data coming from the client
+        let lines = "";
+        c.on( 'data', ( data ) => {
+            lines += data.toString();
+            const index_lf = lines.lastIndexOf( "\n" );
+            if ( index_lf >= 0 ) {
+                for( const line of lines.slice( 0, index_lf ).split( "\n" ) ) {
+                    const args = line.split( " " ).map( x => SpRepr.decode( x ) );
+                    switch ( args[ 0 ] ) {
+                    case "build":
                         try {
-                            send_end( c, `Message from the nsmake server: ${ e.stack }\n` );
-                        } catch ( e ) {}
+                            const cur_dir = args[ 1 ], nb_columns = Number( args[ 2 ] ), isTTY = Boolean( args[ 3 ] );
+                            end_func = parse_and_build( c, proc, cur_dir, nb_columns, isTTY, args.slice( 4 ) );
+                        } catch ( e ) {
+                            try {
+                                send_end( c, `Message from the nsmake server: ${ e.stack }\n` );
+                            } catch ( e ) {}
+                        }
+                        break;
+                    case "spawn_done":
+                        proc._spawn_is_done( args[ 1 ], Number( args[ 2 ] ) );
+                        break;
+                    case "exit":
+                        process.exit( 0 );
+                        break;
+                    default:
+                        send_end( c, `Unknown command '${ args[ 0 ] }'` );
                     }
-                    break;
-                case "spawn_done":
-                    proc._spawn_is_done( args[ 1 ], Number( args[ 2 ] ) );
-                    break;
-                case "exit":
-                    process.exit( 0 );
-                    break;
-                default:
-                    send_end( c, `Unknown command '${ args[ 0 ] }'` );
                 }
+                lines = lines.slice( index_lf + 1 );
             }
-            lines = lines.slice( index_lf + 1 );
-        }
-    } );
-});
-
-server.listen( fifo_file, () => {
-    // to delete the files at the end
-    function clean( msg: string ) { console.log( msg ); rimraf.sync( fifo_file ); rimraf.sync( info_file ); }
-    function sigxx( msg: string ) { console.log( msg ); process.exit( 1 ); }
-    process.on( 'SIGTERM', () => sigxx( "Server received a SIGTERM" ) );
-    process.on( 'SIGINT' , () => sigxx( "Server received a SIGINT" ) );
-    process.on( 'exit'   , () => clean( "Server exited" ) );
-
-    //
-    fs.mkdir( nsmake_dir, err => {
-        fs.writeFile( info_file, `${ process.pid } ${ new Date().getTime() }`, err => {
-            console.log( `Server started on ${ fifo_file }` );
         } );
-    } );
-});
+    });
 
-server.on( 'error', ( err ) => {
-    throw err;
+    server.listen( fifo_file, () => {
+        // to delete the files at the end
+        function clean( msg: string ) { console.log( msg ); rimraf.sync( fifo_file ); rimraf.sync( info_file ); }
+        function sigxx( msg: string ) { console.log( msg ); process.exit( 1 ); }
+        process.on( 'SIGTERM', () => sigxx( "Server received a SIGTERM" ) );
+        process.on( 'SIGINT' , () => sigxx( "Server received a SIGINT" ) );
+        process.on( 'exit'   , () => clean( "Server exited" ) );
+
+        //
+        fs.mkdir( nsmake_dir, err => {
+            fs.writeFile( info_file, `${ process.pid } ${ new Date().getTime() }`, err => {
+                console.log( `Server started on ${ fifo_file }` );
+            } );
+        } );
+    });
+
+    server.on( 'error', ( err ) => {
+        throw err;
+    } );
+
 } );

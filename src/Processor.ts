@@ -2,6 +2,8 @@ import CommunicationEnvironment from "./CommunicationEnvironment";
 import CompilationEnvironment   from "./CompilationEnvironment";
 import FileDependencies         from "./FileDependencies";
 import CompilationNode          from "./CompilationNode";
+import RandNameSuffix           from "./RandNameSuffix";
+import { SystemInfo }           from "./SystemInfo";
 import { mkdir_rec,
          mkdir_rec_sync }       from "./mkdir_rec";
 import SpRepr                   from "./SpRepr";
@@ -10,7 +12,6 @@ import Db                       from "./Db";
 import * as child_process       from 'child_process';
 import * as yaml                from "js-yaml";
 import * as lodash              from 'lodash';
-import * as crypto              from 'crypto';
 import * as rimraf              from 'rimraf';
 import * as async               from 'async';
 import * as path                from 'path';
@@ -38,9 +39,10 @@ interface DataInDb {
 
 export default
 class Processor {
-    constructor( nsmake_dir: string, build_dir = path.resolve( nsmake_dir, "build" ) ) {
-        this.nsmake_dir = nsmake_dir;
-        this.build_dir  = build_dir;
+    constructor( nsmake_dir: string, system_info: SystemInfo, build_dir = path.resolve( nsmake_dir, "build" ) ) {
+        this.system_info = system_info;
+        this.nsmake_dir  = nsmake_dir;
+        this.build_dir   = build_dir;
 
         // directories that are needed througout all the process
         mkdir_rec_sync( this.build_dir );
@@ -853,7 +855,7 @@ class Processor {
         const prop = dist ? path.resolve( dist, orig ? path.relative( cwd, corr ) : corr ) : 
                             path.resolve( this.build_dir, path.basename( corr ) );
 
-        let mp = new Mp;
+        let mp = new RandNameSuffix;
         async.retry( 1000, cb => {
             const name = prop + mp.val() + suff;
             // if dist, we may have to create some directory
@@ -870,6 +872,7 @@ class Processor {
         } );
     }
 
+    system_info          : SystemInfo;
     nsmake_dir           : string;
     build_dir            : string;
     jobs                 = os.cpus().length;
@@ -883,46 +886,5 @@ class Processor {
     waiting_build_seqs   = new Array<{ at_launch_cb: () => void, cb: ( done_cb: () => void ) => void }>(); 
     current_install_cmds = new Set<string>();
     waiting_install_cmds = new Array< { com: CommunicationEnvironment, cn: CompilationNode, category: string, cwd: string, cmd: Array<string> | string, cb: ( err: boolean ) => void } >();
-}
-
-/** random part for tmp filenames */
-class Mp {
-    val(): string {
-        switch ( this.phase ) {
-            case 0: return "";
-            case 1: return "-" + this.cpt.toString();
-            case 2: return "-" + Mp.rand( 3 );
-            case 3: return "-" + Mp.rand( 10 );
-        }
-    }
-
-    next(): void {
-        switch ( this.phase ) {
-            case 0: this.phase = 1; break;
-            case 1: if ( ++this.cpt >= 10 ) { this.phase = 2; this.cpt = 0; } break;
-            case 2: if ( ++this.cpt >= 100 ) { this.phase = 3; this.cpt = 0; } break;
-            case 3: break;
-        }
-    }
-
-    /** random string of length l
-     * adapted from http://blog.tompawlak.org/how-to-generate-random-values-nodejs-javascript
-     */
-    static rand( l: number ): string {
-        const url_comp_chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-        let buff = null as Buffer;
-        try {
-            buff = crypto.randomBytes( l );
-        } catch ( e ) {
-            buff = crypto.pseudoRandomBytes( l );
-        }
-
-        let res = "";
-        buff.forEach( i => res += url_comp_chars[ i % url_comp_chars.length ] );
-        return res;
-    }
-
-    phase = 0;
-    cpt   = 0;
 }
 

@@ -1,7 +1,7 @@
 includes: [ hdf5.h ]
 flag_sets: []
 load_sets:
-  - systems: [ Ubuntu, Debian ]
+  - systems: [ "Ubuntu Linux", Debian ]
     command: "gksudo apt-get install libhdf5-dev"
   - systems: [ "Netrunner Rolling", Arch ]
     command: "gksudo pacman -S hdf5"

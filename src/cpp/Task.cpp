@@ -144,12 +144,53 @@ std::string Task::make_signature( std::string type, std::vector<std::string> chi
     return json_stringify( res );
 }
 
-bool Task::system_is_in( const std::vector<std::string> &systems, const std::string &system ) {
+inline bool sp_ch( char c ) {
+    return c == '<' || c == '>' || c == '=';
+}
+
+std::vector<std::string> tok_system_req( const std::string &sys ) {
+    std::vector<std::string> res;
+    for( unsigned i = 0; i < sys.size(); ) {
+        if ( sp_ch( sys[ i ] ) ) {
+            unsigned b = i;
+            while ( ++i < sys.size() && sp_ch( sys[ i ] ) );
+            res.emplace_back( b, i );
+        } else {
+            unsigned b = i;
+            while ( ++i < sys.size() && ! sp_ch( sys[ i ] ) );
+            res.emplace_back( b, i );
+        }
+    }
+    // trim
+    for( std::string &str : res ) {
+        while ( str.size() && str.back() == ' ' ) str.resize( str.size() - 1 );
+        while ( str.size() && str.front() == ' ' ) str = str.substr( 1 );
+    }
+    return res;
+}
+
+bool Task::system_is_in( const std::vector<std::string> &systems, const Json::Value &sys ) {
     if ( systems.size() == 0 )
         return true;
-    for( const std::string &trial : systems )
-        if ( trial == system )
+
+    for( const std::string &str : systems ) {
+        const std::vector<std::string> spl = tok_system_req( str );
+        if ( spl.empty() )
+            continue;
+        if ( spl[ 0 ] != sys[ "os" ].asString() && spl[ 0 ] != sys[ "dist" ].asString() )
+            continue;
+        bool ok = true;
+        for( unsigned i = 1; i < spl.size(); i += 2 ) {
+            if ( spl[ i ] == "==" ) { if ( sys[ "release" ].asDouble() != std::strtod( spl[ i + 1 ].c_str(), 0 ) ) ok = false; continue; }
+            if ( spl[ i ] == ">=" ) { if ( sys[ "release" ].asDouble() <  std::strtod( spl[ i + 1 ].c_str(), 0 ) ) ok = false; continue; }
+            if ( spl[ i ] == "<=" ) { if ( sys[ "release" ].asDouble() >  std::strtod( spl[ i + 1 ].c_str(), 0 ) ) ok = false; continue; }
+            if ( spl[ i ] == ">"  ) { if ( sys[ "release" ].asDouble() <= std::strtod( spl[ i + 1 ].c_str(), 0 ) ) ok = false; continue; }
+            if ( spl[ i ] == "<"  ) { if ( sys[ "release" ].asDouble() >= std::strtod( spl[ i + 1 ].c_str(), 0 ) ) ok = false; continue; }
+        }
+        if ( ok )
             return true;
+    }
+    
     return false;
 }
 

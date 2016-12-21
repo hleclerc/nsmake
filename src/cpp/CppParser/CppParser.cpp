@@ -749,7 +749,7 @@ bool CppParser::load_library( const Json::Value &jd ) {
     if ( load_sets.isNull() )
         return false;
     for( Json::Value set: load_sets ) {
-        if ( ! task.system_is_in( from_json( set[ "systems" ] ), from_json( task.args[ "system" ] ) ) )
+        if ( ! task.system_is_in( from_json( set[ "systems" ] ), task.args[ "system" ] ) )
             continue;
         if ( task.run_install_cmd( from_json( set[ "command" ] ), from_json( task.args[ "launch_dir" ] ),
                                    from_json( set[ "command" ] ), from_json( set[ "prerequ" ] ) ) == false )
@@ -775,7 +775,7 @@ std::vector<std::string> CppParser::include_try_list( std::string cur_dir, std::
     auto iter = inc_rules.find( basename );
     if ( iter != inc_rules.end() ) {
         for( Json::Value set: iter->second[ "flag_sets" ] ) {
-            if ( task.system_is_in( from_json( set[ "systems" ] ), from_json( task.args[ "system" ] ) ) ) {
+            if ( task.system_is_in( from_json( set[ "systems" ] ), task.args[ "system" ] ) ) {
                 for( Json::Value inc_path : set[ "inc_paths" ] )
                     push_back_unique( inc_paths, resolve( launch_dir, inc_path.asString() ) );
                 for( Json::Value lib_path : set[ "lib_paths" ] )

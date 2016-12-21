@@ -1,4 +1,5 @@
 import ExeDataGenCompiler from "./ExeDataGenCompiler"
+import { SystemInfo }     from "./SystemInfo"
 import { pu }             from "./ArrayUtil"
 import { ExecutorArgs }   from "./Executor"
 import Task               from "./Task"
@@ -11,7 +12,7 @@ interface ArgsLinker {
     cwd      : string;
     define   : Array<string>; /** NAME(args...)=val or NAME for macros without arguments */
     bootstrap: boolean;
-    system   : string         /** ubuntu 14.04, ... */
+    system   : SystemInfo;    /** ubuntu 14.04, ... */
 }
 
 interface ResCnGenCompiler {

@@ -9,7 +9,6 @@ import { ArgsLinker }                      from "./Linker";
 import { GtestArgs }                       from "./Gtest";
 import * as async                          from 'async';
 import * as path                           from 'path';
-import * as os                             from 'os';
 
 export default
 class GeneratorCpp extends Generator {
@@ -130,7 +129,7 @@ class GeneratorCpp extends Generator {
                     cwd      : this.env.cwd,
                     define   : define( args ),
                     bootstrap: args.cpp_bootstrap || false,
-                    system   : os.platform(),
+                    system   : this.env.com.proc.system_info,
                 } as ArgsLinker ) );
             }
 
@@ -155,7 +154,7 @@ class GeneratorCpp extends Generator {
         const ncc = `CppCompiler@${ path.resolve( __dirname, "..", "..", "src", "cpp", "main_cpp_services.cpp" ) }`;
         return this.env.New( this.env.args.cpp_bootstrap ? "CppCompiler": ncc, [ cn, this.cpp_rules_cn(), this.base_include_paths_cn(),  ], {
             define    : [],
-            system    : os.platform(),
+            system    : this.env.com.proc.system_info,
             launch_dir: this.env.cwd,
             inc_paths : include_path( this.env.args ),
             output,
