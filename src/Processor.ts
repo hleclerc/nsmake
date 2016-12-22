@@ -4,6 +4,7 @@ import FileDependencies         from "./FileDependencies";
 import CompilationNode          from "./CompilationNode";
 import RandNameSuffix           from "./RandNameSuffix";
 import { SystemInfo }           from "./SystemInfo";
+import { pu }                   from "./ArrayUtil";
 import { mkdir_rec,
          mkdir_rec_sync }       from "./mkdir_rec";
 import SpRepr                   from "./SpRepr";
@@ -342,9 +343,6 @@ class Processor {
     }
 
     _exec_done_cb( com: CommunicationEnvironment, cn: CompilationNode, err: boolean ) : void {
-        if ( cn.type != "Id" )
-            console.log( "done", cn.pretty );
-        
         cn.num_build_done = this.num_build;
 
         let done_cbs = [ ...cn.done_cbs ];
@@ -356,9 +354,6 @@ class Processor {
 
     /** Do execution of cn */
     _launch( env: CompilationEnvironment, cn: CompilationNode ): void {
-        if ( cn.type != "Id" )
-            console.log( "launch", cn.pretty );
-
         // particular case
         if ( cn.type == "Id" ) {
             return fs.stat( cn.args.target, ( err, stats ) => {
@@ -447,7 +442,6 @@ class Processor {
                 const index_lf = lines.lastIndexOf( "\n" );
                 if ( index_lf >= 0 ) {
                     for( const line of lines.slice( 0, index_lf ).split( "\n" ) ) {
-                        // console.log( 'From service', { cn: service.cn.pretty, cmd.action } );
                         try {
                             this._action_from_service( service, JSON.parse( line ) );
                         } catch( e ) {
@@ -522,8 +516,8 @@ class Processor {
             // actions
             case "done":
                 // save result in local memory
+                pu( service.cn.generated, ...cmd.args.output_summary.generated );
                 service.cn.outputs       = cmd.args.output_summary.outputs;
-                service.cn.generated     = cmd.args.output_summary.generated;
                 service.cn.exe_data      = cmd.args.output_summary.exe_data;
                 service.cn.pure_function = cmd.args.output_summary.pure_function;
                 // the service is now idle and not linked to a specific env or cn

@@ -21,11 +21,6 @@ interface ResCnGenCompiler {
     exe_data      : ExeDataGenCompiler;
     // added by Linker
     orig_signature: string;                /** signature of the parsed file */
-    // parents       : Array<ResCppParser>;
-    // need_rewrite  : boolean;
-    // content       : string;             /** content used in CppParser */
-    // sourcemap     : SourceMap;          /** */
-    // mtime         : number;             /** modification date of the used output */
 }
 
 /** child 0 => entry object file
