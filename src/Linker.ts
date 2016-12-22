@@ -33,6 +33,9 @@ interface ResCnGenCompiler {
 export default
 class Linker extends Task {
     exec( args: ArgsLinker, done: ( boolean ) => void ) {
+        // this task essentially call stuff and wait for stuff to be finished...
+        this.set_status( "waiting" );
+
         this.done_cb = done;
         this.to_parse.add( this.children[ 0 ].signature );
         this.on_parsed( args, 0, false, this.children[ 0 ] as ResCnGenCompiler );
@@ -89,6 +92,7 @@ class Linker extends Task {
     }
 
     make_executable_with_name( args: ArgsLinker, exe_name: string ) {
+        this.set_status( "active" );
         this.outputs = [ exe_name ];
         
         // flags for output

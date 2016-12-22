@@ -163,6 +163,11 @@ abstract class Task {
         return cp.status;
     }
 
+    /** for asynchronous versions */
+    set_status( status: "active" | "waiting" ) {
+        process.send( JSON.stringify( { action: "set_status", args: { status } } ) + "\n" );
+    }
+
     /** */
     write_file_sync( filename: string, content: string ): void {
         fs.writeFileSync( filename, content );

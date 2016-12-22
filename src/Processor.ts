@@ -658,17 +658,16 @@ class Processor {
                     ans( false, name );
                 } );
                 
-            case "spawn_local": {
-                service.status = "waiting";
+            case "spawn_local":
+                service.status = "active";
                 return this._spawn_local( service.env.com, cmd.args.executable, cmd.args.args || [], cmd.args.redirect || "", code => {
-                    service.status = "active";
                     ans( false, code );
                 } );
                 
-            }
-            case "spawn":
+            case "spawn": {
                 // display
                 service.env.com.announcement( service.cn, [ cmd.args.cmd, ...cmd.args.args ].join( " " ) );
+                service.status = "active";
 
                 // execution, with basic redirection
                 const cp = child_process.spawn( cmd.args.cmd, cmd.args.args, { cwd: cmd.args.cwd } );
@@ -677,12 +676,20 @@ class Processor {
                 cp.on( "error", err => { if ( service.env ) service.env.com.error( service.cn, err.toString() ); ans( true, -1 ) } );
                 cp.on( "close", ( code, signal ) => ans( false, signal ? -1 : code ) );
                 return;
+            }
+
+            case "set_status":
+                if ( service.status == "active" && cmd.args.status == "waiting" ) {
+                    service.status = cmd.args.status;
+                    this._launch_waiting_cn_if_possible();
+                } else
+                    service.status = cmd.args.status;
+                return;
 
             case "run_install_cmd":
-                this._install_cmd( service.env.com, service.cn, cmd.args.category, cmd.args.cwd, cmd.args.cmd, cmd.args.prerequ, err => {
+                return this._install_cmd( service.env.com, service.cn, cmd.args.category, cmd.args.cwd, cmd.args.cmd, cmd.args.prerequ, err => {
                     ans( false, err );
                 } );
-                break;
 
             // default
             default:
