@@ -6,10 +6,14 @@ import CompilationNode                     from "./CompilationNode";
 import ArgumentParser                      from "./ArgumentParser";
 import { ArgsJsDepFactory }                from "./JsDepFactory";
 import Generator                           from "./Generator";
+import { pu }                              from "./ArrayUtil";
 import { ExecutorArgs }                    from "./Executor";
+import Service                             from "./Service";
 import { MochaArgs }                       from "./Mocha";
+import Pool                                from "./Pool";
 import * as async                          from 'async';
 import * as path                           from 'path';
+import * as fs                             from 'fs';
 
 export default
 class GeneratorJs extends Generator {
@@ -52,6 +56,8 @@ class GeneratorJs extends Generator {
         p.add_argument( missions, [ 'js' ], 'o,output'             , 'set name(s) of the output file(s), separated by a comma if several are expected', 'path*'   );
         p.add_argument( missions, [ 'js' ], 'js-header'            , 'header used for concatened javascript', 'cn'                                                );
         p.add_argument( missions, [ 'js' ], 'D,define'             , 'add a define (like with the C preprocessor)'                                    , 'string*' );
+        p.add_argument( missions, [ 'js' ], 'ext-lib'              , 'Ex: "react https://unpkg.com/react@15/dist/react.js React" says that require `react` ' +
+                                                                     'will be replaced by the variable `React` found in the data of the given url, '  , 'string*' );
         p.add_argument( missions, [ 'js' ], 'no-implicit-any'      , 'prohibit implicit any(s) for typescript compiler'                               , 'boolean' );
 
         // html specifics
@@ -151,6 +157,7 @@ class GeneratorJs extends Generator {
                     output             : args.output || [],
                     mission            : args.mission,
                     sm_line            : sm_line( args ),
+                    ext_libs           : args.ext_lib || [],
                     dist_dir           : this.env.arg_rec( "dist_dir" ) || path.resolve( this.env.cwd, "dist" ),
                     cwd                : this.env.cwd,
                     concat             : concat             ( args ),
@@ -173,7 +180,9 @@ class GeneratorJs extends Generator {
                 return with_a_dot_js( cns[ args.entry_point ] );
 
             const name_js = en.slice( 0, en.length - path.extname( en ).length ) + ".js";
-            return this.env.get_compilation_node( name_js, path.dirname( en ), for_found, with_a_dot_js );
+            return this.env.get_compilation_node( name_js, path.dirname( en ), for_found, cn => {
+                with_a_dot_js( cn ? cn.some_rec( x => x.type == "Id" && x.args.target == en ) : null );
+            } );
         }
 
         return cb( null );
@@ -193,6 +202,112 @@ class GeneratorJs extends Generator {
         return this.env.New( "CoffeescriptCompiler", [ ch ], {
             output,
         } as CoffeescriptCompilerArgs );
+    }
+
+    /** */
+    msg_from_service( service: Service, action: string, args: any, ans: ( err: boolean, res: any ) => void, err_msg: ( msg: string ) => void ) {
+        switch ( action ) {
+            case "register_ext_lib":
+                if ( ! this.env.args.ext_lib )
+                    this.env.args.ext_lib = [];
+                return pu( this.env.args.ext_lib, [ args.name, args.url, args.glob ].join( " " ) );
+
+            case "get_requires":
+                return async.map( args.lst as Array<{cwd:string,requires:Array<string>}>, ( item: {cwd:string,requires:Array<string>}, cb: ( err: boolean, signatures: Array<string> ) => void ) => {
+                    this._find_requires( service.env, service.cn, item.cwd, args.js_env, item.requires, args.typescript, cb );
+                }, ans );
+
+            default:
+                err_msg( `There's no action ${ action } is GeneratorJs. => Service is going to be killed.` );
+                service.cp.kill();
+        }
+    }
+
+    _find_requires( env: CompilationEnvironment, cn: CompilationNode, cwd: string, js_env: string, requires: Array<string>, typescript: boolean, cb_find_require: ( err: boolean, signatures: Array<string> ) => void ) {
+        const exts = typescript ? [ ".ts", ".tsx", ".d.ts" ] : [ ".js", ".jsx" ];
+
+        async.map( requires, ( str: string, require_cb: ( err: boolean, sgn: string ) => void ) => {
+            if ( ! str )
+                return require_cb( null, "" );
+
+            // it is a ext_lib ?
+            if ( js_env != "nodejs" ) {
+                for( const ext_lib of this.env.args.ext_lib || [] ) {
+                    const spl = ext_lib.split( " " );
+                    if ( spl[ 0 ] == str ) {
+                        return require_cb( false, Pool.signature( "MakeFile", [], {
+                            content: `module.exports=${ spl[ 2 ] };`,
+                            orig   : ext_lib,
+                            ext    : ".js",
+                        } ) );
+                    }
+                }
+            }
+
+            // helper to test for a module (`str`) from a given directory (`dir`)
+            const test_from = ( dir: string, install_allowed: boolean ) => {
+                let trials = new Array< { name: string, type: number } >();
+
+                if ( exts.indexOf( path.extname( str ).toLowerCase() ) >= 0 ) {
+                    trials.push({ name: path.resolve( dir, str ), type: 0 }); // foo.js
+                } else {
+                    for( let ext_trial of exts )
+                        trials.push({ name: path.resolve( dir, str + ext_trial ), type: 0 }); // foo.js, foo.jsx...
+                    trials.push({ name: path.resolve( dir, str, "package.json" ), type: 1 }); // foo/package.json
+                    for( let ext_trial of exts )
+                        trials.push({ name: path.resolve( dir, str, "index" + ext_trial ), type: 0 }); // foo/index.js, foo/index.jsx...
+                }
+                // we want the signature of the first coming ncn 
+                async.forEachSeries( trials, ( trial, cb_trial ) => {
+                    env.get_compilation_node( trial.name, dir, cn.file_dependencies, ncn =>
+                        cb_trial( ncn ? ( trial.type ? env.com.proc.pool.New( "MainJsFromPackageJson", [ ncn ], { js_env, typescript } ) : ncn ) : null )
+                    );
+                }, ( ncn: CompilationNode ) => {
+                    ncn ? require_cb( null, ncn.signature ) : try_installation( install_allowed, dir );
+                } )
+            };
+            const try_installation = ( install_allowed: boolean, node_modules_dir: string ) => {
+                // currently we only install module without relative paths
+                if ( ! install_allowed )
+                    return require_cb( null, '' );
+                //
+                if ( ! node_modules_dir ) {
+                    // if file is in the launch directory, we add a node_module here
+                    if ( cwd.startsWith( env.cwd ) ) {
+                        const new_node_modules_dir = path.resolve( env.cwd, "node_modules" );
+                        return fs.mkdir( new_node_modules_dir, err => {
+                            if ( err && err.code != 'EEXIST' ) {
+                                env.com.error( cn, `Impossible to create directory ${ new_node_modules_dir }` );
+                                return require_cb( null, '' );
+                            }
+                            try_installation( install_allowed, new_node_modules_dir );
+                        } );
+                    }
+                    //
+                    env.com.error( cn, `Error while trying to load module '${ str }': there's no 'node_modules' directory from '${ cwd }' and the later is not in the launch dir ('${ env.cwd }'). Nsmake is not willing to create a 'node_modules' by itself... Please add a new one in '${ cwd }' or in a parent dir if you want nsmake to install the module (or... directly install the module, it would be another good solution :) )` );
+                    return require_cb( null, '' );
+                }
+                //
+                env.com.proc._install_cmd( env.com, cn, "", path.dirname( node_modules_dir ), [ "npm", 'install', typescript ? `@types/` + str : str ], [], err => err ? require_cb( null, '' ) : test_from( node_modules_dir, false ) );
+            };
+
+            // local, or look for a 'node_modules' directory, starting from cwd
+            if ( ( str.length >= 2 && str.substr( 0, 2 ) == "./" ) || ( str.length >= 3 && str.substr( 0, 3 ) == "../" ) || ( str.length >= 1 && str[ 0 ] == '/' ) )
+                test_from( cwd, false );
+            else
+                GeneratorJs._find_node_modules_directory( cn, cwd, typescript, ( tn: string ) => tn ? test_from( tn, true ) : try_installation( true, "" ) );
+        }, cb_find_require );
+    }
+
+    static _find_node_modules_directory( cn: CompilationNode, cwd: string, typescript: boolean, cb: ( tn: string ) => void ) {
+        let tn = path.resolve( cwd, "node_modules" );
+        fs.stat( tn, ( err, stats ) => {
+            if ( ! err && stats.isDirectory )
+                return cb( typescript ? path.resolve( tn, "@types" ) : tn );
+            const ncwd = path.dirname( cwd );
+            cn.file_dependencies.failed.add( cwd );
+            ncwd != cwd ? GeneratorJs._find_node_modules_directory( cn, ncwd, typescript, cb ) : cb( "" ); 
+        } );
     }
 
     // browsers             = [ "google-chrome", "google-chrome-stable", "google-chrome-beta", "firefox", "opera" ];

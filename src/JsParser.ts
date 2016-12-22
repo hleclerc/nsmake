@@ -56,7 +56,7 @@ class ExeDataJsParser {
     html_template        = null as string;
     es_version           = null as string;                                  /** ecmascript version of the script */
     need_hmr             = false;
-    ext_libs             = new Array<{ name: string, url: string, glob: string }>();
+    ext_libs             = new Array<string>();
 }
 
 interface Comment {
@@ -336,9 +336,10 @@ class JsParser extends Task {
                     exe_data.es_version = cf( 1 );
                     break;
                 case "ext_lib":
-                    if ( nspl.length == 4 )
-                        exe_data.ext_libs.push( { name: spl[ nspl[ 1 ] ], url: spl[ nspl[ 2 ] ], glob: spl[ nspl[ 3 ] ] } );
-                    else
+                    if ( nspl.length == 4 ) {
+                        this.register_ext_lib( spl[ nspl[ 1 ] ], spl[ nspl[ 2 ] ], spl[ nspl[ 3 ] ] );
+                        exe_data.ext_libs.push( [ spl[ nspl[ 1 ] ], spl[ nspl[ 2 ] ], spl[ nspl[ 3 ] ] ].join( " " ) );
+                    } else
                         this.error( "ext_lib expects exactly 3 arguments (name in requires, url, and name in the global/window space, e.g. '//// nsmake ext_lib react https://unpkg.com/react@15/dist/react.js React')" );
                     break;
                 case "need_hmr":

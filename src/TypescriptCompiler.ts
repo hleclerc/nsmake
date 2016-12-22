@@ -67,7 +67,7 @@ class TypescriptCompiler extends Task {
         compiler_host.resolveModuleNames = ( moduleNames: string[], containingFile: string ): any[] => {
             if ( moduleNames.length == 0 )
                 return [];
-            const res = this.get_requires( [ { cwd: path.dirname( containingFile ), requires: moduleNames } ], null, true );
+            const res = this.get_requires( [ { cwd: path.dirname( containingFile ), requires: moduleNames } ], args.js_env, null, true );
             const lst = this.get_cns_data( res[ 0 ] );
             return lst.map( ch => ch.outputs.length ? { resolvedFileName: ch.outputs[ 0 ] } : undefined );
         };

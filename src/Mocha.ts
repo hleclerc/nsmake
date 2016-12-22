@@ -25,9 +25,9 @@ class Mocha extends Task {
         // check mocha installation
         if ( ! this.av( args.mocha ) ) {
             try { this.stat( path.resolve( args.launch_dir, "node_modules", "@types", "mocha" ) ); }
-            catch ( e ) { this.run_install_cmd( "npm", args.launch_dir, [ "npm", "install", "@types/mocha" ], [] ); } 
+            catch ( e ) { this.run_install_cmd( "", args.launch_dir, [ "npm", "install", "@types/mocha" ], [] ); } 
             try { this.stat( path.resolve( args.launch_dir, "node_modules", "mocha" ) ); }
-            catch ( e ) { this.run_install_cmd( "npm", args.launch_dir, [ "npm", "install", "mocha" ], [] ); }
+            catch ( e ) { this.run_install_cmd( "", args.launch_dir, [ "npm", "install", "mocha" ], [] ); }
         }
 
         // get, register and make the input compilation nodes
@@ -94,7 +94,7 @@ class Mocha extends Task {
             // check karma installation
             for ( const to_test of [ "karma", "karma-mocha", ...testing_env.map( x => `karma-${ x.toLowerCase() }-launcher` ) ] ) {
                 try { this.stat( path.resolve( args.launch_dir, "node_modules", to_test ) ); }
-                catch ( e ) { this.run_install_cmd( "npm", args.launch_dir, [ "npm", "install", to_test ], [] ); }
+                catch ( e ) { this.run_install_cmd( "", args.launch_dir, [ "npm", "install", to_test ], [] ); }
             }
 
             // launch

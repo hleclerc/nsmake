@@ -1,5 +1,6 @@
 import { fill_sm_with_js_tokens } from "./JsLazySourceMap"
 import SourceMap, { SmItem }      from "./SourceMap"
+import { pu }                     from "./ArrayUtil"
 import { ExeDataJsParser, ArgsJsParser,  
          Require, Accept, Pss  }  from "./JsParser"
 import Task                       from "./Task"
@@ -32,6 +33,7 @@ interface ArgsJsDepFactory {
     min                : boolean;
     hot_replacement    : string;
     define             : Array<string>; /** NAME(args...)=val or NAME for macros without arguments */
+    ext_libs           : Array<string>; /**  */
     babel_env_arguments: string;
     target_browsers    : Array<string>;
 }
@@ -75,8 +77,8 @@ class JsDepFactory extends Task {
             
             // store the aliases, find the new required files
             this.register_aliases( res_js_parsers.reduce( ( p, x ) => p.concat( x.exe_data.aliases ), new Array< { key: string, val: string} >() ) );
-            this._find_requires_for( to_be_parsed, res_js_parsers );            
-            this._find_accepts_for( res_js_parsers );            
+            this._find_requires_for( args, to_be_parsed, res_js_parsers );            
+            this._find_accepts_for( args, res_js_parsers );            
 
             // store the parsing result
             for( let num_item = 0; num_item < res_js_parsers.length; ++num_item ) {
@@ -115,13 +117,13 @@ class JsDepFactory extends Task {
     }
 
     /** set this.requires, update to_be_parsed if a new source appears */
-    _find_requires_for( to_be_parsed: Array<string>, js_parsers: Array<ResJsParser> ): void {
+    _find_requires_for( args: ArgsJsDepFactory, to_be_parsed: Array<string>, js_parsers: Array<ResJsParser> ): void {
         // if we have some requires
         if ( js_parsers.some( jp => jp.exe_data.requires.length != 0 ) ) { 
             let lst_trials = new Array<{cwd:string,requires:Array<string>}>();
             for( const js_parser of js_parsers )
                 lst_trials.push({ cwd: path.dirname( js_parser.exe_data.orig_name ), requires: js_parser.exe_data.requires.map( req => req.txt ) });
-            const res = this.get_requires( lst_trials );
+            const res = this.get_requires( lst_trials, args.js_env );
 
             // if we haven't found all the files
             if ( res.some( x => x.some( v => ! v ) ) ) {
@@ -157,13 +159,13 @@ class JsDepFactory extends Task {
     }
 
     /** set this.requires, update to_be_parsed if a new source appears */
-    _find_accepts_for( js_parsers: Array<ResJsParser> ): void {
+    _find_accepts_for( args: ArgsJsDepFactory, js_parsers: Array<ResJsParser> ): void {
         // if we have some accepts to find
         if ( js_parsers.some( jp => jp.exe_data.accepts.length != 0 ) ) { 
             let lst_trials = new Array<{cwd:string,requires:Array<string>}>();
             for( const js_parser of js_parsers )
                 lst_trials.push({ cwd: path.dirname( js_parser.exe_data.orig_name ), requires: js_parser.exe_data.accepts.map( req => req.txt ) });
-            const res = this.get_requires( lst_trials );
+            const res = this.get_requires( lst_trials, args.js_env );
 
             // if we haven't found all the files
             if ( res.some( x => x.some( v => ! v ) ) ) {
@@ -360,15 +362,16 @@ class JsDepFactory extends Task {
         }
 
         // preparation for the SCRIPTS line (ext_libs + entry point)
-        let scripts = '', loaded = new Set<string>();
-        for( let js_parser of this.js_parsers.values() ) {
-            for( let ext_lib of js_parser.exe_data.ext_libs ) {
-                if ( ! loaded.has( ext_lib.url ) ) {
-                    scripts += `  <script type='text/javascript' src='${ ext_lib.url }' charset='utf-8'></script>\n`;
-                    loaded.add( ext_lib.url );
-                }
-            }
-        }
+        let ext_libs = new Array<string>();
+        for( let js_parser of this.js_parsers.values() )
+            for( let ext_lib of js_parser.exe_data.ext_libs )
+                pu( ext_libs, ext_lib.split( " " )[ 1 ] );
+        for( let ext_lib of args.ext_libs )
+            pu( ext_libs, ext_lib.split( " " )[ 1 ] );
+
+        let scripts = '';
+        for( let ext_lib of ext_libs )
+            scripts += `  <script type='text/javascript' src='${ ext_lib }' charset='utf-8'></script>\n`;
         scripts += `  <script type='text/javascript' src='${ this.rel_with_dot( path.dirname( this._html_name ), this._js_name ) }' charset='utf-8'></script>`;
 
         // substitutions
@@ -509,12 +512,12 @@ class JsDepFactory extends Task {
     }
 
 
-    js_parsers          = new Map<string,ResJsParser>();  /** signature => res of JsParser */ 
-    requires            = new Map<Require,string>();      /** require => signature */
-    accepts             = new Map<Accept,string>();       /** require => signature */
-    ep_js_parser        : ResJsParser;                    /** JsParser of entry point */
-    _js_name            : string;
-    _html_name          : string;
+    js_parsers   = new Map<string,ResJsParser>();  /** signature => res of JsParser */ 
+    requires     = new Map<Require,string>();      /** require => signature */
+    accepts      = new Map<Accept,string>();       /** require => signature */
+    ep_js_parser : ResJsParser;                    /** JsParser of entry point */
+    _js_name     : string;
+    _html_name   : string;
 }
 
 /** replace in sourcemap first instance of expr by value */

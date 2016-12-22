@@ -78,9 +78,9 @@ abstract class Task {
     }
 
     /** result = array of signatures */
-    get_requires( lst: Array<{cwd:string,requires:Array<string>}>, cb = null as ( err: boolean, res: Array<Array<string>> ) => void, typescript = false ): Array<Array<string>> {
+    get_requires( lst: Array<{cwd:string,requires:Array<string>}>, js_env: string, cb = null as ( err: boolean, res: Array<Array<string>> ) => void, typescript = false ): Array<Array<string>> {
         if ( lst.length == 0 ) return cb ? ( cb( false, [] ), null ) : [];
-        return this._send_and_wait( "get_requires", { lst, typescript }, cb );
+        return this._send_and_wait( "GeneratorJs:get_requires", { lst, typescript, js_env }, cb );
     }
 
     /** in args, stuff which is described as a number whereas a string would be expected means that the string is the output of signature[ the number ] */
@@ -108,7 +108,12 @@ abstract class Task {
 
     /** */
     register_aliases( lst: Array< { key: string, val: string} > ): void  {
-        process.send( JSON.stringify( { action: "register_aliases", lst } ) + "\n" );
+        process.send( JSON.stringify( { action: "register_aliases", args: { lst } } ) + "\n" );
+    }
+
+    /** */
+    register_ext_lib( name: string, url: string, glob: string ): void  {
+        process.send( JSON.stringify( { action: "GeneratorJs:register_ext_lib", args: { name, url, glob } } ) + "\n" );
     }
 
     /** */

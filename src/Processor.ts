@@ -7,6 +7,7 @@ import { SystemInfo }           from "./SystemInfo";
 import { pu }                   from "./ArrayUtil";
 import { mkdir_rec,
          mkdir_rec_sync }       from "./mkdir_rec";
+import Service                  from "./Service";
 import SpRepr                   from "./SpRepr";
 import Pool                     from "./Pool";
 import Db                       from "./Db";
@@ -18,22 +19,13 @@ import * as async               from 'async';
 import * as path                from 'path';
 import * as os                  from 'os'; // cpus()
 import * as fs                  from 'fs';
-            
-export class Service {
-    want_restart = true;
-    status       = "idle" as "idle" | "waiting" | "active";
-    category     = null as string;                          /** if non null, name of the entry point for the service */
-    send         : ( data: string ) => void;                /** function to send data to the child process */
-    cp           = null as child_process.ChildProcess;
-    env          = null as CompilationEnvironment;
-    cn           = null as CompilationNode;
-}
 
 interface DataInDb {
     outputs            : Array<string>;
     output_mtimes      : Array<number>;
     exe_data           : any;
     generated          : Array<string>;
+    generated_mtimes   : Array<number>;
     failed             : Array<string>;
     found              : Array<[string,number]>;
 }
@@ -142,15 +134,34 @@ class Processor {
         this.waiting_cns.length = 0;
     }
 
-    clean( cb: ( err: Error ) => void ): void {
-        this.db.clean( () => {
-            rimraf( this.build_dir, err => {
-                if ( err ) return cb( err );
-                mkdir_rec_sync( this.build_dir );
-                this.db.init();
-                cb( null );
-            } );
+    clean( dir: string, cb: ( err: Error ) => void ): void {
+        // find all the cmd files "concerned" by the directory
+        let lst = [];
+        this.db.remove( ( key: string, val: string ): boolean => {
+            if ( val.indexOf( dir ) >= 0 ) {
+                try {
+                    lst.push( ...JSON.parse( val ).generated );
+                } catch ( e ) {
+                    console.log( e );
+                }
+                return true;
+            }
+            return false;
+        }, err => {
+            console.log( "clean:", lst );
+            
+            async.forEach( lst, rimraf, cb );
         } );
+
+        // //
+        // this.db.clean( () => {
+        //     rimraf( this.build_dir, err => {
+        //         if ( err ) return cb( err );
+        //         mkdir_rec_sync( this.build_dir );
+        //         this.db.init();
+        //         cb( null );
+        //     } );
+        // } );
     }
 
     _done( env: CompilationEnvironment, cn: CompilationNode, err = false ): void {
@@ -189,22 +200,38 @@ class Processor {
             if ( err )
                 return this._done( env, cn, true );
 
-            // save in db (we don't have wait for a complete save)
-            if ( cn.pure_function ) {
-                this.db.put( cn.signature, JSON.stringify( {
-                    outputs               : cn.outputs,
-                    output_mtimes         : cn.output_mtimes,
-                    exe_data              : cn.exe_data,
-                    generated             : cn.generated,
-                    failed                : [ ...cn.file_dependencies.failed ],
-                    found                 : [ ...cn.file_dependencies.found.keys() ].map( name => [ name, cn.file_dependencies.found.get( name ) ] ),
-                } as DataInDb ), err => {
-                     console.assert( ! err, "TODO: db put error" );
+            // generated mtimes
+            async.forEachOf( cn.generated, ( output: string, num_output: number, callback ) => {
+                fs.stat( output, ( err, stat ) => {
+                    if ( err ) {
+                        env.com.error( cn, `Generated (should be) ${ output } does not exist (after execution of ${ cn.pretty }).` );
+                        return callback( true );
+                    }
+                    cn.generated_mtimes[ num_output ] = stat.mtime.getTime();
+                    callback();
                 } );
-            }
+            }, ( err ) => {
+                if ( err )
+                    return this._done( env, cn, true );
 
-            // we're not going to write more stuff about this node
-            this._exec_done_cb( env.com, cn, false );
+                // save in db (we don't have wait for a complete save)
+                if ( cn.pure_function ) {
+                    this.db.put( cn.signature, JSON.stringify( {
+                        outputs               : cn.outputs,
+                        output_mtimes         : cn.output_mtimes,
+                        exe_data              : cn.exe_data,
+                        generated             : cn.generated,
+                        generated_mtimes      : cn.generated_mtimes,
+                        failed                : [ ...cn.file_dependencies.failed ],
+                        found                 : [ ...cn.file_dependencies.found.keys() ].map( name => [ name, cn.file_dependencies.found.get( name ) ] ),
+                    } as DataInDb ), err => {
+                        console.assert( ! err, "TODO: db put error" );
+                    } );
+                }
+
+                // we're not going to write more stuff about this node
+                this._exec_done_cb( env.com, cn, false );
+            } );
         });
     }
 
@@ -230,9 +257,21 @@ class Processor {
                     env.com.error( cn, `Error while trying to get key ${ cn.signature } in db: ${ err }` );
                 return this._launch( env, cn );
             }
-            // else, look if dated or not
+
+            // else, get data from the db
             try {
-                this._done_in_db( env, cn, JSON.parse( value ) as DataInDb );
+                const json_data = JSON.parse( value ) as DataInDb;
+
+                cn.outputs                  = json_data.outputs;
+                cn.output_mtimes            = json_data.output_mtimes;
+                cn.exe_data                 = json_data.exe_data;
+                cn.generated                = json_data.generated;
+                cn.generated_mtimes         = json_data.generated_mtimes;
+                cn.file_dependencies.failed = new Set<string>( json_data.failed );
+                cn.file_dependencies.found  = new Map<string,number>( json_data.found );
+
+                // and continue
+                this._done_for_this_build( env, cn );
             } catch ( e ) {
                 this._launch( env, cn );
             }
@@ -243,10 +282,7 @@ class Processor {
         let _ko = ( msg: string ) => {
             if ( env.verbose )
                 env.com.note( cn, `  Update of ${ cn.pretty }. Reason: ${ msg }` );
-            // cleansing (generated output files) and launch
-            async.forEach( cn.generated, ( name, cb ) => rimraf( name, err => cb( null ) ), err => {
-                this._launch( env, cn );
-            } );
+            this._launch( env, cn );
         };
 
         // test for_found.failed
@@ -267,71 +303,14 @@ class Processor {
                     return _ko( err );
 
                 // test output mtime
-                async.forEach( [ ...cn.output_mtimes.keys() ], ( num: number, cb: ( err: string ) => void ) => {
-                    const name = cn.outputs[ num ];
+                async.forEachOf( cn.outputs, ( name: string, index: number, cb: ( err: string ) => void ) => {
                     fs.stat( name, ( err, stats ) => {
                         if ( err ) return cb( `output file ${ name } does not exist anymore` );
-                        cb( stats.mtime.getTime() != cn.output_mtimes[ num ] ? `File ${ name } has been modified outside of nsmake. Nsmake will not take the initiative to change the content (you can delete it if you want nsmake to generate it again)` : '' );
+                        cb( stats.mtime.getTime() != cn.output_mtimes[ index ] ? `Error: file ${ name } has been modified outside of nsmake. Nsmake will not take the initiative to change the content (you can delete it if you want nsmake to generate it again)` : null );
                     } );
                 }, ( err ) => {
                     if ( err )
                         return _ko( err );
-
-                    // everything seems to be ok :)
-                    this._exec_done_cb( env.com, cn, false );
-                } );
-
-            } );
-
-        } );
-    }
-
-    _done_in_db( env: CompilationEnvironment, cn: CompilationNode, json_data: DataInDb ): void {
-        let _ko = ( msg: string ) => {
-            if ( env.verbose )
-                env.com.note( cn, `  Update of ${ cn.pretty }. Reason: ${ msg }` );
-            // cleansing (generated output files) and launch
-            async.forEach( json_data.generated, ( name, cb ) => rimraf( name, err => cb( null ) ), err => {
-                this._launch( env, cn );
-            } );
-        };
-
-        // test for_found.failed
-        async.forEach( json_data.failed, ( name: string, cb: ( err: string ) => void ) => {
-            fs.exists( name, exists => cb( exists ? `now, file ${ name } exists (that was not the case before)` : '' ) );
-        }, ( err ) => {
-            if ( err )
-                return _ko( err );
-
-            // test for_found.found
-            async.forEach( json_data.found, ( [ name, mtime ], cb: ( err: string ) => void ) => {
-                // const [ name ]
-                fs.stat( name, ( err, stats ) => {
-                    if ( err ) return cb( `file ${ name } does not exist anymore` );
-                    cb( stats.mtime.getTime() != mtime ? `file ${ name } has changed` : '' );
-                } );
-            }, ( err ) => {
-                if ( err )
-                    return _ko( err );
-
-                // test output mtime
-                async.forEach( [ ...json_data.output_mtimes.keys() ], ( num: number, cb: ( err: string ) => void ) => {
-                    const name = json_data.outputs[ num ];
-                    fs.stat( name, ( err, stats ) => {
-                        if ( err ) return cb( `output file ${ name } does not exist anymore` );
-                        cb( stats.mtime.getTime() != json_data.output_mtimes[ num ] ? `File ${ name } has been modified outside of nsmake. Nsmake will not take the initiative to change the content (you can delete it if you want nsmake to generate it again)` : '' );
-                    } );
-                }, ( err ) => {
-                    if ( err )
-                        return _ko( err );
-
-                    // sounds_good. => store db data in CompilationNode cn
-                    cn.outputs                  = json_data.outputs;
-                    cn.output_mtimes            = json_data.output_mtimes;
-                    cn.exe_data                 = json_data.exe_data;
-                    cn.generated                = json_data.generated;
-                    cn.file_dependencies.failed = new Set<string>( json_data.failed );
-                    cn.file_dependencies.found  = new Map<string,number>( json_data.found );
 
                     // everything seems to be ok :)
                     this._exec_done_cb( env.com, cn, false );
@@ -383,35 +362,40 @@ class Processor {
         }
 
         // clear stuff like for_found, additional_children, ...
-        cn._init_for_build();
-
-        // kind of service
-        const ind_at = cn.type.indexOf( "@" );
-        const category = ind_at >= 0 ? cn.type.slice( ind_at + 1 ) : null;
-
-        // launch in a free service
-        const use_service = ( service: Service ) => {
-            if ( ! service )
+        cn._init_for_build( err => {
+            if ( err ) {
+                env.com.error( cn, err );
                 return this._done( env, cn, true );
+            }
 
-            service.status = "active";
-            service.env    = env;
-            service.cn     = cn;
+            // kind of service
+            const ind_at = cn.type.indexOf( "@" );
+            const category = ind_at >= 0 ? cn.type.slice( ind_at + 1 ) : null;
 
-            service.send( JSON.stringify( {
-                action   : "task",
-                type     : ind_at >= 0 ? cn.type.slice( 0, ind_at ) : cn.type,
-                signature: cn.signature,
-                children : cn.children.map( ch => ( { signature: ch.signature, outputs: ch.outputs, exe_data: ch.exe_data } ) ),
-                args     : cn.args
-            } ) + `\n` );
-        };
+            // launch in a free service
+            const use_service = ( service: Service ) => {
+                if ( ! service )
+                    return this._done( env, cn, true );
 
-        const service = this.services.find( s => s.status == "idle" && ( ! category || category == s.category ) );
-        if ( service )
-            use_service( service );
-        else
-            this._make_new_service( this.services.length, use_service, category, env.com );
+                service.status = "active";
+                service.env    = env;
+                service.cn     = cn;
+
+                service.send( JSON.stringify( {
+                    action   : "task",
+                    type     : ind_at >= 0 ? cn.type.slice( 0, ind_at ) : cn.type,
+                    signature: cn.signature,
+                    children : cn.children.map( ch => ( { signature: ch.signature, outputs: ch.outputs, exe_data: ch.exe_data } ) ),
+                    args     : cn.args
+                } ) + `\n` );
+            };
+
+            const service = this.services.find( s => s.status == "idle" && ( ! category || category == s.category ) );
+            if ( service )
+                use_service( service );
+            else
+                this._make_new_service( this.services.length, use_service, category, env.com );
+        } );
     }
 
     _launch_waiting_cn_if_possible() {
@@ -480,7 +464,7 @@ class Processor {
         if ( category )
             this._make_cp_for_cat( category, com, init_cp );
         else
-            init_cp( child_process.fork( `${ __dirname }/service.js` ), false );
+            init_cp( child_process.fork( path.resolve( __dirname, "main_js_services.js" ) ), false );
     }
 
     _action_from_service( service: Service, cmd: { action: string, msg_id: string, args: any } ): void {
@@ -488,6 +472,12 @@ class Processor {
         const ans = ( err: boolean, res = null ) => {
             if ( service.cp )
                 service.send( JSON.stringify( { msg_id: cmd.msg_id, err, res } ) + "\n" );
+        };
+
+        // helper: display an error message
+        const msg = ( str: string ) => {
+            if ( service.env )
+                service.env.com.error( service.cn, str );
         };
 
         // helper: called when the service has finished
@@ -506,7 +496,8 @@ class Processor {
             return done( true );
         
         //
-        switch ( cmd.action ) {
+        const spl_act = cmd.action.split( ":" );
+        switch ( spl_act[ 0 ] ) {
             // display
             case "announcement": if ( service.env ) service.env.com.announcement( service.cn, cmd.args.msg ); else console.log( cmd.args.msg ); return;
             case "note"        : if ( service.env ) service.env.com.note        ( service.cn, cmd.args.msg ); else console.log( cmd.args.msg ); return;
@@ -601,13 +592,6 @@ class Processor {
                     }) ) );
                 } );
 
-            case "get_requires":
-                return async.map( cmd.args.lst as Array<{cwd:string,requires:Array<string>}>, ( item: {cwd:string,requires:Array<string>}, cb: ( err: boolean, signatures: Array<string> ) => void ) => {
-                    this._find_requires( service.env, service.cn, item.cwd, cmd.args.js_env, item.requires, cmd.args.typescript, cb );
-                }, ( err: boolean, lst: Array<Array<string>> ) => {
-                    ans( err, lst );
-                } );
-
             case "register_aliases":
                 return service.env.register_aliases( service.cn, cmd.args.lst );
 
@@ -687,8 +671,11 @@ class Processor {
 
             // default
             default:
-                service.env.com.error( service.cn, `Unknown service command '${ cmd.args.action }'` );
-                this._done( service.env, service.cn, true );
+                for( const g of service.env.generators )
+                    if ( g.constructor.name == spl_act[ 0 ] )
+                        return g.msg_from_service( service, spl_act[ 1 ], cmd.args, ans, msg );
+                msg( `Unknown service command '${ cmd.action }'. => service is going to be killed` );
+                service.cp.kill();
         }
     }
 
@@ -733,69 +720,6 @@ class Processor {
                 } );
             } );
         } );
-    }
-
-    _find_requires( env: CompilationEnvironment, cn: CompilationNode, cwd: string, js_env: string, requires: Array<string>, typescript: boolean, cb_find_require: ( err: boolean, signatures: Array<string> ) => void ) {
-        const exts = typescript ? [ ".ts", ".tsx", ".d.ts" ] : [ ".js", ".jsx" ];
-
-        // we have a list of list
-        async.map( requires, ( str: string, require_cb: ( err: boolean, sgn: string ) => void ) => {
-            if ( ! str )
-                return require_cb( null, "" );
-
-            // helper to test for a module (`str`) from a given directory (`dir`)
-            const test_from = ( dir: string, install_allowed: boolean ) => {
-                let trials = new Array< { name: string, type: number } >();
-
-                if ( exts.indexOf( path.extname( str ).toLowerCase() ) >= 0 ) {
-                    trials.push({ name: path.resolve( dir, str ), type: 0 }); // foo.js
-                } else {
-                    for( let ext_trial of exts )
-                        trials.push({ name: path.resolve( dir, str + ext_trial ), type: 0 }); // foo.js, foo.jsx...
-                    trials.push({ name: path.resolve( dir, str, "package.json" ), type: 1 }); // foo/package.json
-                    for( let ext_trial of exts )
-                        trials.push({ name: path.resolve( dir, str, "index" + ext_trial ), type: 0 }); // foo/index.js, foo/index.jsx...
-                }
-                // we want the signature of the first coming ncn 
-                async.forEachSeries( trials, ( trial, cb_trial ) => {
-                    env.get_compilation_node( trial.name, dir, cn.file_dependencies, ncn =>
-                        cb_trial( ncn ? ( trial.type ? env.com.proc.pool.New( "MainJsFromPackageJson", [ ncn ], { js_env, typescript } ) : ncn ) : null )
-                    );
-                }, ( ncn: CompilationNode ) => {
-                    ncn ? require_cb( null, ncn.signature ) : try_installation( install_allowed, dir );
-                } )
-            };
-            const try_installation = ( install_allowed: boolean, node_modules_dir: string ) => {
-                // currently we only install module without relative paths
-                if ( ! install_allowed )
-                    return require_cb( null, '' );
-                //
-                if ( ! node_modules_dir ) {
-                    // if file is in the launch directory, we add a node_module here
-                    if ( cwd.startsWith( env.cwd ) ) {
-                        const new_node_modules_dir = path.resolve( env.cwd, "node_modules" );
-                        return fs.mkdir( new_node_modules_dir, err => {
-                            if ( err && err.code != 'EEXIST' ) {
-                                env.com.error( cn, `Impossible to create directory ${ new_node_modules_dir }` );
-                                return require_cb( null, '' );
-                            }
-                            try_installation( install_allowed, new_node_modules_dir );
-                        } );
-                    }
-                    //
-                    env.com.error( cn, `Error while trying to load module '${ str }': there's no 'node_modules' directory from '${ cwd }' and the later is not in the launch dir ('${ env.cwd }'). Nsmake is not willing to create a 'node_modules' by itself... Please add a new one in '${ cwd }' or in a parent dir if you want nsmake to install the module (or... directly install the module, it would be another good solution :) )` );
-                    return require_cb( null, '' );
-                }
-                //
-                this._install_cmd( env.com, cn, "npm", path.dirname( node_modules_dir ), [ "npm", 'install', typescript ? `@types/` + str : str ], [], err => err ? require_cb( null, '' ) : test_from( node_modules_dir, false ) );
-            };
-
-            // local, or look for a 'node_modules' directory, starting from cwd
-            if ( ( str.length >= 2 && str.substr( 0, 2 ) == "./"  ) || ( str.length >= 3 && str.substr( 0, 3 ) == "../" ) || ( str.length >= 1 && str[ 0 ] == '/' ) )
-                test_from( cwd, false );
-            else
-                Processor._find_node_modules_directory( cn, cwd, typescript, ( tn: string ) => tn ? test_from( tn, true ) : try_installation( true, "" ) );
-        }, cb_find_require );
     }
 
     /** ex of category: npm... */
@@ -864,17 +788,6 @@ class Processor {
                 com.error( cn, `error while parsing ${data} from ${ trials }: ` + e.toString() );
                 cb( true );
             }
-        } );
-    }
-
-    static _find_node_modules_directory( cn: CompilationNode, cwd: string, typescript: boolean, cb: ( tn: string ) => void ) {
-        let tn = path.resolve( cwd, "node_modules" );
-        fs.stat( tn, ( err, stats ) => {
-            if ( ! err && stats.isDirectory )
-                return cb( typescript ? path.resolve( tn, "@types" ) : tn );
-            const ncwd = path.dirname( cwd );
-            cn.file_dependencies.failed.add( cwd );
-            ncwd != cwd ? Processor._find_node_modules_directory( cn, ncwd, typescript, cb ) : cb( "" ); 
         } );
     }
 
