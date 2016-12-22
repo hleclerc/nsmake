@@ -10,104 +10,99 @@ interface CnData {
     exe_data : any;
 }
 
-/** */
+/**
+ * 
+ */
 abstract class Task {
     /** */
     abstract exec( args, done?: ( err: boolean ) => void );
 
     /** send an announcement */
     announcement( msg: string ): void {
-        process.send( JSON.stringify( { action: "announcement", msg } ) + "\n" );
+        process.send( JSON.stringify( { action: "announcement", args: { msg } } ) + "\n" );
     }
 
     /** send a note */
     note( msg: string ): void {
-        process.send( JSON.stringify( { action: "note", msg } ) + "\n" );
+        process.send( JSON.stringify( { action: "note", args: { msg } } ) + "\n" );
     }
 
     /** send an informational message */
     info( msg: string ): void {
-        process.send( JSON.stringify( { action: "info", msg } ) + "\n" );
+        process.send( JSON.stringify( { action: "info", args: { msg } } ) + "\n" );
     }
 
     /** send an error message */
     error( msg: string ): void {
-        process.send( JSON.stringify( { action: "error", msg } ) + "\n" );
+        process.send( JSON.stringify( { action: "error", args: { msg } } ) + "\n" );
     }
 
     /** get signature + result (output filename) of generator for `target` */
-    get_filtered_target( target: string, cwd: string, mandatory = true ): { name: string, signature: string } {
-        const res = this._send_and_wait( { action: "get_filtered_target", target, cwd } );
-        if ( mandatory && ! res.name )
-            throw `Don't known how to read or build '${ target }'`;
-        return { name: res.name, signature: res.signature };
+    get_filtered_target( target: string, cwd: string, cb = null as ( err: boolean, res: { name: string, signature: string } ) => void, throw_if_err = ! cb ): { name: string, signature: string } {
+        const res = this._send_and_wait( "get_filtered_target", { target, cwd }, cb, throw_if_err );
+        if ( throw_if_err && cb == null && res == null )
+            throw `Don't know how to make or build target ${ target }`;
+        return res;
     }
 
     /** get signature for generator of `target`. This version does not launch execution  */
-    get_filtered_target_signature( target: string, cwd: string, mandatory = true ): string {
-        const res = this._send_and_wait( { action: "get_filtered_target_signature", target, cwd } ).signature;
-        if ( mandatory && ! res )
-            throw `Don't known how to read or build '${ target }'`;
-        return res; 
+    get_filtered_target_signature( target: string, cwd: string, cb = null as ( err: boolean, res: string ) => void, throw_if_err = ! cb ): string {
+        const res = this._send_and_wait( "get_filtered_target_signature", { target, cwd }, cb, throw_if_err );
+        if ( throw_if_err && cb == null && res == null )
+            throw `Don't know how to make or build target ${ target }`;
+        return res;
     }
 
     /** get signature for generator of `target`. This version does not launch execution  */
-    get_filtered_target_signatures( targets: Array<string>, cwd: string, mandatory = true, care_about_target = false ): Array<string> {
-        const res = this._send_and_wait( { action: "get_filtered_target_signatures", targets, cwd, care_about_target } ).signatures;
-        if ( res.some( x => ! x ) ) {
-            for( let num = 0; num < targets.length; ++num )
-                if ( ! res[ num ] )
-                    this.error( `Don't known how to read or build '${ targets[ num ] }'` );
-            throw '';
-        }
-        return res; 
+    get_filtered_target_signatures( targets: Array<string>, cwd: string, cb = null as ( err: boolean, res: Array<string> ) => void, care_about_target = false ): Array<string> {
+        if ( targets.length == 0 ) return cb ? ( cb( false, [] ), null ) : [];
+        return this._send_and_wait( "get_filtered_target_signatures", { targets, cwd, care_about_target }, cb );
     }
 
     /** get signature for generator of first possible `target`. num is the number in the list */
-    get_first_filtered_target_signature( targets: Array<string>, cwd: string ): { signature: string, num: number } {
-        const res = this._send_and_wait( { action: "get_first_filtered_target_signature", targets, cwd } );
-        return res.signature ? { signature: res.signature, num: res.num } : null;
+    get_first_filtered_target_signature( targets: Array<string>, cwd: string, cb = null as ( err: boolean, res: { signature: string, num: number } ) => void ): { signature: string, num: number } {
+        if ( targets.length == 0 ) return cb ? ( cb( false, null ), null ) : null;
+        return this._send_and_wait( "get_first_filtered_target_signature", { targets, cwd }, cb );
     }
 
     /** get outputs/exe_data of a Compilation Node. children = array of signatures */
-    get_cn_data( signature: string ): CnData {
-        const cnd = this._send_and_wait( { action: "get_cn_data", signature } );
-        return { signature: cnd.signature, outputs: cnd.outputs, exe_data: cnd.exe_data };
+    get_cn_data( signature: string, cb = null as ( err: boolean, res: CnData ) => void ): CnData {
+        return this._send_and_wait( "get_cn_data", { signature }, cb );
     }
 
     /** get outputs/exe_data parallely for a set of Compilation Nodes. lst = array of signatures */
-    get_cns_data( lst: Array<string> ): Array<CnData> {
-        if ( lst.length == 0 ) return [];
-        const res = this._send_and_wait( { action: "get_cns_data", lst } ).lst;
-        return res.map( cnd => ( { signature: cnd.signature, outputs: cnd.outputs, exe_data: cnd.exe_data } ) );
+    get_cns_data( lst: Array<string>, cb = null as ( err: boolean, res: Array<CnData> ) => void ): Array<CnData> {
+        if ( lst.length == 0 ) return cb ? ( cb( false, [] ), null ) : [];
+        return this._send_and_wait( "get_cns_data", { lst }, cb );
     }
 
     /** result = array of signatures */
-    get_requires( lst: Array<{cwd:string,requires:Array<string>}>, typescript = false ): Array<Array<string>> {
-        return this._send_and_wait( { action: "get_requires", lst, typescript } ).lst;
+    get_requires( lst: Array<{cwd:string,requires:Array<string>}>, cb = null as ( err: boolean, res: Array<Array<string>> ) => void, typescript = false ): Array<Array<string>> {
+        if ( lst.length == 0 ) return cb ? ( cb( false, [] ), null ) : [];
+        return this._send_and_wait( "get_requires", { lst, typescript }, cb );
     }
 
     /** in args, stuff which is described as a number whereas a string would be expected means that the string is the output of signature[ the number ] */
-    run_mission_node( args, signatures: Array<string>, mandatory = true ): Array<string> {
-        const res = this._send_and_wait( { action: "run_mission_node", args, signatures } );
-        if ( ! res.outputs && mandatory )
-            throw `Did not find what to do (what mission) for ${ JSON.stringify( args, ( key, val ) => key.startsWith( "_" ) ? undefined : val ) }, signatures = ${ signatures }`;
-        return res.outputs;
+    run_mission_node( args: any, signatures: Array<string>, cb = null as ( err: boolean, res: CnData ) => void, throw_if_err = ! cb ): CnData {
+        const res = this._send_and_wait( "run_mission_node", { args, signatures }, cb, throw_if_err );
+        if ( throw_if_err && cb == null && res == null )
+            throw `Did not find what to do (what mission, ...) for ${ JSON.stringify( args, ( key, val ) => key.startsWith( "_" ) ? undefined : val ) }, signatures = ${ signatures }`;
+        return res;
     }
 
     /** return true if error */
-    run_install_cmd( category: string, cwd: string, cmd: Array<string> | string, prerequ = [] as Array<string> ): boolean {
-        return this._send_and_wait( { action: "run_install_cmd", category, cwd, cmd, prerequ } ).err;
+    run_install_cmd( category: string, cwd: string, cmd: Array<string> | string, prerequ: Array<string>, cb = null as ( err: boolean, fail: boolean ) => void ): boolean {
+        return this._send_and_wait( "run_install_cmd", { category, cwd, cmd, prerequ }, cb );
+    }
+
+    /** @param dist: optionnal root target directory (e.g. for public files) */
+    new_build_file( orig = "", ext = "", dist = "", cb = null as ( err: boolean, name: string ) => void ): string {
+        return this._send_and_wait( "new_build_file", { orig, ext, dist }, cb );
     }
 
     /** children = array of signatures */
     make_signature( type: string, children: Array<string>, args: any ): string {
         return JSON.stringify( [ type, children.map( sgn => JSON.parse( sgn ) ), args ] );
-    }
-
-    /** @param dist: optionnal root target directory (e.g. for public files) */
-    new_build_file( orig = "", ext = "", dist = "" ): string {
-        return this._send_and_wait( { action: "new_build_file", orig, ext, dist } ).name;
     }
 
     /** */
@@ -116,20 +111,38 @@ abstract class Task {
     }
 
     /** */
-    spawn_sync( executable: string, args: Array<string>, local_execution = false, redirect = '', mandatory = true ): number {
+    spawn( executable: string, args: Array<string>, cb = null as ( err: boolean, code: number ) => void, local_execution = false, redirect = '', throw_if_err = ! cb ): number {
         // display
         this.announcement( `${ [ executable, ...args ].join( " " ) }${ redirect ? " > " + redirect : "" }` );
 
         // to be launched by the client ?
-        if ( local_execution ) {
-            const res = this._send_and_wait( { action: "spawn_local", executable, args, redirect } );
-            return res.code;
-        } 
+        if ( local_execution )
+            return this._send_and_wait( "spawn_local", { executable, args, redirect }, cb );
 
-        // execution inside the service
+        // to be launched locally by asynchronously ?
+        if ( cb ) {
+            if ( redirect ) {
+                this.error( 'TODO: redirect with async local microservice spawn' );
+                cb( true, -1 );
+                return null;
+            }
+
+            // execution inside the service, synchronously
+            const cp = child_process.spawn( executable, args );
+            cp.on( 'error', err => cb( true, -1 ) );
+            cp.on( 'close', ( code, signal ) => cb( Boolean( signal ), signal ? -1 : code ) );
+
+            // outputs        
+            cp.stdout.on( 'data', data => this.info( data.toString() ) );
+            cp.stderr.on( 'data', data => this.error( data.toString() ) );
+
+            return null;
+        }
+
+        // execution inside the service, synchronously
         const cp = child_process.spawnSync( executable, args );
         if ( cp.error ) {
-            if ( mandatory )
+            if ( throw_if_err )
                 throw cp.error;
             return -1;
         }
@@ -144,7 +157,7 @@ abstract class Task {
             this.info( cp.stdout.toString() );
 
         // status
-        if ( mandatory && cp.status )
+        if ( throw_if_err && ( cp.status || cp.error || cp.signal ) )
             throw '';
         return cp.status;
     }
@@ -170,8 +183,8 @@ abstract class Task {
     }
 
     /** */
-    stat_sync( filename: string ): fs.Stats {
-        return fs.statSync( filename );
+    stat( filename: string, cb = null as ( err: NodeJS.ErrnoException, stat: fs.Stats ) => void ): fs.Stats {
+        return cb ? ( fs.stat( filename, cb ), null ) : fs.statSync( filename );
     }
 
     /** */
@@ -190,19 +203,36 @@ abstract class Task {
         return typeof n == 'string' ? n : this.children[ n ].outputs[ 0 ];
     }
 
-    /** */
-    _send_and_wait( cmd: { action: string, [ key: string ]: any } ): any {
-        process.send( JSON.stringify( cmd ) + "\n" );
-        deasync.loopWhile( () => this._messages.every( msg => msg.action != cmd.action ) );
-        const index = this._messages.findIndex( msg => msg.action == cmd.action );
-        const res = this._messages[ index ];
-        this._messages.splice( index, 1 );
-        return res;
+    /** `if_wrong` is used only in sync mode */
+    _send_and_wait( action, args: { [ key: string ]: any }, cb: ( err: boolean, res: any ) => void, throw_if_error = false ): any {
+        // send msg
+        const msg_id = ++this._cur_id_waiting_cbs;
+        process.send( JSON.stringify( { action, args, msg_id } ) + "\n" );
+
+        // async version
+        if ( cb ) {
+            this._waiting_cbs.set( msg_id, cb );
+            return null;
+        }
+
+        // sync version
+        if ( ! cb ) {
+            let result = null, done = false;
+            this._waiting_cbs.set( msg_id, ( err: boolean, res: any ) => {
+                if ( err && throw_if_error ) throw '';
+                result = err ? null : res;
+                done = true;
+            } );
+            deasync.loopWhile( () => done == false );
+            return result;
+        }
     }
 
     /** */
     _msg( args ) {
-        this._messages.push( args );
+        const cb = this._waiting_cbs.get( args.msg_id );
+        this._waiting_cbs.delete( args.msg_id );
+        return cb( args.err, args.res );
     }
 
     /** */
@@ -217,13 +247,15 @@ abstract class Task {
 
     // input
     children            : Array<CnData>;
+    signature           : string;
 
     // output
     outputs             = new Array<string>();
     generated           = new Array<string>();
-    pure_function       = true;                /** true is different execution with the same parameters yield the same results */
+    pure_function       = true;                          /** true is different execution with the same parameters yield the same results */
     exe_data            = {} as any;
 
-    _messages           = new Array<any>();    /** messages from Processor */
+    _waiting_cbs        = new Map<number,( err: boolean, res: any )=>void>();
+    _cur_id_waiting_cbs = 0;
 }
 export default Task;

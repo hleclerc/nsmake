@@ -7,5 +7,4 @@
      -> on lance les spawn_sync en parallèle
      -> il faut que les compiler sortent les info de spawn_sync
    
-* `system` field in loaders/flag handlers (something more accurate, canonical...)
 * ext_lib (cdn)

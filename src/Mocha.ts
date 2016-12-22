@@ -24,10 +24,10 @@ class Mocha extends Task {
 
         // check mocha installation
         if ( ! this.av( args.mocha ) ) {
-            try { this.stat_sync( path.resolve( args.launch_dir, "node_modules", "@types", "mocha" ) ); }
-            catch ( e ) { this.run_install_cmd( "npm", args.launch_dir, [ "npm", "install", "@types/mocha" ] ); } 
-            try { this.stat_sync( path.resolve( args.launch_dir, "node_modules", "mocha" ) ); }
-            catch ( e ) { this.run_install_cmd( "npm", args.launch_dir, [ "npm", "install", "mocha" ] ); }
+            try { this.stat( path.resolve( args.launch_dir, "node_modules", "@types", "mocha" ) ); }
+            catch ( e ) { this.run_install_cmd( "npm", args.launch_dir, [ "npm", "install", "@types/mocha" ], [] ); } 
+            try { this.stat( path.resolve( args.launch_dir, "node_modules", "mocha" ) ); }
+            catch ( e ) { this.run_install_cmd( "npm", args.launch_dir, [ "npm", "install", "mocha" ], [] ); }
         }
 
         // get, register and make the input compilation nodes
@@ -59,7 +59,7 @@ class Mocha extends Task {
             let cmd_args = [ '-c', ...cns ];
             if ( this.av( args.mocha_reporter ) )
                 cmd_args.unshift( '--reporter', this.av( args.mocha_reporter ) );
-            if ( this.spawn_sync( this.av( args.mocha ) || path.resolve( args.launch_dir, "node_modules", ".bin", "mocha" ), cmd_args, true, '', false ) )
+            if ( this.spawn( this.av( args.mocha ) || path.resolve( args.launch_dir, "node_modules", ".bin", "mocha" ), cmd_args, null, true, '', false ) )
                 error = true;
             
             testing_env.splice( ind_nodejs, 1 );
@@ -93,12 +93,12 @@ class Mocha extends Task {
 
             // check karma installation
             for ( const to_test of [ "karma", "karma-mocha", ...testing_env.map( x => `karma-${ x.toLowerCase() }-launcher` ) ] ) {
-                try { this.stat_sync( path.resolve( args.launch_dir, "node_modules", to_test ) ); }
-                catch ( e ) { this.run_install_cmd( "npm", args.launch_dir, [ "npm", "install", to_test ] ); }
+                try { this.stat( path.resolve( args.launch_dir, "node_modules", to_test ) ); }
+                catch ( e ) { this.run_install_cmd( "npm", args.launch_dir, [ "npm", "install", to_test ], [] ); }
             }
 
             // launch
-            if ( this.spawn_sync( path.resolve( args.launch_dir, "node_modules", "karma", "bin", "karma" ), [ "start", karma_conf_name ], true, '', false )  )
+            if ( this.spawn( path.resolve( args.launch_dir, "node_modules", "karma", "bin", "karma" ), [ "start", karma_conf_name ], null, true )  )
                 error = true;
         }
 

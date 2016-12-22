@@ -3,6 +3,7 @@ import ExeDataGenCompiler    from "./ExeDataGenCompiler"
 import { SystemInfo,
         is_compatible_with } from "./SystemInfo"
 import { pu }                from "./ArrayUtil"
+import { ExecutorArgs }      from "./Executor"
 import Task                  from "./Task"
 import * as path             from "path";
 import * as fs               from "fs";
@@ -54,15 +55,31 @@ class CppCompiler extends Task {
         }
 
         // name of the output file
-        const o_name = args.output || this.new_build_file( orig_name, ".o" );
-        this.outputs = [ o_name ];
+        let new_build_files = [];
+        let outputs = [];
+        let o = null as string | number;
+        if ( args.output ) {
+            outputs.push( args.output );
+            o = args.output;
+        } else {
+            new_build_files.push( { orig: orig_name, ext: ".o" } );
+            outputs.push( -1 );
+            o = -1;
+        }
 
         // args
-        let cmd_args = [ "-c", "-g3", "-std=c++11", "-Wall", "-o", o_name, cpp_name ];
+        let cmd_args = [ "-c", "-g3", "-std=c++11", "-Wall", "-o", o, cpp_name ];
         pu( cmd_args, ...this.inc_paths.map( n => "-I" + n ) );
 
-        // launch
-        this.spawn_sync( "g++", cmd_args );
+        // command
+        exe_data.command_sgn = this.make_signature( "Executor", [ this.signature ], {
+            executable: "g++",
+            args      : cmd_args,
+            new_build_files,
+            outputs,
+        } as ExecutorArgs );
+
+        this.outputs = [ cpp_name ];
     }
 
     /** read comments to find nsmake commands */
@@ -207,7 +224,7 @@ class CppCompiler extends Task {
         // not found ? => try to load it
         if ( ! sgn && rules ) {
             const rule = this.for_system( args.system, rules.load_sets )
-            if ( rule && rule.command && this.run_install_cmd( rule.command, args.launch_dir, rule.command ) )
+            if ( rule && rule.command && this.run_install_cmd( rule.command, args.launch_dir, rule.command, [] ) )
                 throw '';
             // try again to find it
             sgn = try_to_find();

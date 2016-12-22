@@ -4,7 +4,7 @@
 #include <sys/stat.h>
 
 
-CppParser::CppParser( Task &task ): task( task ) {
+CppParser::CppParser( Task *task ): task( task ) {
     special_variables.append( "NSMAKE_CMD"          , VT_NSMAKE_CMD       );
     special_variables.append( "NSMAKE_RUN"          , VT_NSMAKE_RUN       );
     special_variables.append( "defined"             , VT_defined          );
@@ -210,7 +210,7 @@ void CppParser::_nsmake( const char *b, const char *e, Read *read ) {
     //
     if ( spl[ 0 ] == "alias" ) {
         if ( nspl.size() < 3 ) throw "'//// nsmake alias' is supposed to be followed by 2 arguments (key and value)";
-        task.register_aliases( { std::make_pair( spl[ nspl[ 1 ] ], cf( 2 ) ) }, read->dir );
+        task->register_aliases( { std::make_pair( spl[ nspl[ 1 ] ], cf( 2 ) ) }, read->dir );
         return;
     }
     if ( spl[ 0 ] == "inc_path" ) {
@@ -424,8 +424,8 @@ std::string CppParser::substitution( const std::string &str, Read *read, const c
                     if ( arguments.size() != 1 )
                         return c_error( "'__has_include[__]' expects exactly one argument", od, read );
                     // send a request, wait for an answer
-                    std::vector<std::string> to_try = include_try_list( read->dir, task.args[ "launch_dir" ].asString(), { arguments[ 0 ].first, arguments[ 0 ].second }, 0 );
-                    Task::NumAndSignature nas = task.get_first_filtered_target_signature( to_try, read->dir );
+                    std::vector<std::string> to_try = include_try_list( read->dir, task->args[ "launch_dir" ].asString(), { arguments[ 0 ].first, arguments[ 0 ].second }, 0 );
+                    Task::NumAndSignature nas = task->get_first_filtered_target_signature( to_try, read->dir );
                     return repl( nas ? "1" : "0" );
                 }
 
@@ -434,8 +434,8 @@ std::string CppParser::substitution( const std::string &str, Read *read, const c
                     if ( arguments.size() != 1 )
                         return c_error( "'__has_include_next[__]' expects exactly one argument", od, read );
                     // send a request, wait for an answer
-                    std::vector<std::string> to_try = include_try_list( read->dir, task.args[ "launch_dir" ].asString(), { arguments[ 0 ].first, arguments[ 0 ].second }, get_num_path( read ) + 1 );
-                    Task::NumAndSignature nas = task.get_first_filtered_target_signature( to_try, read->dir );
+                    std::vector<std::string> to_try = include_try_list( read->dir, task->args[ "launch_dir" ].asString(), { arguments[ 0 ].first, arguments[ 0 ].second }, get_num_path( read ) + 1 );
+                    Task::NumAndSignature nas = task->get_first_filtered_target_signature( to_try, read->dir );
                     return repl( nas ? "1" : "0" );
                 }
 
@@ -448,7 +448,7 @@ std::string CppParser::substitution( const std::string &str, Read *read, const c
                     std::vector<std::string> args;
                     for( const auto &p : arguments )
                          args.push_back( remove_quotes_if( { p.first, p.second } ) );
-                    return repl( task.nsmake_cmd( args, read->dir ) );
+                    return repl( task->nsmake_cmd( args, read->dir ) );
                 }
 
                 // particular case 4: NSMAKE_RUN
@@ -460,7 +460,7 @@ std::string CppParser::substitution( const std::string &str, Read *read, const c
                     std::vector<std::string> args;
                     for( const auto &p : arguments )
                         args.push_back( remove_quotes_if( { p.first, p.second } ) );
-                    return repl( task.nsmake_run( args, read->dir ) );
+                    return repl( task->nsmake_run( args, read->dir ) );
                 }
 
                 // else, regular substitution. First, argument prescan in iter->second.content
@@ -609,7 +609,7 @@ bool CppParser::is_in( std::string file, const std::string &dir ) const {
 void CppParser::read_rules() {
     Json::Value data;
     Json::Reader reader;
-    reader.parse( task.read_file_sync( task.children[ 1 ].outputs[ 0 ] ), data );
+    reader.parse( task->read_file_sync( task->children[ 1 ].outputs[ 0 ] ), data );
 
     for( Json::Value &item : data ) {
         if ( item[ "data" ].isNull() )
@@ -618,7 +618,7 @@ void CppParser::read_rules() {
             std::string str = include.asString();
             auto iter = inc_rules.find( str );
             if ( iter != inc_rules.end() )
-                task.error( "Rule for include <" + str + "> appears twice in yaml rule files." );
+                task->error( "Rule for include <" + str + "> appears twice in yaml rule files." );
             item[ "data" ][ "yaml_name" ] = item[ "name" ];
             inc_rules.insert( iter, std::make_pair( str, item[ "data" ] ) );
         }
@@ -627,11 +627,11 @@ void CppParser::read_rules() {
 
 void CppParser::read_base_info() {
     // base includes
-    base_include_paths = from_json( task.children[ 2 ].exe_data[ "paths" ] );
-    cmd_include_paths = from_json( task.args[ "inc_paths" ] );
+    base_include_paths = from_json( task->children[ 2 ].exe_data[ "paths" ] );
+    cmd_include_paths = from_json( task->args[ "inc_paths" ] );
 
     // base defines
-    std::string base_defines = task.children[ 2 ].exe_data[ "defines" ].asString();
+    std::string base_defines = task->children[ 2 ].exe_data[ "defines" ].asString();
     parse( "", "", base_defines );
     cpp_content.clear();
 }
@@ -698,18 +698,19 @@ void CppParser::_include( const char *b, const char *e, Read *read, const char *
         std::string inc_str{ b + 1, e - 1 };
         include_strs.insert( inc_str );
 
-        std::vector<std::string> to_try = include_try_list( *b == '"' ? read->dir : "", task.args[ "launch_dir" ].asString(), inc_str, min_num_path );
+        std::vector<std::string> to_try = include_try_list( *b == '"' ? read->dir : "", task->args[ "launch_dir" ].asString(), inc_str, min_num_path );
 
         // get signature
-        Task::NumAndSignature nas = task.get_first_filtered_target_signature( to_try, read->dir );
+        Task::NumAndSignature nas = task->get_first_filtered_target_signature( to_try, read->dir );
         if ( nas.signature.empty() ) {
             // try to load the library
             auto iter = inc_rules.find( inc_str );
-            if ( iter != inc_rules.end() )
+            if ( iter != inc_rules.end() ) {
                 load_library( iter->second );
+                nas = task->get_first_filtered_target_signature( to_try, read->dir );
+            }
 
             // try again
-            nas = task.get_first_filtered_target_signature( to_try, read->dir );
             if ( nas.signature.empty() ) {
                 c_error( "Impossible to find include " + std::string{ b, e }, b, read );
                 P( read->filename );
@@ -719,7 +720,7 @@ void CppParser::_include( const char *b, const char *e, Read *read, const char *
         }
 
         // make the CompilationNode
-        Task::CnData cnd = task.get_cn_data( nas.signature );
+        Task::CnData cnd = task->get_cn_data( nas.signature );
         filename  = cnd.outputs[ 0 ];
         dir       = dirname( cnd.exe_data[ "orig_name" ].isNull() ? filename : cnd.exe_data[ "orig_name" ].asString() );
         num_path  = nas.num + min_num_path;
@@ -749,9 +750,9 @@ bool CppParser::load_library( const Json::Value &jd ) {
     if ( load_sets.isNull() )
         return false;
     for( Json::Value set: load_sets ) {
-        if ( ! task.system_is_in( from_json( set[ "systems" ] ), task.args[ "system" ] ) )
+        if ( ! task->system_is_in( from_json( set[ "systems" ] ), task->args[ "system" ] ) )
             continue;
-        if ( task.run_install_cmd( from_json( set[ "command" ] ), from_json( task.args[ "launch_dir" ] ),
+        if ( task->run_install_cmd( from_json( set[ "command" ] ), from_json( task->args[ "launch_dir" ] ),
                                    from_json( set[ "command" ] ), from_json( set[ "prerequ" ] ) ) == false )
             break;
     }
@@ -775,13 +776,13 @@ std::vector<std::string> CppParser::include_try_list( std::string cur_dir, std::
     auto iter = inc_rules.find( basename );
     if ( iter != inc_rules.end() ) {
         for( Json::Value set: iter->second[ "flag_sets" ] ) {
-            if ( task.system_is_in( from_json( set[ "systems" ] ), task.args[ "system" ] ) ) {
+            if ( task->system_is_in( from_json( set[ "systems" ] ), task->args[ "system" ] ) ) {
                 for( Json::Value inc_path : set[ "inc_paths" ] )
-                    push_back_unique( inc_paths, resolve( launch_dir, inc_path.asString() ) );
+                    emplace_back_unique( inc_paths, resolve( launch_dir, inc_path.asString() ) );
                 for( Json::Value lib_path : set[ "lib_paths" ] )
-                    push_back_unique( lib_paths, resolve( launch_dir, lib_path.asString() ) );
+                    emplace_back_unique( lib_paths, resolve( launch_dir, lib_path.asString() ) );
                 for( Json::Value lib_name : set[ "lib_names" ] )
-                    push_back_unique( lib_names, lib_name.asString() );
+                    emplace_back_unique( lib_names, lib_name.asString() );
                 break;
             }
         }

@@ -17,8 +17,8 @@ class MainJsFromPackageJson extends Task {
         const attr = args.typescript ? "typings" : ( args.js_env == "browser" ? "browser" : "main" );
         const rout = json[ attr ] || ( args.typescript ? "index.d.ts" : ( json[ "main" ] || "index.js" ) );
         const aout = path.resolve( cwd, rout );
-        const fout = this.get_filtered_target( aout, cwd, false ).name || 
-            ( path.extname( aout ) == bext ? "" : this.get_filtered_target( aout + bext, cwd, false ).name );
+        const fout = this.get_filtered_target( aout, cwd, null, false ).name || 
+            ( path.extname( aout ) == bext ? null : this.get_filtered_target( aout + bext, cwd, null, false ).name );
         if ( ! fout )
             throw `Impossible to find target '${ aout }' (mentionned in '${ name }' file)`;
         this.outputs = [ fout ];

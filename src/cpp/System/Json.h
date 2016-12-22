@@ -16,6 +16,12 @@ struct FromJson {
     operator bool() const {
         return val.asBool();
     }
+    operator int() const {
+        return val.asInt();
+    }
+    operator unsigned() const {
+        return val.asUInt();
+    }
     template<class T>
     operator std::vector<T>() const {
         std::vector<T> res;

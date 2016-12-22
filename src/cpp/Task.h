@@ -21,19 +21,13 @@ public:
         std::string signature;
     };
 
-    template<class T>
-    static T New() {
-        return { _wait_for_line() };
-    }
-
     Task( const Json::Value &root );
-    ~Task();
 
-    /// send an error message */
-    void error( std::string msg );
+    void               error                              ( std::string msg ); ///< send an error message
 
     std::string        read_file_sync                     ( std::string name );                                                    ///< read all the content of file `name`
     void               write_file_sync                    ( std::string name, const std::string &content );                        ///< read all the content of file `name`
+
     std::string        get_filtered_target_signature      ( std::string target, std::string cwd );                                 ///< get signature for generator of `target`. This version does not launch execution
     NumAndSignature    get_first_filtered_target_signature( std::vector<std::string> targets, std::string cwd );                   ///< get signature for generator of first possible `target`
     CnData             get_cn_data                        ( std::string signature );                                               ///< get outputs/exe_data of a Compilation Node. children = array of signatures
@@ -44,13 +38,14 @@ public:
     std::string        nsmake_cmd                         ( const std::vector<std::string> &args, const std::string &cwd );        ///<
     std::string        nsmake_run                         ( const std::vector<std::string> &args, const std::string &cwd );        ///<
     CnData             run_mission_node                   ( const Json::Value &args, const std::vector<std::string> &signatures ); ///< in args, stuff which is described as a number whereas a string would be expected means that the string is the output of signature[ the number ]
-    std::string        make_signature                     ( std::string type, std::vector<std::string> children_signatures, Json::Value args );
 
+    std::string        make_signature                     ( std::string type, std::vector<std::string> children_signatures, Json::Value args );
     static bool        system_is_in                       ( const std::vector<std::string> &systems, const Json::Value &sys );
 
-    static void        _send                              ( const Json::Value &args );
-    static Json::Value _send_and_wait                     ( const Json::Value &args );
-    static Json::Value _wait_for_line                     ();
+    static void        send_done                          ( Task *task = 0 );                                                       ///< null task => error
+    static void        _send                              ( const std::string &action, const Json::Value &args );
+    static Json::Value _send_and_wait                     ( const std::string &action, const Json::Value &args );
+    static Json::Value wait_for_line                      ();
 
 
     // /// send an announcement */
@@ -223,7 +218,9 @@ public:
     //     };
     // }
     //
+
     // input
+    std::string              signature;
     std::vector<CnData>      children;
     Json::Value              args;
 

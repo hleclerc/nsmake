@@ -216,7 +216,7 @@ class JsDepFactory extends Task {
                 this.write_file_sync( js.outputs[ 0 ], js.content );
             }
 
-            js.mtime = this.stat_sync( js.outputs[ 0 ] ).mtime.getTime();
+            js.mtime = this.stat( js.outputs[ 0 ] ).mtime.getTime();
         }
 
         // how a js parser is reference in the js file

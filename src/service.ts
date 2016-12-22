@@ -23,7 +23,7 @@ adt( "Sleep"                 );
 
 // helpers for communication
 function send_err( msg: string ) {
-    process.send( JSON.stringify( { action: "error", msg } ) + "\n" );
+    process.send( JSON.stringify( { action: "error", args:{ msg } } ) + "\n" );
 }
 
 function send_end( err: string | boolean, output_summary = {} ) {
@@ -32,7 +32,7 @@ function send_end( err: string | boolean, output_summary = {} ) {
             send_err( err );
         send_end( true, output_summary );
     } else
-        process.send( JSON.stringify( { action: "done", err, output_summary } ) + "\n" );
+        process.send( JSON.stringify( { action: "done", args: { err, output_summary } } ) + "\n" );
 }
 
 // read data
@@ -61,7 +61,8 @@ process.on( 'message', ( data: Buffer ) => {
                         // execution
                         // console.log( "starting:", args.type, JSON.stringify( args.args ) );
                         active_service = new task;
-                        active_service.children = args.children;
+                        active_service.children  = args.children;
+                        active_service.signature = args.signature;
                         if ( active_service.exec.length == 1 ) {
                             // sequential version
                             active_service.exec( args.args );

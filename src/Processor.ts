@@ -74,6 +74,10 @@ class Processor {
     
     /** launch `cn`. When done, call `done_cb` */
     make( env: CompilationEnvironment, cn: CompilationNode, done_cb: ( err: boolean ) => void ): void {
+        // late answer for a killed service...
+        if ( env == null || cn == null )
+            return;
+
         // if already done in this session, execute the callback with the obtained result.
         if ( cn.num_build_done == this.num_build )
             return done_cb( null );
@@ -388,10 +392,11 @@ class Processor {
             service.cn     = cn;
 
             service.send( JSON.stringify( {
-                action  : "task",
-                type    : ind_at >= 0 ? cn.type.slice( 0, ind_at ) : cn.type,
-                children: cn.children.map( ch => ( { signature: ch.signature, outputs: ch.outputs, exe_data: ch.exe_data } ) ),
-                args    : cn.args
+                action   : "task",
+                type     : ind_at >= 0 ? cn.type.slice( 0, ind_at ) : cn.type,
+                signature: cn.signature,
+                children : cn.children.map( ch => ( { signature: ch.signature, outputs: ch.outputs, exe_data: ch.exe_data } ) ),
+                args     : cn.args
             } ) + `\n` );
         };
 
@@ -424,204 +429,20 @@ class Processor {
 
             this.services[ pos ] = service;
 
-            // helpers
-            const send         = ( args: any ) => service.send( JSON.stringify( args ) + "\n" );
-            const send_error   = ( msg = "" ) => send( { action: 'error', msg } );
-            const done = ( err: boolean ) => {
-                if ( service.cn ) {
-                    this._done( service.env, service.cn, err );
-                    service.status = "idle";
-                    service.env    = null;
-                    service.cn     = null;
-                    this._launch_waiting_cn_if_possible();
-                }
-            }
-
             let lines = "";
             const on_message = ( data: Buffer ) => {
                 lines += data.toString();
                 const index_lf = lines.lastIndexOf( "\n" );
                 if ( index_lf >= 0 ) {
                     for( const line of lines.slice( 0, index_lf ).split( "\n" ) ) {
-                        let args: any;
+                        // console.log( 'From service', { cn: service.cn.pretty, cmd.action } );
                         try {
-                            args = JSON.parse( line );
+                            this._action_from_service( service, JSON.parse( line ) );
                         } catch( e ) {
-                            if ( service.env && service.env.com.active )
-                                service.env.com.error( service.cn, `Error: while parsing '${ line }' for '${ service.cn.pretty }': ${ e.toString() }` );
-                            return done( true );
-                        }
-                        // console.log( 'From service', { cn: service.cn.pretty, args } );
-
-                        switch ( args.action ) {
-                            // display
-                            case "announcement": if ( service.env ) service.env.com.announcement( service.cn, args.msg ); else console.log( args.msg ); break;
-                            case "note"        : if ( service.env ) service.env.com.note        ( service.cn, args.msg ); else console.log( args.msg ); break;
-                            case "info"        : if ( service.env ) service.env.com.info        ( service.cn, args.msg ); else console.log( args.msg ); break;
-                            case "error"       : if ( service.env ) service.env.com.error       ( service.cn, args.msg ); else console.log( args.msg ); break;
-
-                            // actions
-                            case "done":
-                                // save result in local memory
-                                service.cn.outputs       = args.output_summary.outputs;
-                                service.cn.generated     = args.output_summary.generated;
-                                service.cn.exe_data      = args.output_summary.exe_data;
-                                service.cn.pure_function = args.output_summary.pure_function;
-                                // the service is now idle and not linked to a specific env or cn
-                                done( args.err );
-                                break;
-                            case "get_filtered_target":
-                                service.env.get_compilation_node( args.target, args.cwd, service.cn.file_dependencies, ncn => {
-                                    if ( ncn ) {
-                                        service.status = "waiting";
-                                        this.make( service.env, ncn, err => {
-                                            service.status = "active";
-                                            if ( err ) return send_error();
-                                            service.cn.additional_children.push( ncn );
-                                            send( { action: 'get_filtered_target', name: ncn.outputs[ 0 ], signature: ncn.signature } );
-                                        } );
-                                    } else
-                                        send( { action: 'get_filtered_target', name: '', signature: '' } );
-                                } );
-                                break;
-                            case "get_filtered_target_signature":
-                                service.env.get_compilation_node( args.target, args.cwd, service.cn.file_dependencies, ncn =>
-                                    send( { action: 'get_filtered_target_signature', signature: ncn ? ncn.signature : '' } )
-                                );
-                                break;
-                            case "get_filtered_target_signatures":
-                                async.map( args.targets, ( target: string, cb ) => {
-                                    service.env.get_compilation_node( target, args.cwd, service.cn.file_dependencies, ncn => {
-                                        cb( null, ncn ? ncn.signature : '' );
-                                    }, args.care_about_target );
-                                }, ( err, signatures ) => {
-                                    send( { action: 'get_filtered_target_signatures', signatures } );
-                                } );
-                                break;
-                            case "get_first_filtered_target_signature": {
-                                let num = -1;
-                                async.forEachSeries( args.targets, ( target: string, cb: ( err: CompilationNode ) => void ) => {
-                                    service.env.get_compilation_node( target, args.cwd, service.cn.file_dependencies, ncn => {
-                                        ++num;
-                                        cb( ncn );
-                                    } );
-                                }, ncn => {
-                                    send( { action: 'get_first_filtered_target_signature', signature: ncn ? ncn.signature : '', num } );
-                                } );
-                                break;
-                            }
-                            case "get_cn_data":
-                                if ( args.signature ) {
-                                    let ncn = service.env.com.proc.pool.factory( args.signature );
-                                    service.status = "waiting";
-                                    this.make( service.env, ncn, err => {
-                                        if ( service.cp ) {
-                                            service.status = "active";
-                                            if ( err ) return send_error();
-                                            service.cn.additional_children.push( ncn );
-                                            send( { action: 'get_cn_data', signature: ncn.signature, outputs: ncn.outputs, exe_data: ncn.exe_data } );
-                                        }
-                                    } );
-                                } else
-                                    send( { action: 'get_cn_data', signature: "", outputs: [], exe_data: {} } );
-                                break;
-                            case "get_cns_data":
-                                service.status = "waiting";
-                                async.map( args.lst, ( sgn: string, cb: ( err: boolean, cn: CompilationNode ) => void ) => {
-                                    if ( service.cp ) {
-                                        if ( sgn ) {
-                                            const ncn = service.env.com.proc.pool.factory( sgn );
-                                            this.make( service.env, ncn, err => {
-                                                service.cn.additional_children.push( ncn );
-                                                cb( err, ncn );
-                                            } );
-                                        } else
-                                            cb( false, null );
-                                    } else
-                                        cb( true, null );
-                                }, ( err, ncns ) => {
-                                    if ( service.cp ) {
-                                        service.status = "active";
-                                        if ( err ) return send_error();
-                                        send( { action: 'get_cns_data', lst: ncns.map( cn => { return {
-                                            signature: cn ? cn.signature : "", outputs: cn ? cn.outputs : [], exe_data: cn ? cn.exe_data : {}
-                                        }; } ) } );
-                                    } 
-                                } );
-                                break;
-                            case "get_requires":
-                                async.map( args.lst as Array<{cwd:string,requires:Array<string>}>, ( item: {cwd:string,requires:Array<string>}, cb: ( err: boolean, signatures: Array<string> ) => void ) => {
-                                    this._find_requires( service.env, service.cn, item.cwd, args.js_env, item.requires, args.typescript, cb );
-                                }, ( err: boolean, lst: Array<Array<string>> ) => {
-                                    send( { action: 'get_requires', err, lst } );
-                                } );
-                                break;
-                            case "register_aliases":
-                                service.env.register_aliases( service.cn, args.lst );
-                                break;
-                            case "run_mission_node":
-                                service.status = "waiting";
-                                async.map( args.signatures, ( signature: string, cb ) => {
-                                    const ncn = this.pool.factory( signature ); 
-                                    this.make( service.env, ncn, err => {
-                                        service.cn.additional_children.push( ncn );
-                                        cb( err, ncn );
-                                    } );
-                                }, ( err, inp_cns: Array<CompilationNode> ) => {
-                                    if ( service.cp ) {
-                                        service.status = "active";
-                                        if ( err ) return send_error();
-                                        let nce = service.env.make_child( args.args, inp_cns );
-                                        nce.get_mission_node( service.cn.file_dependencies, ncn => {
-                                            if ( ! ncn )
-                                                return send( { action: 'run_mission_node', outputs: null } );
-                                            service.status = "waiting";
-                                            this.make( nce, ncn, err => {
-                                                service.status = "active";
-                                                if ( err ) return send_error(); 
-                                                service.cn.additional_children.push( ncn );
-                                                send( { action: 'run_mission_node', outputs: ncn.outputs, signature: ncn.signature, exe_data: ncn.exe_data } );
-                                            } );
-                                        } );
-                                    }
-                                } );
-                                break;
-                            case "new_build_file":
-                                this.new_build_file( service.env.cwd, args.orig, args.ext, args.dist, ( err, name ) => {
-                                    if ( err ) return send_error( err.toString() );
-                                    send( { action: 'new_build_file', name } );
-                                    service.cn.generated.push( name );
-                                } );
-                                break;
-                            case "spawn_local": {
-                                service.status = "waiting";
-                                this._spawn_local( service.env.com, args.executable, args.args || [], args.redirect || "", code => {
-                                    service.status = "active";
-                                    send( { action: 'spawn_local', code } );
-                                } );
-                                break;
-                            }
-                            case "spawn":
-                                // display
-                                service.env.com.announcement( service.cn, [ args.cmd, ...args.args ].join( " " ) );
-
-                                // execution, with basic redirection
-                                const cp = child_process.spawn( args.cmd, args.args, { cwd: args.cwd } );
-                                cp.stdout.on( "data", buffer => service.env.com.info ( service.cn, buffer.toString(), false ) );
-                                cp.stderr.on( "data", buffer => service.env.com.error( service.cn, buffer.toString(), false ) );
-                                cp.on( "error", err => { com.error( service.cn, err.toString() ); send( { action: 'spawn', code: -1 } ) } );
-                                cp.on( "close", ( code, signal ) => { send( { action: 'spawn', code } ); } );
-                                break;
-                            case "run_install_cmd":
-                                this._install_cmd( service.env.com, service.cn, args.category, args.cwd, args.cmd, args.prerequ, err => {
-                                    send( { action: 'run_install_cmd', err } );
-                                } );
-                                break;
-
-                            // default
-                            default:
-                                service.env.com.error( service.cn, `Unknown service command '${ args.action }'` );
-                                this._done( service.env, service.cn, true );
+                            if ( service.env )
+                                service.env.com.error( service.cn, `Error: while parsing '${ line }' for '${ service.cn.pretty }': ${ e.toString() }. => Service is killed` );
+                            if ( service.cp )
+                                service.cp.kill();
                         }
                     }
                     lines = lines.slice( index_lf + 1 );
@@ -635,16 +456,16 @@ class Processor {
                 service.cp.on( 'message', on_message );
 
             service.cp.on( 'close', ( code: number, signal: string ) => {
-                if ( signal )
+                if ( signal && service.env )
                     service.env.com.error( service.cn, `Service ${ category } ended with signal ${ signal }` );
-                done( true );
+                this._action_from_service( service, null );
                 // restart
                 // if ( service.want_restart )
                 //     this.services[ pos ] = this._make_new_service( pos );
             } );
 
             service.cp.on( 'error', err => {
-                done( true );
+                this._action_from_service( service, null );
             } );
 
             service_cb( service );
@@ -654,6 +475,208 @@ class Processor {
             this._make_cp_for_cat( category, com, init_cp );
         else
             init_cp( child_process.fork( `${ __dirname }/service.js` ), false );
+    }
+
+    _action_from_service( service: Service, cmd: { action: string, msg_id: string, args: any } ): void {
+        // helper: answer to a service command
+        const ans = ( err: boolean, res = null ) => {
+            if ( service.cp )
+                service.send( JSON.stringify( { msg_id: cmd.msg_id, err, res } ) + "\n" );
+        };
+
+        // helper: called when the service has finished
+        const done = ( err: boolean ) => {
+            if ( service.cn ) {
+                this._done( service.env, service.cn, err );
+                service.status = "idle";
+                service.env    = null;
+                service.cn     = null;
+                this._launch_waiting_cn_if_possible();
+            }
+        };
+
+        // particular case: cmd == null means error
+        if ( cmd == null )
+            return done( true );
+        
+        //
+        switch ( cmd.action ) {
+            // display
+            case "announcement": if ( service.env ) service.env.com.announcement( service.cn, cmd.args.msg ); else console.log( cmd.args.msg ); return;
+            case "note"        : if ( service.env ) service.env.com.note        ( service.cn, cmd.args.msg ); else console.log( cmd.args.msg ); return;
+            case "info"        : if ( service.env ) service.env.com.info        ( service.cn, cmd.args.msg ); else console.log( cmd.args.msg ); return;
+            case "error"       : if ( service.env ) service.env.com.error       ( service.cn, cmd.args.msg ); else console.log( cmd.args.msg ); return;
+
+            // actions
+            case "done":
+                // save result in local memory
+                service.cn.outputs       = cmd.args.output_summary.outputs;
+                service.cn.generated     = cmd.args.output_summary.generated;
+                service.cn.exe_data      = cmd.args.output_summary.exe_data;
+                service.cn.pure_function = cmd.args.output_summary.pure_function;
+                // the service is now idle and not linked to a specific env or cn
+                return done( cmd.args.err );
+
+            case "get_filtered_target":
+                return service.env.get_compilation_node( cmd.args.target, cmd.args.cwd, service.cn.file_dependencies, ncn => {
+                    if ( ncn ) {
+                        service.status = "waiting";
+                        this.make( service.env, ncn, err => {
+                            service.status = "active";
+                            if ( err )
+                                return ans( true );
+                            if ( service.cn )
+                                service.cn.additional_children.push( ncn );
+                            ans( false, { name: ncn.outputs[ 0 ], signature: ncn.signature } );
+                        } );
+                    } else {
+                        ans( false, null );
+                    }
+                } );
+
+            case "get_filtered_target_signature":
+                return service.env.get_compilation_node( cmd.args.target, cmd.args.cwd, service.cn.file_dependencies, ncn => {
+                    ans( false, ncn ? ncn.signature : null );
+                } );
+
+            case "get_filtered_target_signatures":
+                return async.map( cmd.args.targets, ( target: string, cb ) => {
+                    service.env.get_compilation_node( target, cmd.args.cwd, service.cn.file_dependencies, ncn => {
+                        cb( null, ncn ? ncn.signature : null );
+                    }, cmd.args.care_about_target );
+                }, ( err, signatures ) => {
+                    ans( false, signatures );
+                } );
+
+            case "get_first_filtered_target_signature": {
+                let num = -1;
+                return async.forEachSeries( cmd.args.targets, ( target: string, cb: ( err: CompilationNode ) => void ) => {
+                    service.env.get_compilation_node( target, cmd.args.cwd, service.cn.file_dependencies, ncn => {
+                        ++num;
+                        cb( ncn );
+                    } );
+                }, ncn => {
+                    ans( false, ncn ? { signature: ncn.signature, num } : null );
+                } );
+            }
+
+            case "get_cn_data": {
+                let ncn = service.env.com.proc.pool.factory( cmd.args.signature );
+                service.status = "waiting";
+                return this.make( service.env, ncn, err => {
+                    service.status = "active";
+                    if ( err )
+                        return ans( true );
+                    if ( service.cn )
+                        service.cn.additional_children.push( ncn );
+                    ans( err, err ? null : { signature: ncn.signature, outputs: ncn.outputs, exe_data: ncn.exe_data } );
+                } );
+            }
+
+            case "get_cns_data":
+                service.status = "waiting";
+                return async.map( cmd.args.lst, ( sgn: string, cb: ( err: boolean, cn: CompilationNode ) => void ) => {
+                    if ( service.env ) {
+                        if ( sgn ) {
+                            const ncn = service.env.com.proc.pool.factory( sgn );
+                            this.make( service.env, ncn, err => {
+                                if ( service.cn )
+                                    service.cn.additional_children.push( ncn );
+                                cb( err, ncn );
+                            } );
+                        } else
+                            cb( false, null );
+                    } else
+                        cb( true, null );
+                }, ( err, ncns ) => {
+                    service.status = "active";
+                    ans( err, err ? null : ncns.map( cn => ({
+                        signature: cn ? cn.signature : null, outputs: cn ? cn.outputs : [], exe_data: cn ? cn.exe_data : {}
+                    }) ) );
+                } );
+
+            case "get_requires":
+                return async.map( cmd.args.lst as Array<{cwd:string,requires:Array<string>}>, ( item: {cwd:string,requires:Array<string>}, cb: ( err: boolean, signatures: Array<string> ) => void ) => {
+                    this._find_requires( service.env, service.cn, item.cwd, cmd.args.js_env, item.requires, cmd.args.typescript, cb );
+                }, ( err: boolean, lst: Array<Array<string>> ) => {
+                    ans( err, lst );
+                } );
+
+            case "register_aliases":
+                return service.env.register_aliases( service.cn, cmd.args.lst );
+
+            case "run_mission_node":
+                service.status = "waiting";
+                return async.map( cmd.args.signatures, ( signature: string, cb ) => {
+                    const ncn = this.pool.factory( signature ); 
+                    this.make( service.env, ncn, err => {
+                        if ( service.cn )
+                            service.cn.additional_children.push( ncn );
+                        cb( err, ncn );
+                    } );
+                }, ( err, inp_cns: Array<CompilationNode> ) => {
+                    service.status = "active";
+                    if ( err )
+                        return ans( true );
+                    let nce = service.env.make_child( cmd.args.args, inp_cns );
+                    nce.get_mission_node( service.cn ? service.cn.file_dependencies : new FileDependencies, ncn => {
+                        if ( ! ncn )
+                            return ans( true );
+                        service.status = "waiting";
+                        this.make( nce, ncn, err => {
+                            service.status = "active";
+                            if ( err )
+                                return ans( true ); 
+                            if ( service.cn )
+                                service.cn.additional_children.push( ncn );
+                            ans( false, { outputs: ncn.outputs, signature: ncn.signature, exe_data: ncn.exe_data } );
+                        } );
+                    } );
+                } );
+
+            case "new_build_file":
+                return this.new_build_file( service.env.cwd, cmd.args.orig, cmd.args.ext, cmd.args.dist, ( err, name ) => {
+                    if ( err ) {
+                        if ( service.env )
+                            service.env.com.error( service.cn, err.toString() ); 
+                        return ans( true );
+                    }
+                    if ( service.cn )
+                        service.cn.generated.push( name );
+                    ans( false, name );
+                } );
+                
+            case "spawn_local": {
+                service.status = "waiting";
+                return this._spawn_local( service.env.com, cmd.args.executable, cmd.args.args || [], cmd.args.redirect || "", code => {
+                    service.status = "active";
+                    ans( false, code );
+                } );
+                
+            }
+            case "spawn":
+                // display
+                service.env.com.announcement( service.cn, [ cmd.args.cmd, ...cmd.args.args ].join( " " ) );
+
+                // execution, with basic redirection
+                const cp = child_process.spawn( cmd.args.cmd, cmd.args.args, { cwd: cmd.args.cwd } );
+                cp.stdout.on( "data", buffer => service.env.com.info ( service.cn, buffer.toString(), false ) );
+                cp.stderr.on( "data", buffer => service.env.com.error( service.cn, buffer.toString(), false ) );
+                cp.on( "error", err => { if ( service.env ) service.env.com.error( service.cn, err.toString() ); ans( true, -1 ) } );
+                cp.on( "close", ( code, signal ) => ans( false, signal ? -1 : code ) );
+                return;
+
+            case "run_install_cmd":
+                this._install_cmd( service.env.com, service.cn, cmd.args.category, cmd.args.cwd, cmd.args.cmd, cmd.args.prerequ, err => {
+                    ans( false, err );
+                } );
+                break;
+
+            // default
+            default:
+                service.env.com.error( service.cn, `Unknown service command '${ cmd.args.action }'` );
+                this._done( service.env, service.cn, true );
+        }
     }
 
     _spawn_local( com: CommunicationEnvironment, executable: string, args: Array<string>, redirect: string, cb: ( code: number ) => void ) {

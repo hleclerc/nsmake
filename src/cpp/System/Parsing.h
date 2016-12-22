@@ -44,9 +44,19 @@ std::string              join                     ( const std::vector<std::strin
 std::string              resolve                  ( const std::string &a, const std::string &b );
 
 template<class L,class T>
-void push_back_unique( L &lst, T &&val ) { // TODO: tidying up (place relevant stuff in relevant files, ...)
-    if ( std::find( lst.begin(), lst.end(), val ) == lst.end() )
-        lst.emplace_back( std::move( val ) );
+void emplace_back_unique( L &lst, T &&val ) { // TODO: tidying up (place relevant stuff in relevant files, ...)
+    for( const auto &v : lst )
+        if ( v == val )
+            return;
+    lst.emplace_back( std::move( val ) );
+}
+
+template<class L,class T>
+void append_unique( L &lst, T &&val ) { // TODO: tidying up (place relevant stuff in relevant files, ...)
+    for( const auto &v : lst )
+        if ( v == val )
+            return;
+    lst.append( std::move( val ) );
 }
 
 // implementation --------------

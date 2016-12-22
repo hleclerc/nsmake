@@ -56,7 +56,7 @@ class GeneratorCpp extends Generator {
         funcs.push( { prio: 0, func: ( target: string, output: string, cwd: string, cb: ( cn: CompilationNode ) => void, for_found: FileDependencies, care_about_target: boolean ): void => {
             // make .o from .cpp or .c or ...
             const t_ext = path.extname( target );
-            if ( t_ext == ".o" ) {
+            if ( t_ext == ".o_maker" ) {
                 const basename = target.substr( 0, target.length - t_ext.length);
                 return async.forEachSeries( [
                     ...GeneratorCpp.cpp_ext.map( ext => ({ ext, make_cn: ch => this.make_cpp_compiler( ch, care_about_target ? target : "" ) }) ),
@@ -140,10 +140,10 @@ class GeneratorCpp extends Generator {
         // we have a .o file, or we can make it ?
         if ( args.entry_point != undefined ) {
             const en = cns[ args.entry_point ].outputs[ 0 ];
-            if ( path.extname( en ) == ".o" )
+            if ( path.extname( en ) == ".o_maker" )
                 return with_a_dot_o( cns[ args.entry_point ] );
 
-            const name_o = en.slice( 0, en.length - path.extname( en ).length ) + ".o";
+            const name_o = en.slice( 0, en.length - path.extname( en ).length ) + ".o_maker";
             return this.env.get_compilation_node( name_o, path.dirname( en ), for_found, with_a_dot_o );
         }
 

@@ -14,6 +14,6 @@ class ExeDataGenCompiler {
     lib_paths            = new Array<string>();
     inc_paths            = new Array<string>();
     obj_names            = new Array<string>();
-    // data from nsmake cmds
-    // ext_libs             = new Array<{ name: string, url: string, glob: string }>();
+    //
+    command_sgn          = "";                                    /** signature of the command to execute to get the .o file */
 }

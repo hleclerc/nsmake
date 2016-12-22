@@ -19,29 +19,18 @@ Json::Value _unzip( const Args& ...args ) {
     return std::move( res );
 }
 
-#define SAWA( ACTION, ... ) _send_and_wait( _unzip( "action", ACTION, ##__VA_ARGS__ ) )
-#define SEND( ACTION, ... ) _send( _unzip( "action", ACTION, ##__VA_ARGS__ ) )
+#define SAWA( ACTION, ... ) _send_and_wait( ACTION, _unzip( __VA_ARGS__ ) )
+#define SEND( ACTION, ... ) _send( ACTION, _unzip( __VA_ARGS__ ) )
 
 Task::Task( const Json::Value &root ) : exe_data( Json::objectValue ) {
     pure_function = true;
     err           = false;
-    args          = root[ "args" ];
 
+    // read data from root
+    args      = root[ "args" ];
+    signature = root[ "signature" ].asString();
     for( const Json::Value &ch : root[ "children" ] )
-        children.push_back( CnData{ from_json( ch[ "signature" ] ), from_json( ch[ "outputs" ] ), ch[ "exe_data" ] } );
-}
-
-Task::~Task() {
-    Json::Value res( Json::objectValue );
-    res[ "err" ] = err;
-    res[ "action" ] = "done";
-    res[ "output_summary" ][ "outputs"       ] = to_json( outputs );
-    res[ "output_summary" ][ "generated"     ] = to_json( generated );
-    res[ "output_summary" ][ "exe_data"      ] = exe_data;
-    res[ "output_summary" ][ "pure_function" ] = pure_function;
-
-    Json::FastWriter fw;
-    std::cout << fw.write( res );
+        children.push_back( Task::CnData{ from_json( ch[ "signature" ] ), from_json( ch[ "outputs" ] ), ch[ "exe_data" ] } );
 }
 
 void Task::error( std::string msg ) {
@@ -60,17 +49,25 @@ void Task::write_file_sync( std::string name, const std::string &content ) {
     os << content;
 }
 
-void Task::_send( const Json::Value &args ) {
+void Task::_send( const std::string &action, const Json::Value &args ) {
+    Json::Value cmd( Json::objectValue );
+    cmd[ "action" ] = action;
+    cmd[ "args"   ] = args;
+    cmd[ "msg_id" ] = 0;
+
     Json::FastWriter fw;
-    std::cout << fw.write( args );
+    std::cout << fw.write( cmd );
 }
 
-Json::Value Task::_send_and_wait( const Json::Value &args ) {
-    _send( args );
-    return _wait_for_line();
+Json::Value Task::_send_and_wait( const std::string &action, const Json::Value &args ) {
+    _send( action, args );
+    Json::Value ans = wait_for_line();
+    if ( ans[ "err" ].asBool() )
+        throw "";
+    return ans[ "res" ];
 }
 
-Json::Value Task::_wait_for_line() {
+Json::Value Task::wait_for_line() {
     while ( true ) {
         // wait
         std::string line;
@@ -89,7 +86,7 @@ Json::Value Task::_wait_for_line() {
 }
 
 std::string Task::get_filtered_target_signature( std::string target, std::string cwd ) {
-    std::string res = SAWA( "get_filtered_target_signature", "target", target, "cwd", cwd )[ "signature" ].asString();
+    std::string res = SAWA( "get_filtered_target_signature", "target", target, "cwd", cwd ).asString();
     if ( res.empty() ) throw "Don't known how to read or build '" + target + "'";
     return res;
 }
@@ -108,17 +105,17 @@ Task::CnData Task::get_cn_data( std::string signature ) {
 
 std::string Task::new_build_file( std::string orig, std::string ext, std::string dist ) {
     Json::Value res = SAWA( "new_build_file", "orig", orig, "ext", ext, "dist", dist );
-    return from_json( res[ "name" ] );
+    return from_json( res );
 }
 
 int Task::spawn_sync( std::string cwd, std::string cmd, std::vector<std::string> args ) {
     Json::Value res = SAWA( "spawn", "cwd", cwd, "cmd", cmd, "args", args );
-    return from_json( res[ "code" ] );
+    return from_json( res );
 }
 
 bool Task::run_install_cmd( std::string category, std::string cwd, std::string cmd, std::vector<std::string> prerequ ) {
     Json::Value res = SAWA( "run_install_cmd", "category", category, "cwd", cwd, "cmd", cmd, "prerequ", prerequ );
-    return from_json( res[ "err" ] );
+    return from_json( res );
 }
 
 void Task::register_aliases( const std::vector<std::pair<std::string,std::string> > &aliases, std::string cur_dir ) {
@@ -192,6 +189,29 @@ bool Task::system_is_in( const std::vector<std::string> &systems, const Json::Va
     }
     
     return false;
+}
+
+void Task::send_done( Task *task ) {
+    Json::Value output_summary( Json::objectValue );
+    if ( task ) {
+        output_summary[ "generated"     ] = to_json( task->generated );
+        output_summary[ "outputs"       ] = to_json( task->outputs );
+        output_summary[ "pure_function" ] = task->pure_function;
+        output_summary[ "exe_data"      ] = task->exe_data;
+
+    }
+
+    Json::Value args( Json::objectValue );
+    args[ "output_summary" ] = output_summary;
+    args[ "err" ] = task ? task->err : true;
+
+    Json::Value res( Json::objectValue );
+    res[ "action" ] = "done";
+    res[ "args" ] = args;
+
+    Json::FastWriter fw;
+    std::cout << fw.write( res );
+
 }
 
 std::string Task::nsmake_cmd( const std::vector<std::string> &args, const std::string &cwd ) {

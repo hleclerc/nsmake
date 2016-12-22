@@ -49,7 +49,7 @@ struct CppParser {
         unsigned    num_inst_endif; ///< num directive of the first endif to close the first block of this Read
     };
 
-    CppParser( Task &task );
+    CppParser( Task *task );
 
     void                 parse              ( const std::string &filename, const std::string &dir, const char *b, const char *e, Read *old_read = 0, bool save = true, int num_path = -1 );
     void                 parse              ( const std::string &filename, const std::string &dir, const std::string &str, Read *old_read = 0, bool save = true, int num_path = -1 );
@@ -107,7 +107,7 @@ struct CppParser {
     StringSet            includes;
     Defines              defines;
     std::stack<Block>    blocks;
-    Task                &task;
+    Task                *task;
 
     // output
     StringVec            inc_paths;
