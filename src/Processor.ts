@@ -214,7 +214,7 @@ class Processor {
             return this._exec_done_cb( env.com, cn, err );
 
         // if has to be re-executed each time, we do not have to make tests
-        if ( ! cn.pure_function )
+        if ( cn.type == "Id" || ! cn.pure_function )
             return this._launch( env, cn );
 
         // launched at least once ?
@@ -241,8 +241,11 @@ class Processor {
     _done_for_this_build( env: CompilationEnvironment, cn: CompilationNode ): void {
         let _ko = ( msg: string ) => {
             if ( env.verbose )
-                env.com.note( cn, `  Update of ${ cn.pretty }: reason = ${ msg }` );
-            this._launch( env, cn );
+                env.com.note( cn, `  Update of ${ cn.pretty }. Reason: ${ msg }` );
+            // cleansing (generated output files) and launch
+            async.forEach( cn.generated, ( name, cb ) => rimraf( name, err => cb( null ) ), err => {
+                this._launch( env, cn );
+            } );
         };
 
         // test for_found.failed
@@ -285,8 +288,11 @@ class Processor {
     _done_in_db( env: CompilationEnvironment, cn: CompilationNode, json_data: DataInDb ): void {
         let _ko = ( msg: string ) => {
             if ( env.verbose )
-                env.com.note( cn, `  Update of ${ cn.pretty }: reason = ${ msg }` );
-            this._launch( env, cn );
+                env.com.note( cn, `  Update of ${ cn.pretty }. Reason: ${ msg }` );
+            // cleansing (generated output files) and launch
+            async.forEach( json_data.generated, ( name, cb ) => rimraf( name, err => cb( null ) ), err => {
+                this._launch( env, cn );
+            } );
         };
 
         // test for_found.failed
@@ -336,6 +342,9 @@ class Processor {
     }
 
     _exec_done_cb( com: CommunicationEnvironment, cn: CompilationNode, err: boolean ) : void {
+        if ( cn.type != "Id" )
+            console.log( "done", cn.pretty );
+        
         cn.num_build_done = this.num_build;
 
         let done_cbs = [ ...cn.done_cbs ];
@@ -347,6 +356,9 @@ class Processor {
 
     /** Do execution of cn */
     _launch( env: CompilationEnvironment, cn: CompilationNode ): void {
+        if ( cn.type != "Id" )
+            console.log( "launch", cn.pretty );
+
         // particular case
         if ( cn.type == "Id" ) {
             return fs.stat( cn.args.target, ( err, stats ) => {

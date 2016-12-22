@@ -1,7 +1,9 @@
-import CompilationNode from "./CompilationNode";
-// let HashMap = require( "hashmap" ) as any;
+import CompilationNode from "./CompilationNode"
+import * as stringify  from 'json-stable-stringify';
 
-
+/**
+ * signature => CompilationNode
+ */
 export default
 class Pool {
     New( type: string, children: Array<CompilationNode>, args: any ): CompilationNode {
@@ -28,7 +30,7 @@ class Pool {
     }
 
     static signature( type: string, children: Array<CompilationNode>, args: any ): string {
-        return JSON.stringify( [ type, children.map( Pool.stable_part_of ), args ] );
+        return stringify( [ type, children.map( Pool.stable_part_of ), args ] );
     }
 
     m = new Map<string,CompilationNode>(); /** signature => instance */

@@ -218,6 +218,11 @@ void CppParser::_nsmake( const char *b, const char *e, Read *read ) {
         inc_paths.push_back( cf( 1 ) );
         return;
     }
+    if ( spl[ 0 ] == "cpp_flag" ) {
+        if ( nspl.size() < 2 ) throw "'//// nsmake cpp_flag' is supposed to be followed by 1 argument";
+        cpp_flags.push_back( cf( 1 ) );
+        return;
+    }
     if ( spl[ 0 ] == "lib_path" ) {
         if ( nspl.size() < 2 ) throw "'//// nsmake lib_path' is supposed to be followed by 1 argument";
         lib_paths.push_back( cf( 1 ) );
@@ -783,6 +788,8 @@ std::vector<std::string> CppParser::include_try_list( std::string cur_dir, std::
                     emplace_back_unique( lib_paths, resolve( launch_dir, lib_path.asString() ) );
                 for( Json::Value lib_name : set[ "lib_names" ] )
                     emplace_back_unique( lib_names, lib_name.asString() );
+                for( Json::Value cpp_flag : set[ "cpp_flags" ] )
+                    emplace_back_unique( cpp_flags, cpp_flag.asString() );
                 break;
             }
         }

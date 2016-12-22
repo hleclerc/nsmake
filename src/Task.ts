@@ -1,3 +1,4 @@
+import * as stringify     from 'json-stable-stringify';
 import * as child_process from 'child_process';
 import * as path          from 'path';
 import * as fs            from 'fs';
@@ -102,7 +103,7 @@ abstract class Task {
 
     /** children = array of signatures */
     make_signature( type: string, children: Array<string>, args: any ): string {
-        return JSON.stringify( [ type, children.map( sgn => JSON.parse( sgn ) ), args ] );
+        return stringify( [ type, children.map( sgn => JSON.parse( sgn ) ), args ] );
     }
 
     /** */

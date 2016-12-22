@@ -111,6 +111,7 @@ struct CppParser {
 
     // output
     StringVec            inc_paths;
+    StringVec            cpp_flags;
     StringVec            lib_paths;
     StringVec            lib_names;
     StringVec            obj_names;

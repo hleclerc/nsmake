@@ -13,6 +13,7 @@ class ExeDataGenCompiler {
     lib_names            = new Array<string>();
     lib_paths            = new Array<string>();
     inc_paths            = new Array<string>();
+    cpp_flags            = new Array<string>();                   /**  */
     obj_names            = new Array<string>();
     //
     command_sgn          = "";                                    /** signature of the command to execute to get the .o file */
