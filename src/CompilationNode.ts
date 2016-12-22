@@ -1,4 +1,7 @@
 import FileDependencies from "./FileDependencies"
+import * as rimraf      from "rimraf"
+import * as async       from "async"
+import * as fs          from "fs"
 
 export default
 class CompilationNode {
@@ -13,14 +16,38 @@ class CompilationNode {
         return `${ this.type }(${ [ ...this.children.map( ch => ch.pretty ), JSON.stringify( this.args ) ].join( ',' ) })`
     }
 
-    _init_for_build() {
-        this.additional_children.length = 0;
-        this.outputs.length             = 0;
-        this.exe_data                   = {};
-        this.pure_function              = true;
-        this.num_build_exec             = this.num_build_seen;
-        this.start                      = process.hrtime() as [ number, number ];
-        this.file_dependencies.clear();
+    /** return this if this or one of its child rec checks the `cond` */
+    some_rec( cond: ( cn: CompilationNode ) => boolean ): boolean {
+        return cond( this ) || this.children.some( ch => ch.some_rec( cond ) );
+    }
+
+    _init_for_build( init_cb: ( err: string ) => void ) {
+        // cleansing of generated output files
+        async.forEachOf( this.generated, ( name, index, cb ) => {
+            fs.stat( name, ( err, stats ) => {
+                if ( err )
+                    return cb( null );
+                if ( stats.mtime.getTime() != this.generated_mtimes[ index ] )
+                    return cb( `Error: file ${ name } has been modified independently of nsmake. Nsmake is not going to remove/overwrite it. If you want to continue, please remove it manually.` );
+                rimraf( name, cb );
+            } );
+        }, err => {
+            if ( err ) return init_cb( err.toString() );
+            
+            this.additional_children.length = 0;
+            this.outputs.length             = 0;
+            this.output_mtimes.length       = 0;
+            this.generated.length           = 0;
+            this.generated_mtimes.length    = 0;
+            this.exe_data                   = {};
+            this.pure_function              = true;
+            this.num_build_exec             = this.num_build_seen;
+            this.start                      = process.hrtime() as [ number, number ];
+            this.file_dependencies.clear();
+
+            init_cb( null );
+        } );
+
     }
 
     // stable arguments    
@@ -37,11 +64,12 @@ class CompilationNode {
     done_cbs            = new Array<( err: boolean ) => void>(); /** waiting done_cb */
     start               : [ number, number ]; // time
  
-    // output save to the db, re-used between builds     
+    // output saved to the db, re-used between builds     
     outputs             = new Array<string>();                   /** output files (generated or not) */
     output_mtimes       = new Array<number>();                   /** modification time of outputs when done */
     exe_data            = {} as any;                             /** output data structure */
     generated           = new Array<string>();                   /** generated files (must be deleted if redo or clean, ...) */
+    generated_mtimes    = new Array<number>();                   /** modification time of outputs when done */
     file_dependencies   = new FileDependencies;
 
     // intermediate outputs

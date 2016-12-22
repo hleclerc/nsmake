@@ -224,7 +224,7 @@ class CppCompiler extends Task {
         // not found ? => try to load it
         if ( ! sgn && rules ) {
             const rule = this.for_system( args.system, rules.load_sets )
-            if ( rule && rule.command && this.run_install_cmd( rule.command, args.launch_dir, rule.command, [] ) )
+            if ( rule && rule.command && this.run_install_cmd( "", args.launch_dir, rule.command, [] ) )
                 throw '';
             // try again to find it
             sgn = try_to_find();

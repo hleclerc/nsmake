@@ -1,5 +1,6 @@
 import * as rimraf from "rimraf";
 import * as crypto from "crypto";
+import * as async  from "async";
 import * as path   from "path";
 import * as fs     from "fs";
 
@@ -25,7 +26,7 @@ class Db {
 
     // callback( err, value: string )
     get( key: string, callback, _num = 0 ) : void {
-        fs.readFile( `${ this.dir }/${ md5( key ) }_${ _num }.cmd`, ( err, content: Buffer ) => {
+        fs.readFile( `${ this.dir }/${ md5( key ) }_${ _num }.nsmake_cmd`, ( err, content: Buffer ) => {
             if ( err )
                 return callback( { notFound: true }, undefined );
             const ind = content.indexOf( '\n' ), f_key = content.slice( 0, ind ).toString( 'utf8' );
@@ -37,7 +38,7 @@ class Db {
 
     // callback( err )
     put( key: string, value: string, callback, _num = 0 ) : void {
-        const fn = `${ this.dir }/${ md5( key ) }_${ _num }.cmd`;
+        const fn = `${ this.dir }/${ md5( key ) }_${ _num }.nsmake_cmd`;
         fs.readFile( fn, ( err, content: Buffer ) => {
             if ( err )
                 return fs.writeFile( fn, key + "\n" + value, callback );
@@ -60,6 +61,23 @@ class Db {
 
     init() {
         mkdir_rec( this.dir );
+    }
+
+    remove( cond: ( key: string, val: string ) => boolean, end_cb: ( err: Error ) => void ) {
+        fs.readdir( this.dir, ( err, files ) => {
+            if ( err )
+                return end_cb( err );
+            async.forEach( files, ( file, fe_cb ) => {
+                if ( path.extname( file ) != ".nsmake_cmd" )
+                    return fe_cb( null );
+                const comp_file = path.resolve( this.dir, file );
+                fs.readFile( comp_file, ( err, content: Buffer ) => {
+                    if ( err ) return end_cb( err );
+                    const spl = content.toString().split( "\n" );
+                    cond( spl[ 0 ], spl[ 1 ] ) ? rimraf( comp_file, fe_cb ) : fe_cb( null );
+                } );
+            }, end_cb );
+        } );
     }
 
     dir : string;

@@ -23,7 +23,6 @@ class GeneratorCpp extends Generator {
     static cpp_like( ext : string ) { return GeneratorCpp.cpp_ext.indexOf( ext.toLowerCase() ) >= 0; }
     static h_like  ( ext : string ) { return GeneratorCpp.h_ext  .indexOf( ext.toLowerCase() ) >= 0; }
 
-
     decl_additional_options( p : ArgumentParser ) {
         // generic arguments
         // p.add_argument( [], [ 'cpp' ], 'nodejs', 'Set name of the nodejs executable (to run javascript)' );
@@ -144,7 +143,9 @@ class GeneratorCpp extends Generator {
                 return with_a_dot_o( cns[ args.entry_point ] );
 
             const name_o = en.slice( 0, en.length - path.extname( en ).length ) + ".o_maker";
-            return this.env.get_compilation_node( name_o, path.dirname( en ), for_found, with_a_dot_o );
+            return this.env.get_compilation_node( name_o, path.dirname( en ), for_found, cn => {
+                with_a_dot_o( cn ? cn.some_rec( x => x.type == "Id" && x.args.target == en ) : null );
+            } );
         }
 
         return cb( null );

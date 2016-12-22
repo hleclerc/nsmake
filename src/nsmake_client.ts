@@ -110,13 +110,19 @@ function send_query( pager: Pager, nsmake_dir: string, type: string, cur_dir: st
     // particular case
     if ( args[ 1 ] == "stop" ) {
         const fs = require( "fs" ), info_file = path.resolve( nsmake_dir, 'server.info' );
-        const pid_file_data = Number( fs.readFileSync( info_file ).toString().split( " " )[ 0 ] );
+        try {
+            const pid_file_data = Number( fs.readFileSync( info_file ).toString().split( " " )[ 0 ] );
+            process.kill( pid_file_data );
 
-        // wait for server to be effectively stopped
-        process.kill( pid_file_data );
-        return require( 'rimraf' )( info_file, err => {
-            process.exit( 0 )
-         } );
+            // wait for server to be effectively stopped
+            return require( 'rimraf' )( info_file, err => {
+                process.exit( 0 );
+            } );
+        } catch ( e ) {
+            console.log( `It seems that the server was alreay stopped: ${ e }` );
+            process.exit( 0 );
+        }
+
     }
     
     // send the message

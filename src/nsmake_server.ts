@@ -46,7 +46,7 @@ function parse_and_build( c: net.Socket, proc: Processor, cwd: string, nb_column
     if ( env.args.help               ) { send_out( c, p.format_help( env.args, nb_columns ) ); send_end( c, 0 );               return () => {}; }
     if ( ! env.args.mission          ) { send_end( c, 'Please define a mission' );                                             return () => {}; }
     if ( env.args.mission == "help"  ) { send_out( c, p.format_help( env.args, nb_columns ) ); send_end( c, 0 );               return () => {}; }
-    if ( env.args.mission == "clean" ) { send_out( c, `Cleaning all the build files` ); proc.clean( err => send_end( c, 0 ) ); return () => {}; }
+    if ( env.args.mission == "clean" ) { send_out( c, `Cleaning all the build files` ); proc.clean( cwd, err => send_end( c, 0 ) ); return () => {}; }
     if ( env.args.mission == "stop"  ) { process.exit( 0 );                                                                                     }
 
     // called when compilation is ended

@@ -1,2 +1,2 @@
-* effacement des anciens builds
 * ext_lib (cdn)
+* node qui ne prend pas from * import ...
