@@ -38,7 +38,7 @@ abstract class Task {
         process.send( JSON.stringify( { action: "error", args: { msg } } ) + "\n" );
     }
 
-    /** get signature + result (output filename) of generator for `target` */
+    /** get null or signature + result (output filename) of generator for `target` */
     get_filtered_target( target: string, cwd: string, cb = null as ( err: boolean, res: { name: string, signature: string } ) => void, throw_if_err = ! cb ): { name: string, signature: string } {
         const res = this._send_and_wait( "get_filtered_target", { target, cwd }, cb, throw_if_err );
         if ( throw_if_err && cb == null && res == null )

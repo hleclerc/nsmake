@@ -49,13 +49,6 @@ declare type E_stuff = E_Require | E_Accept | E_Pss;
  */
 export default
 class JsDepFactory extends Task {
-    static nodejs_base_modules = [
-        "browser", "assert", "child_process", "cluster", "crypto", "dns", "domain", "events", "fs",
-        "http", "https", "net", "os", "path", "punycode", "querystring", "readline", "repl", "stream",
-        "string_decoder", "timers", "tls", "tty", "dgram", "url", "util", "v8", "vm", "zlib", "constants",
-        "buffer", "module"
-    ]
-
     exec( args: ArgsJsDepFactory ) {
         // find html and js name using args.output, args.mission, ... 
         this._get_output_names( args.output, args.mission );
@@ -130,16 +123,14 @@ class JsDepFactory extends Task {
                 let error = false;
                 for( let num_js_parser = 0; num_js_parser < js_parsers.length; ++num_js_parser ) {
                     for( let num_require = 0; num_require < js_parsers[ num_js_parser ].exe_data.requires.length; ++num_require ) {
-                        if ( ! res[ num_js_parser ][ num_require ] ) {
-                            // it it's a node module, remove the require
-                            if ( JsDepFactory.nodejs_base_modules.indexOf( js_parsers[ num_js_parser ].exe_data.requires[ num_require ].txt ) >= 0 ) {
-                                js_parsers[ num_js_parser ].exe_data.requires.splice( num_require, 1 );
-                                res[ num_js_parser ].splice( num_require, 1 );
-                                --num_require;
-                            } else {
-                                this.error( `Error:${ js_parsers[ num_js_parser ].exe_data.orig_name }: cannot find module '${ js_parsers[ num_js_parser ].exe_data.requires[ num_require ].txt }'` );
-                                error = true;
-                            }
+                        // it it's a node module, remove the require
+                        if ( res[ num_js_parser ][ num_require ] == null ) {
+                            js_parsers[ num_js_parser ].exe_data.requires.splice( num_require, 1 );
+                            res[ num_js_parser ].splice( num_require, 1 );
+                            --num_require;
+                        } else if ( res[ num_js_parser ][ num_require ] == "" ) {
+                            this.error( `Error:${ js_parsers[ num_js_parser ].exe_data.orig_name }: cannot find module '${ js_parsers[ num_js_parser ].exe_data.requires[ num_require ].txt }'` );
+                            error = true;
                         }
                     }
                 }

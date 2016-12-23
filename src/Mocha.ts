@@ -38,8 +38,8 @@ class Mocha extends Task {
                 const lst = matches.map( x => {
                     const sgn_entry_point = this.get_filtered_target( path.resolve( args.launch_dir, x ), args.launch_dir ).signature;
                     const nargs = Object.assign( {}, args.args, { mission: "exe", entry_point: 0 } );
-                    const outputs = this.run_mission_node( nargs, [ sgn_entry_point ] );
-                    return outputs[ 0 ];
+                    const cn_data = this.run_mission_node( nargs, [ sgn_entry_point ] );
+                    return cn_data.outputs[ 0 ];
                 } );
                 // append to the list
                 cb_reduce( null, cns.concat( lst ) );

@@ -27,6 +27,13 @@ class GeneratorJs extends Generator {
     static ts_like  ( ext : string ) { return GeneratorJs.ts_ext.indexOf( ext.toLowerCase() ) >= 0; }
     static cs_like  ( ext : string ) { return GeneratorJs.cs_ext.indexOf( ext.toLowerCase() ) >= 0; }
 
+    static nodejs_base_modules = [
+        "browser", "assert", "child_process", "cluster", "crypto", "dns", "domain", "events", "fs",
+        "http", "https", "net", "os", "path", "punycode", "querystring", "readline", "repl", "stream",
+        "string_decoder", "timers", "tls", "tty", "dgram", "url", "util", "v8", "vm", "zlib", "constants",
+        "buffer"
+    ];
+
     decl_additional_options( p : ArgumentParser ) {
         // generic arguments
         p.add_argument( [], [ 'js' ], 'nodejs', 'Set name of the nodejs executable (to run javascript)' );
@@ -42,8 +49,6 @@ class GeneratorJs extends Generator {
         p.add_argument( missions, [ 'js' ], 'js-env'               , 'set javascript target environment (nodejs|browser)'                             , "string"  );
         p.add_argument( missions, [ 'js' ], 'target-browsers'      , 'shortcut to set target browser(s) in babel-preset-env, list of strings separated ' +
                                                                      'by commas. Ex of value: "last 2 versions, safari >= 7"'                         , "string*" );
-        p.add_argument( missions, [ 'js' ], 'target-testing-env'   , 'where to launch the test, list of strings separated by commas. Can be nodejs are any ' +
-                                                                     'target supported by karma launcher (e.g. chrome, firefox, phantomjs, ...)'      , "string*" );
         p.add_argument( missions, [ 'js' ], 'babel-env-arguments'  , 'set arguments for babel-preset-env in YAML format without the surrounding braces ' +
                                                                      '(@see https://github.com/babel/babel-preset-env). ' + 
                                                                      'Ex of value: "targets:{browsers:[\'last 2 versions\']}"'                        , "string"  );
@@ -64,9 +69,11 @@ class GeneratorJs extends Generator {
         p.add_positional_argument( [ 'html' ], 'entry_point', 'Entry point (a javascript file, or something that can be transpiled to javascript)', 'cn' );
 
         // mocha specifics
-        p.add_positional_argument( [ 'mocha' ], 'entry_points', 'Entry points. Glob patterns are accepted', 'string*' );
-        p.add_argument( [ 'mocha' ], [ 'js' ], 'mocha'         , 'Set mocha executable (excepted for the "reporter" arg, option are passer via //// nsmake ... cmds).' );
-        p.add_argument( [ 'mocha' ], [ 'js' ], 'mocha-reporter', 'Set the mocha reporter', 'string*' );
+        p.add_positional_argument( [ 'mocha' ], 'entry_points'     , 'Entry points. Glob patterns are accepted', 'string*' );
+        p.add_argument( [ 'mocha' ], [ 'js' ], 'mocha'             , 'Set mocha executable (excepted for the "reporter" arg, option are passer via //// nsmake ... cmds).' );
+        p.add_argument( [ 'mocha' ], [ 'js' ], 'mocha-reporter'    , 'Set the mocha reporter', 'string*' );
+        p.add_argument( [ 'mocha' ], [ 'js' ], 'target-testing-env', 'where to launch the test, list of strings separated by commas. Can be NodeJS or any ' +
+                                                                     'target supported by karma launcher (e.g. Chrome, Firefox, PhantomJS, ...)'      , "string*" );
     }
 
     get_gcn_funcs( funcs: Array<GcnItem> ) {
@@ -270,6 +277,9 @@ class GeneratorJs extends Generator {
                 // currently we only install module without relative paths
                 if ( ! install_allowed )
                     return require_cb( null, '' );
+                //
+                if ( js_env == "nodejs" && GeneratorJs.nodejs_base_modules.indexOf( str ) >= 0 )
+                    return require_cb( null, null );
                 //
                 if ( ! node_modules_dir ) {
                     // if file is in the launch directory, we add a node_module here

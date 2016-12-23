@@ -35,7 +35,7 @@ class Gtest extends Task {
     launch( args: GtestArgs, done: ( err: boolean ) => void, cns: Array<{name:string,signature:string}> ) {
         let error = false;
 
-        // creation of a config file
+        // creation of a config cpp file
         let content = "";
         content += `// a generated main for gtest\n`;
         content += `#include <gtest/gtest.h>\n`;
@@ -48,7 +48,7 @@ class Gtest extends Task {
         content += `  return RUN_ALL_TESTS();\n`;
         content += `}\n`;
         
-        // run a cpp file with `content`
+        // run the cpp file
         this.run_mission_node( Object.assign( {}, args.args, {
             mission: "run",
             entry_point: 0,
