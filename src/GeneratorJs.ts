@@ -316,7 +316,8 @@ class GeneratorJs extends Generator {
 function js_env             ( args ): string { return args.js_env || ( args.mission == "html" ? "browser" : "nodejs" ); }
 function hot_replacement    ( args ): string { return args.hot_replacement ? ( args.hot_replacement_type || "Hmr" ) : ""; }
 function sm_line            ( args ): string { return args.sm_line || "if ( typeof( process ) != 'undefined' && process.env.NODE_ENV != 'production' ) try { require('source-map-support').install(); } catch( e ) { console.error('Failed to load the \"source-map-support\" module'); }\n"; }
-function babel_env_arguments( args ): string { return args.babel_env_arguments || ( js_env( args ) == "browser" ? "targets:{browsers:['last 2 versions']}" : "" ); } // {"targets":{"node":"current"}}
+function babel_env_arguments( args ): string { return args.babel_env_arguments || ( js_env( args ) == "browser" ? 
+            "targets:{browsers:['last 2 versions']}" : "{targets:{node:'current'}}" ); }
 function concat             ( args ): boolean { return args.run_loc ? ( min( args ) || args.concat || false ) : false; }
 function min                ( args ): boolean { return args.min ? ( args.min || false ) : false; }
 function target_browsers    ( args ): Array<string> { return args.target_browsers || []; } 
