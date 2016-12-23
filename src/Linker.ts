@@ -7,12 +7,14 @@ import * as path          from 'path'
 
 export
 interface ArgsLinker {
-    output   : Array<string>;
-    mission  : string;
-    cwd      : string;
-    define   : Array<string>; /** NAME(args...)=val or NAME for macros without arguments */
-    bootstrap: boolean;
-    system   : SystemInfo;    /** ubuntu 14.04, ... */
+    output    : Array<string>;
+    mission   : string;
+    cwd       : string;
+    define    : Array<string>; /** NAME(args...)=val or NAME for macros without arguments */
+    bootstrap : boolean;
+    system    : SystemInfo;    /** ubuntu 14.04, ... */
+    ld_in_args: string;        /** ld specified in cmd line arguments */
+    default_ld: string;        /** ld found in the system */
 }
 
 interface ResCnGenCompiler {
@@ -89,10 +91,18 @@ class Linker extends Task {
     make_executable_with_name( args: ArgsLinker, exe_name: string ) {
         this.set_status( "active" );
         this.outputs = [ exe_name ];
+
+        //
+        let ld = args.ld_in_args;
+        if ( ! ld ) {
+            // currently, we use the first compiler... it's not formely a linker but it does a good job at setting the flags.
+            // to be changed for languages where it does not work
+            ld = this.o_makers[ 0 ].exe_data.compiler;
+        }
         
         // flags for output
         // const add_flags = lib_type == "dynamic" ? [ "-fpic" ] : [];
-        let ext: string, cmd_args = [] as Array<string>, ld = "g++", lib_type = "exe";
+        let ext: string, cmd_args = [] as Array<string>, lib_type = "exe";
         switch ( lib_type ) {
             case "static" : ext = '.a';   cmd_args.push( 'rc' ); ld = "ar"; break;
             case "dynamic": ext = '.so';  cmd_args.push( '-shared', '-o' ); break;

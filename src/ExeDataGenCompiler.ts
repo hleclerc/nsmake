@@ -17,4 +17,5 @@ class ExeDataGenCompiler {
     obj_names            = new Array<string>();
     //
     command_sgn          = "";                                    /** signature of the command to execute to get the .o file */
+    compiler             = "";                                    /** should be also in command_sgn */
 }

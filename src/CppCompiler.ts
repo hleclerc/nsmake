@@ -72,14 +72,18 @@ class CppCompiler extends Task {
         let cmd_args = [ "-c", "-g3", "-std=c++11", "-Wall", "-o", o, cpp_name ];
         pu( cmd_args, ...this.inc_paths.map( n => "-I" + n ) );
 
+        //
+        let compiler = args.compiler;
+
         // command
         exe_data.command_sgn = this.make_signature( "Executor", [ this.signature ], {
-            executable: args.compiler,
+            executable: compiler,
             args      : cmd_args,
             new_build_files,
             outputs,
         } as ExecutorArgs );
 
+        exe_data.compiler = compiler;
         this.outputs = [ cpp_name ];
     }
 

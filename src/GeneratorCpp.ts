@@ -124,14 +124,19 @@ class GeneratorCpp extends Generator {
 
             // executable or library ?
             if ( [ "exe", "lib" ].indexOf( args.mission ) >= 0 ) {
-                return cb( this.env.New( "Linker", [ cn_o, this.cpp_rules_cn() ], {
-                    output   : args.output || [],
-                    mission  : args.mission,
-                    cwd      : this.env.cwd,
-                    define   : define( args ),
-                    bootstrap: args.cpp_bootstrap || false,
-                    system   : this.env.com.proc.system_info,
-                } as ArgsLinker ) );
+                return this.get_exe( "ld", ld => { this.get_exe( "ar", ar => {
+                    cb( this.env.New( "Linker", [ cn_o, this.cpp_rules_cn() ], {
+                        output    : args.output || [],
+                        mission   : args.mission,
+                        cwd       : this.env.cwd,
+                        define    : define( args ),
+                        bootstrap : args.cpp_bootstrap || false,
+                        system    : this.env.com.proc.system_info,
+                        ld_in_args: this.env.args.ld,
+                        default_ld: ld,
+                        default_ar: ar,
+                    } as ArgsLinker ) );
+                } ); } );
             }
 
             // well, in fact, we don't know what to do :(
@@ -154,7 +159,7 @@ class GeneratorCpp extends Generator {
     }
 
     make_cpp_compiler( cn: CompilationNode, output: string, cb: ( cn: CompilationNode ) => void ): void {
-        this.get_cxx( ( cxx: string ) => {
+        this.get_exe( "cxx", ( cxx: string ) => {
             const ncc = `CppCompiler@${ path.resolve( __dirname, "..", "..", "src", "cpp", "main_cpp_services.cpp" ) }`;
             cb( this.env.New( this.env.args.cpp_bootstrap ? "CppCompiler": ncc, [ cn, this.cpp_rules_cn(), this.base_compiler_info_cn( cxx, "cpp" ) ], {
                 define    : [],
@@ -166,31 +171,6 @@ class GeneratorCpp extends Generator {
             } as ArgsCppCompiler ) );
         } );
     }
-
-
-    // get_ar( error_cb = ( msg: string ) => console.error( msg ) ) {
-    //     if ( ! this._cc ) {
-    //         let lst = new Array<string>();
-    //         switch ( os.platform() ) {
-    //             case "win32" : lst = [ 'ar', 'mslib' ]; break;
-    //             default:       lst = [ 'ar' ];
-    //         }
-    //         for( let e of lst ) {
-    //             if ( ! child_process.spawnSync( e ).error ) {
-    //                 this._ar = e;
-    //                 break;
-    //             }
-    //         }
-    //         if ( ! this._ar )
-    //             error_cb( `Impossible to find an archive creator (tried ${ lst })` );
-    //     }
-    //     return this._ar;
-    // }
-
-    // get_ld() {
-    //     // [ 'gnulink', 'mslink', 'ilink', 'applelink' ]
-    //     return this.get_cxx();
-    // }
 
     /** concatenation of rules for c/cpp/... */
     cpp_rules_cn(): CompilationNode {
@@ -208,39 +188,15 @@ class GeneratorCpp extends Generator {
         } );
     }
 
-    /** */
-    get_cxx( cb: ( res: string ) => void ): void {
-        if ( this._cxx )
-            return cb( this._cxx );
-        if ( this.env.args.cxx )
-            return cb( this.env.args.cxx );
+    /** name in [ "cxx", "cc", ... ] */
+    get_exe( name: string, cb: ( res: string ) => void ): void {
+        if ( this[ "_" + name ] )
+            return cb( this[ "_" + name ] );
+        if ( this.env.args[ name ] )
+            return cb( this.env.args[ name ] );
         // look in the system directories
-        async.forEachSeries( this._cxx_list(), ( comp, cb_test ) => {
+        async.forEachSeries( this[ "_" + name + "_list" ](), ( comp: string, cb_test ) => {
             which( comp, ( err, path_name ) => cb_test( err ? null : path_name ) );
-        }, cb );
-    }
-
-    /** */
-    get_cc( cb: ( res: string ) => void ): void {
-        if ( this._cc )
-            return cb( this._cc );
-        if ( this.env.args.cc )
-            return cb( this.env.args.cc );
-        // look in the system directories
-        async.forEachSeries( this._cc_list(), ( comp, cb_test ) => {
-            which( comp, ( err, path_name ) => cb_test( err ? null : path_name ) );
-        }, cb );
-    }
-
-    /** */
-    get_ld( cb: ( res: string ) => void ): void {
-        if ( this._ld )
-            return cb( this._ld );
-        if ( this.env.args.ld )
-            return cb( this.env.args.ld );
-        // look in the system directories
-        async.forEachSeries( this._ld_list(), ( ld, cb_test ) => {
-            which( ld, ( err, path_name ) => cb_test( err ? null : path_name ) );
         }, cb );
     }
 
@@ -281,9 +237,10 @@ class GeneratorCpp extends Generator {
         }
     }
 
-    _cxx = ""; /** c++ compiler (cached for a given compilation set) */
-    _cc  = ""; /** c++ compiler (cached for a given compilation set) */
-    _ld  = ""; /** c++ compiler (cached for a given compilation set) */
+    _cxx = ""; /** c++ compiler   (cached for a given compilation set) */
+    _cc  = ""; /** c   compiler   (cached for a given compilation set) */
+    _ld  = ""; /** default linker (cached for a given compilation set) */
+    _ar  = ""; /** archiver       (cached for a given compilation set) */
 }
 
 function define      ( args ): Array<string> { return args.define       || []; }

@@ -7,3 +7,4 @@ nsmake.config
 nsmake.creator*
 nsmake.files
 nsmake.includes
+*.log
