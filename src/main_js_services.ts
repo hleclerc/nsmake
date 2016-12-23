@@ -6,9 +6,9 @@ function adt( name: string ) { tasks.set( name, require( "./" + name ).default )
 let tasks = new Map<string,typeof Task>();
 adt( "MainJsFromPackageJson" );
 adt( "CoffeescriptCompiler"  );
-adt( "BaseCppIncludePaths"   );
 adt( "TypescriptCompiler"    );
 adt( "ConcatYamlToJson"      );
+adt( "BaseCompilerInfo"      );
 adt( "MissionMaker"          );
 adt( "JsDepFactory"          );
 adt( "CppCompiler"           );

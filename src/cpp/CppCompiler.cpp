@@ -57,7 +57,7 @@ void CppCompiler::exec() {
 
     // output cmd
     Json::Value exe_args( Json::objectValue );
-    exe_args[ "executable"      ] = "g++";
+    exe_args[ "executable"      ] = cp.cxx_name.size() ? cp.cxx_name : args[ "compiler" ];
     exe_args[ "args"            ] = cmds;
     exe_args[ "new_build_files" ] = nbfs;
     exe_args[ "outputs"         ] = outs;

@@ -1,14 +1,16 @@
-import CompilationEnvironment, { GcnItem } from "./CompilationEnvironment";
-import FileDependencies                    from "./FileDependencies";
-import CompilationNode                     from "./CompilationNode";
-import ArgumentParser                      from "./ArgumentParser";
-import { ArgsCppCompiler }                 from "./CppCompiler";
-import Generator                           from "./Generator";
-import { ExecutorArgs }                    from "./Executor";
-import { ArgsLinker }                      from "./Linker";
-import { GtestArgs }                       from "./Gtest";
-import * as async                          from 'async';
-import * as path                           from 'path';
+import CompilationEnvironment, { GcnItem } from "./CompilationEnvironment"
+import FileDependencies                    from "./FileDependencies"
+import CompilationNode                     from "./CompilationNode"
+import ArgumentParser                      from "./ArgumentParser"
+import { ArgsCppCompiler }                 from "./CppCompiler"
+import Generator                           from "./Generator"
+import { ExecutorArgs }                    from "./Executor"
+import { ArgsLinker }                      from "./Linker"
+import { GtestArgs }                       from "./Gtest"
+import * as async                          from 'async'
+import * as which                          from 'which'
+import * as path                           from 'path'
+import * as os                             from 'os'
 
 export default
 class GeneratorCpp extends Generator {
@@ -58,11 +60,11 @@ class GeneratorCpp extends Generator {
             if ( t_ext == ".o_maker" ) {
                 const basename = target.substr( 0, target.length - t_ext.length);
                 return async.forEachSeries( [
-                    ...GeneratorCpp.cpp_ext.map( ext => ({ ext, make_cn: ch => this.make_cpp_compiler( ch, care_about_target ? target : "" ) }) ),
-                    ...GeneratorCpp.c_ext  .map( ext => ({ ext, make_cn: ch => this.make_cpp_compiler( ch, care_about_target ? target : "" ) }) ),
+                    ...GeneratorCpp.cpp_ext.map( ext => ({ ext, make_cn: ( ch, cb ) => this.make_cpp_compiler( ch, care_about_target ? target : "", cb ) }) ),
+                    ...GeneratorCpp.c_ext  .map( ext => ({ ext, make_cn: ( ch, cb ) => this.make_cpp_compiler( ch, care_about_target ? target : "", cb ) }) ),
                 ], ( trial, cb_ext ) => {
                     this.env.get_compilation_node( basename + trial.ext, cwd, for_found, cn => {
-                        cb_ext( cn ? trial.make_cn( cn ) : null );
+                        cn ? trial.make_cn( cn, cb_ext ) : cb_ext( null );
                     } );
                 }, cb );
             }
@@ -136,7 +138,7 @@ class GeneratorCpp extends Generator {
             return cb( null );
         };
 
-        // we have a .o file, or we can make it ?
+        // we have a .o file, or we can make it from this entry_point ?
         if ( args.entry_point != undefined ) {
             const en = cns[ args.entry_point ].outputs[ 0 ];
             if ( path.extname( en ) == ".o_maker" )
@@ -144,23 +146,51 @@ class GeneratorCpp extends Generator {
 
             const name_o = en.slice( 0, en.length - path.extname( en ).length ) + ".o_maker";
             return this.env.get_compilation_node( name_o, path.dirname( en ), for_found, cn => {
-                with_a_dot_o( cn ? cn.some_rec( x => x.type == "Id" && x.args.target == en ) : null );
+                with_a_dot_o( cn && cn.some_rec( x => x.type == "Id" && x.args.target == en ) ? cn : null );
             } );
         }
 
         return cb( null );
     }
 
-    make_cpp_compiler( cn: CompilationNode, output: string ): CompilationNode {
-        const ncc = `CppCompiler@${ path.resolve( __dirname, "..", "..", "src", "cpp", "main_cpp_services.cpp" ) }`;
-        return this.env.New( this.env.args.cpp_bootstrap ? "CppCompiler": ncc, [ cn, this.cpp_rules_cn(), this.base_include_paths_cn(),  ], {
-            define    : [],
-            system    : this.env.com.proc.system_info,
-            launch_dir: this.env.cwd,
-            inc_paths : include_path( this.env.args ),
-            output,
-        } as ArgsCppCompiler );
+    make_cpp_compiler( cn: CompilationNode, output: string, cb: ( cn: CompilationNode ) => void ): void {
+        this.get_cxx( ( cxx: string ) => {
+            const ncc = `CppCompiler@${ path.resolve( __dirname, "..", "..", "src", "cpp", "main_cpp_services.cpp" ) }`;
+            cb( this.env.New( this.env.args.cpp_bootstrap ? "CppCompiler": ncc, [ cn, this.cpp_rules_cn(), this.base_compiler_info_cn( cxx, "cpp" ) ], {
+                define    : [],
+                system    : this.env.com.proc.system_info,
+                launch_dir: this.env.cwd,
+                inc_paths : include_path( this.env.args ),
+                compiler  : cxx,
+                output,
+            } as ArgsCppCompiler ) );
+        } );
     }
+
+
+    // get_ar( error_cb = ( msg: string ) => console.error( msg ) ) {
+    //     if ( ! this._cc ) {
+    //         let lst = new Array<string>();
+    //         switch ( os.platform() ) {
+    //             case "win32" : lst = [ 'ar', 'mslib' ]; break;
+    //             default:       lst = [ 'ar' ];
+    //         }
+    //         for( let e of lst ) {
+    //             if ( ! child_process.spawnSync( e ).error ) {
+    //                 this._ar = e;
+    //                 break;
+    //             }
+    //         }
+    //         if ( ! this._ar )
+    //             error_cb( `Impossible to find an archive creator (tried ${ lst })` );
+    //     }
+    //     return this._ar;
+    // }
+
+    // get_ld() {
+    //     // [ 'gnulink', 'mslink', 'ilink', 'applelink' ]
+    //     return this.get_cxx();
+    // }
 
     /** concatenation of rules for c/cpp/... */
     cpp_rules_cn(): CompilationNode {
@@ -170,13 +200,90 @@ class GeneratorCpp extends Generator {
     }
 
 
-    // /usr/include, /...
-    base_include_paths_cn(): CompilationNode {
-        return this.env.New( "BaseCppIncludePaths", [], {
-            compiler: "g++",
-            target: "cpp"
+    /** get stuff like base include paths, defines, ...  `target` can be cpp, c, ... */
+    base_compiler_info_cn( compiler: string, target: string ): CompilationNode {
+        return this.env.New( "BaseCompilerInfo", [], {
+            compiler,
+            target,
         } );
     }
+
+    /** */
+    get_cxx( cb: ( res: string ) => void ): void {
+        if ( this._cxx )
+            return cb( this._cxx );
+        if ( this.env.args.cxx )
+            return cb( this.env.args.cxx );
+        // look in the system directories
+        async.forEachSeries( this._cxx_list(), ( comp, cb_test ) => {
+            which( comp, ( err, path_name ) => cb_test( err ? null : path_name ) );
+        }, cb );
+    }
+
+    /** */
+    get_cc( cb: ( res: string ) => void ): void {
+        if ( this._cc )
+            return cb( this._cc );
+        if ( this.env.args.cc )
+            return cb( this.env.args.cc );
+        // look in the system directories
+        async.forEachSeries( this._cc_list(), ( comp, cb_test ) => {
+            which( comp, ( err, path_name ) => cb_test( err ? null : path_name ) );
+        }, cb );
+    }
+
+    /** */
+    get_ld( cb: ( res: string ) => void ): void {
+        if ( this._ld )
+            return cb( this._ld );
+        if ( this.env.args.ld )
+            return cb( this.env.args.ld );
+        // look in the system directories
+        async.forEachSeries( this._ld_list(), ( ld, cb_test ) => {
+            which( ld, ( err, path_name ) => cb_test( err ? null : path_name ) );
+        }, cb );
+    }
+
+    /** */
+    _cxx_list(): Array<string> {
+        switch ( os.platform() ) {
+            case "win32" : return [ 'msvc', 'intelc', 'icc', 'g++', 'clang++', 'c++', 'bcc32' ];
+            case "sunos" : return [ 'sunc++', 'g++', 'clang++', 'c++'                         ];
+            case "aix"   : return [ 'aixc++', 'g++', 'clang++', 'c++'                         ];
+            case "darwin": return [ 'g++', 'clang++', 'c++'                                   ];
+            default:       return [ 'g++', 'clang++', 'msvc', 'intelc', 'icc', 'c++'          ];
+        }
+    }
+
+    /** */
+    _cc_list(): Array<string> {
+        switch ( os.platform() ) {
+            case "win32" : return [ 'msvc', 'mingw', 'gcc', 'clang', 'intelc', 'icl', 'icc', 'cc', 'bcc32' ];
+            case "sunos" : return [ 'suncc', 'gcc', 'clang', 'cc'                                          ];
+            case "aix"   : return [ 'aixcc', 'gcc', 'clang', 'cc'                                          ];
+            case "darwin": return [ 'gcc', 'clang', 'cc'                                                   ];
+            default:       return [ 'gcc', 'clang', 'msvc', 'intelc', 'icc', 'cc'                          ];
+        }
+    }
+
+    /** */
+    _ld_list(): Array<string> {
+        switch ( os.platform() ) {
+            default:       return [ 'ld' ];
+        }
+    }
+
+    /** */
+    _ar_list(): Array<string> {
+        switch ( os.platform() ) {
+            case "win32" : return [ 'ar', 'mslib' ];
+            default:       return [ 'ar'          ];
+        }
+    }
+
+    _cxx = ""; /** c++ compiler (cached for a given compilation set) */
+    _cc  = ""; /** c++ compiler (cached for a given compilation set) */
+    _ld  = ""; /** c++ compiler (cached for a given compilation set) */
 }
 
 function define      ( args ): Array<string> { return args.define       || []; }

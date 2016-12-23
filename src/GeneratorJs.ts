@@ -173,7 +173,7 @@ class GeneratorJs extends Generator {
             return cb( null );
         };
 
-        // if we have a .js file, or if we can make it ?
+        // if we have a .js file, or if we can make it from this entry_point ?
         if ( args.entry_point != undefined ) {
             const en = cns[ args.entry_point ].outputs[ 0 ];
             if ( path.extname( en ) == ".js" || path.extname( en ) == ".jsx" )
@@ -181,7 +181,7 @@ class GeneratorJs extends Generator {
 
             const name_js = en.slice( 0, en.length - path.extname( en ).length ) + ".js";
             return this.env.get_compilation_node( name_js, path.dirname( en ), for_found, cn => {
-                with_a_dot_js( cn ? cn.some_rec( x => x.type == "Id" && x.args.target == en ) : null );
+                with_a_dot_js( cn && cn.some_rec( x => x.type == "Id" && x.args.target == en ) ? cn : null );
             } );
         }
 

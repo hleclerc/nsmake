@@ -632,8 +632,8 @@ void CppParser::read_rules() {
 
 void CppParser::read_base_info() {
     // base includes
-    base_include_paths = from_json( task->children[ 2 ].exe_data[ "paths" ] );
-    cmd_include_paths = from_json( task->args[ "inc_paths" ] );
+    base_include_paths = from_json( task->children[ 2 ].exe_data[ "inc_paths" ] );
+    cmd_include_paths  = from_json( task->args[ "inc_paths" ] );
 
     // base defines
     std::string base_defines = task->children[ 2 ].exe_data[ "defines" ].asString();

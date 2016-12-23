@@ -1,12 +1,12 @@
-import LibRulesGenCompiler   from "./LibRulesGenCompiler"
-import ExeDataGenCompiler    from "./ExeDataGenCompiler"
+import LibRulesGenCompiler         from "./LibRulesGenCompiler"
+import ExeDataGenCompiler          from "./ExeDataGenCompiler"
+import { ExeDataBaseCompilerInfo } from "./BaseCompilerInfo"
 import { SystemInfo,
-        is_compatible_with } from "./SystemInfo"
-import { pu }                from "./ArrayUtil"
-import { ExecutorArgs }      from "./Executor"
-import Task                  from "./Task"
-import * as path             from "path";
-import * as fs               from "fs";
+        is_compatible_with }       from "./SystemInfo"
+import { pu }                      from "./ArrayUtil"
+import { ExecutorArgs }            from "./Executor"
+import Task                        from "./Task"
+import * as path                   from "path";
 
 export
 interface ArgsCppCompiler {
@@ -15,6 +15,7 @@ interface ArgsCppCompiler {
     launch_dir: string;
     inc_paths : Array<string>;
     output    : string;
+    compiler  : string;
 }
 
 /** executable or items args number => num in children
@@ -73,7 +74,7 @@ class CppCompiler extends Task {
 
         // command
         exe_data.command_sgn = this.make_signature( "Executor", [ this.signature ], {
-            executable: "g++",
+            executable: args.compiler,
             args      : cmd_args,
             new_build_files,
             outputs,
@@ -266,10 +267,11 @@ class CppCompiler extends Task {
     }
 
     read_base_include_paths() {
-        this.base_include_paths = this.children[ 2 ].exe_data.paths;
+        this.base_include_paths = ( this.children[ 2 ].exe_data as ExeDataBaseCompilerInfo ).inc_paths;
     }
 
     base_include_paths = new Array<string>();
+
     inc_rules          = new Map<string,LibRulesGenCompiler>(); /** include => rules */
     inc_paths          = new Array<string>();
     lib_paths          = new Array<string>();

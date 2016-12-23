@@ -4,23 +4,24 @@ import * as path          from "path"
 
 /** positive of null number -> reference to children. negative number => - reference to new_build_files - 1 */
 export
-interface BaseCppIncludePathsArgs {
-    compiler: string;
-    target  : string; // c, cpp, ...
+interface BaseCompilerInfoArgs {
+    compiler: string; /** void for a systematic test */
+    target  : string; /** c, cpp, ... */
 }
 
 export
-class ExeDataBaseCppIncludePaths {
-    paths  = new Array<string>();
-    defines: string;
+class ExeDataBaseCompilerInfo {
+    inc_paths = new Array<string>(); /** "system" include paths */
+    defines   = "";                  /** "system" defines */
 }
 
 /** executable or items args number => num in children
  */
 export default
-class BaseCppIncludePaths extends Task {
-    exec( args: BaseCppIncludePathsArgs ) {
-        let exe_data = this.exe_data = new ExeDataBaseCppIncludePaths, cmp = args.compiler;
+class BaseCompilerInfo extends Task {
+    exec( args: BaseCompilerInfoArgs ) {
+        let exe_data = this.exe_data = new ExeDataBaseCompilerInfo;
+        const cmp = path.basename( args.compiler );
         if ( cmp.startsWith( 'g++' ) || cmp.startsWith( 'gcc' ) || cmp.startsWith( 'clang' ) ) {
             // include paths
             let chp = child_process.spawnSync( cmp, [ `-x${ args.target == 'c' ? 'c' : 'c++' }`, '-v', '-E', '-' ], {} );
@@ -32,7 +33,7 @@ class BaseCppIncludePaths extends Task {
                 else if ( line.startsWith( "End" ) )
                     break;
                 else if ( ibd )
-                    exe_data.paths.push( path.normalize( line.trim() ) );
+                    exe_data.inc_paths.push( path.normalize( line.trim() ) );
             }
 
             // base defines
