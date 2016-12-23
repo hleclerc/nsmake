@@ -178,7 +178,7 @@ class JsDepFactory extends Task {
 
     /** return true if input and required files should be concatened */
     _want_concat( args: ArgsJsDepFactory ): boolean {
-        return args.concat || args.min || [ "html", "min", "concat" ].indexOf( args.mission ) >= 0;
+        return args.concat || args.min || [ "html", "min", "concat" ].indexOf( args.mission ) >= 0 || args.js_env == "browser";
     }
 
     /** Concatenate js content */
