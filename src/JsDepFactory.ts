@@ -38,6 +38,11 @@ interface ArgsJsDepFactory {
     target_browsers    : Array<string>;
 }
 
+export
+class ResJsDepFactory {
+    url_ext_libs = new Array<string>(); /** url of scripts to be included */
+}
+
 // stuff that has to be modified in js files
 interface E_Require { type: "Require"; pos: number; data: Require; }
 interface E_Accept  { type: "Accept";  pos: number; data: Accept;  }
@@ -50,6 +55,8 @@ declare type E_stuff = E_Require | E_Accept | E_Pss;
 export default
 class JsDepFactory extends Task {
     exec( args: ArgsJsDepFactory ) {
+        this.exe_data = new ResJsDepFactory;
+
         // find html and js name using args.output, args.mission, ... 
         this._get_output_names( args.output, args.mission );
 
@@ -296,7 +303,14 @@ class JsDepFactory extends Task {
 
         // sourcemap info
         sm.append( `\n//# sourceMappingURL=${ path.relative( path.dirname( this._js_name ), map_name ) }\n` );
-       
+
+        // scripts to be added (ext_libs)
+        let url_ext_libs = ( this.exe_data as ResJsDepFactory ).url_ext_libs;
+        for( let js_parser of this.js_parsers.values() )
+            for( let ext_lib of js_parser.exe_data.ext_libs )
+                pu( url_ext_libs, ext_lib.split( " " )[ 1 ] );
+        for( let ext_lib of args.ext_libs )
+            pu( url_ext_libs, ext_lib.split( " " )[ 1 ] );
 
         // manifest data
         let manifest = {
@@ -352,17 +366,10 @@ class JsDepFactory extends Task {
             }
         }
 
-        // preparation for the SCRIPTS line (ext_libs + entry point)
-        let ext_libs = new Array<string>();
-        for( let js_parser of this.js_parsers.values() )
-            for( let ext_lib of js_parser.exe_data.ext_libs )
-                pu( ext_libs, ext_lib.split( " " )[ 1 ] );
-        for( let ext_lib of args.ext_libs )
-            pu( ext_libs, ext_lib.split( " " )[ 1 ] );
-
+        // scripts (ext_libs + result)
         let scripts = '';
-        for( let ext_lib of ext_libs )
-            scripts += `  <script type='text/javascript' src='${ ext_lib }' charset='utf-8'></script>\n`;
+        for( let url_ext_lib of ( this.exe_data as ResJsDepFactory ).url_ext_libs )
+            scripts += `  <script type='text/javascript' src='${ url_ext_lib }' charset='utf-8'></script>\n`;
         scripts += `  <script type='text/javascript' src='${ this.rel_with_dot( path.dirname( this._html_name ), this._js_name ) }' charset='utf-8'></script>`;
 
         // substitutions

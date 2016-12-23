@@ -1,10 +1,11 @@
-import Task        from "./Task"
-import * as lodash from "lodash"
-import * as Moc    from "mocha"
-import * as async  from "async"
-import * as path   from "path"
-import * as glob   from "glob"
-import * as fs     from "fs"
+import { ResJsDepFactory } from "./JsDepFactory"
+import Task                from "./Task"
+import * as lodash         from "lodash"
+import * as Moc            from "mocha"
+import * as async          from "async"
+import * as path           from "path"
+import * as glob           from "glob"
+import * as fs             from "fs"
 
 /** positive of null number -> reference to children. negative number => - reference to new_build_files - 1 */
 export interface MochaArgs {
@@ -59,21 +60,22 @@ class Mocha extends Task {
     /** maunch mocha. @argument entry_points: list of js-like files to test */
     launch( args: MochaArgs, done: ( err: boolean ) => void, js_env: string, entry_points: Array<string>, testing_envs: Array<string> ) {
         // make an "executable" for each item in the entry point
-        async.map( entry_points, ( entry_point: string, cb_map: ( err: boolean, output: string ) => void ) => {
+        async.map( entry_points, ( entry_point: string, cb_map: ( err: boolean, output: Array<string> ) => void ) => {
             // TODO: use a correct js_env for get_filtered_target_signature. Prop: using an additionnal arg to get a new comp env
             this.get_filtered_target_signature( path.resolve( args.launch_dir, entry_point ), args.launch_dir, ( err, ep_signature ) => {
                 const nargs = Object.assign( {}, args.args, {
-                    mission    : js_env == "nodejs" ? "exe" : "html",
+                    mission    : "exe", // js_env == "nodejs" ? "exe" : "html",
                     entry_point: 0,
                     js_env
                 } );
                 this.run_mission_node( nargs, [ ep_signature ], ( err, cn_data ) => {
-                    cb_map( err, err ? null : cn_data.outputs[ 0 ] );
+                    cb_map( err, err ? null : [ ...( ( cn_data.exe_data as ResJsDepFactory ).url_ext_libs || [] ), cn_data.outputs[ 0 ] ] );
                 } );
             } );
 
-        }, ( err: boolean, outputs: Array<string> ) => {
-            this.note( `outputs: ${ JSON.stringify( outputs ) }` );
+        }, ( err: boolean, output_arrays: Array<Array<string>> ) => {
+            const outputs = lodash.uniq( output_arrays.reduce( ( p, c ) => p.concat( c ), [] ) );
+
             // if nodejs is a target, call mocha directly
             if ( js_env == "nodejs" ) {
                 let cmd_args = [ '-c', ...outputs ];
@@ -105,8 +107,6 @@ class Mocha extends Task {
             content += `    concurrency: Infinity\n`;
             content += `  })\n`;
             content += `}\n`;
-
-            this.announcement( content );
 
             const karma_conf_name = this.new_build_file( outputs.length ? path.basename( outputs[ 0 ], path.extname( outputs[ 0 ] ) ) : "", ".karma.conf.js" );
             this.write_file_sync( karma_conf_name, content );
