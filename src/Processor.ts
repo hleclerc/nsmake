@@ -148,8 +148,6 @@ class Processor {
             }
             return false;
         }, err => {
-            console.log( "clean:", lst );
-            
             async.forEach( lst, rimraf, cb );
         } );
 
@@ -187,14 +185,14 @@ class Processor {
         }
 
         // outputs mtimes
-        async.forEachOf( cn.outputs, ( output: string, num_output: number, callback ) => {
+        async.forEachOf( cn.type != "Id" ? cn.outputs : [], ( output: string, num_output: number, callback ) => {
             fs.stat( output, ( err, stat ) => {
                 if ( err ) {
                     env.com.error( cn, `Output ${ output } does not exist (after execution of ${ cn.pretty }).` );
                     return callback( true );
                 }
                 cn.output_mtimes[ num_output ] = stat.mtime.getTime();
-                callback();
+                callback( false );
             } );
         }, ( err ) => {
             if ( err )
@@ -208,14 +206,14 @@ class Processor {
                         return callback( true );
                     }
                     cn.generated_mtimes[ num_output ] = stat.mtime.getTime();
-                    callback();
+                    callback( false );
                 } );
             }, ( err ) => {
                 if ( err )
                     return this._done( env, cn, true );
 
                 // save in db (we don't have wait for a complete save)
-                if ( cn.pure_function ) {
+                if ( cn.pure_function && cn.type != "Id" ) {
                     this.db.put( cn.signature, JSON.stringify( {
                         outputs               : cn.outputs,
                         output_mtimes         : cn.output_mtimes,
@@ -338,6 +336,7 @@ class Processor {
             return fs.stat( cn.args.target, ( err, stats ) => {
                 if ( err ) { env.com.error( cn, err.toString() ); return this._done( env, cn, true ); }
                 cn.file_dependencies.found.set( cn.args.target, stats.mtime.getTime() );
+                cn.output_mtimes = [ stats.mtime.getTime() ];
                 cn.outputs = [ cn.args.target ];
                 this._done( env, cn, false );
             } );

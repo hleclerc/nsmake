@@ -41,13 +41,13 @@ function parse_and_build( c: net.Socket, proc: Processor, cwd: string, nb_column
     p.parse_args( env.args, targets, argv.slice( 1 ), cwd );
 
     // Mgmt of trivial flags.
-    if ( env.args.version            ) { send_out( c, `${ p.prg_name } version: ${ p.version }` );                                              }
-    if ( env.args._error             ) { send_end( c, env.args._msg );                                                         return () => {}; }
-    if ( env.args.help               ) { send_out( c, p.format_help( env.args, nb_columns ) ); send_end( c, 0 );               return () => {}; }
-    if ( ! env.args.mission          ) { send_end( c, 'Please define a mission' );                                             return () => {}; }
-    if ( env.args.mission == "help"  ) { send_out( c, p.format_help( env.args, nb_columns ) ); send_end( c, 0 );               return () => {}; }
-    if ( env.args.mission == "clean" ) { send_out( c, `Cleaning all the build files` ); proc.clean( cwd, err => send_end( c, 0 ) ); return () => {}; }
-    if ( env.args.mission == "stop"  ) { process.exit( 0 );                                                                                     }
+    if ( env.args.version            ) { send_out( c, `${ p.prg_name } version: ${ p.version }` );                                                                          }
+    if ( env.args._error             ) { send_end( c, env.args._msg );                                                                                     return () => {}; }
+    if ( env.args.help               ) { send_out( c, p.format_help( env.args, nb_columns ) ); send_end( c, 0 );                                           return () => {}; }
+    if ( ! env.args.mission          ) { send_end( c, 'Please define a mission' );                                                                         return () => {}; }
+    if ( env.args.mission == "help"  ) { send_out( c, p.format_help( env.args, nb_columns ) ); send_end( c, 0 );                                           return () => {}; }
+    if ( env.args.mission == "clean" ) { send_out( c, `Cleaning all the build files for directory ${ cwd }` ); proc.clean( cwd, err => send_end( c, 0 ) ); return () => {}; }
+    if ( env.args.mission == "stop"  ) { process.exit( 0 );                                                                                                                 }
 
     // called when compilation is ended
     const end_comp = ( err: boolean, file_deps: FileDependencies ) => {

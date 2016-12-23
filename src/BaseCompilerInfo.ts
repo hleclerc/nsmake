@@ -2,7 +2,6 @@ import Task               from "./Task"
 import * as child_process from "child_process"
 import * as path          from "path"
 
-/** positive of null number -> reference to children. negative number => - reference to new_build_files - 1 */
 export
 interface BaseCompilerInfoArgs {
     compiler: string; /** void for a systematic test */
