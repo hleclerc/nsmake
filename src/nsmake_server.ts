@@ -7,6 +7,7 @@ import ArgumentParser           from './ArgumentParser';
 import { SystemInfo }           from "./SystemInfo"
 import Processor                from "./Processor"
 import SpRepr                   from "./SpRepr"
+import * as lodash              from 'lodash';
 import * as rimraf              from 'rimraf';
 import * as async               from 'async';
 import * as path                from 'path';
@@ -22,8 +23,13 @@ function send_end( connection: net.Socket, code: string | number ) {
     connection.end( `X ${ code.toString() }\n` );
 }
 
+/** */
+function launch_after_mod() {
+    console.log( "launch" );
+}
+
 /** launch a build seq. return a function to be called if a stop is wanted */
-function parse_and_build( c: net.Socket, proc: Processor, cwd: string, nb_columns: number, isTTY: boolean, argv: Array<string> ) : () => void {
+function parse_and_build( c: net.Socket, proc: Processor, cwd: string, nb_columns: number, isTTY: boolean, argv: Array<string>, old_to_be_checked = new Map<string,fs.FSWatcher>() ) : () => void {
     // define common argument types (mission independant)
     var p = new ArgumentParser( path.basename( argv[ 0 ] ), 'an hopefully less dummy build system', '0.0.1' );
     p.add_argument( [], [], 'v,version'  , 'get version number'                                                                       , 'boolean' );
@@ -51,16 +57,67 @@ function parse_and_build( c: net.Socket, proc: Processor, cwd: string, nb_column
 
     // called when compilation is ended
     const end_comp = ( err: boolean, file_deps: FileDependencies ) => {
-        if ( env.com.active )
-            send_end( env.com.c, err ? 1 : 0 );
+        if ( ! env.com.active )
+            return;
+        if ( env.args.watch ) {
+            let new_to_be_checked = new Set<string>();
+            // find existing directories in parents of not found files
+            let not_found = new Set<string>();
+            for( const name of file_deps.failed.keys() )
+                not_found.add( path.dirname( name ) );
+            return async.forever( cb_test => {
+                // we continue if some the the name are still not on the filesystem 
+                let new_not_found = new Set<string>();
+                async.forEach( [ ...not_found ], ( name, cb_some ) => {
+                    fs.exists( name, exists => {
+                        if ( exists )
+                            new_to_be_checked.add( name );
+                        else if ( ! new_to_be_checked.has( path.dirname( name ) ) )
+                            new_not_found.add( path.dirname( name ) );
+                        cb_some( null );
+                    } );
+                }, err => {
+                    not_found = new_not_found;
+                    cb_test( new_not_found.size == 0 );
+                } );
+            }, err => {
+                // add found files
+                for( const name of file_deps.found.keys() ) {
+                    new_to_be_checked.add( path.dirname( name ) ); // moved file with the same inode may not emit a notification if we don't do this
+                    new_to_be_checked.add( name );
+                }
+
+                // unwatch out of scope files
+                let to_del = new Array<string>();
+                old_to_be_checked.forEach( ( watcher, o_name ) => {
+                    if ( ! new_to_be_checked.has( o_name ) ) {
+                        to_del.push( o_name );
+                        watcher.close();
+                    }
+                } );
+                for( const o_name of to_del )
+                    old_to_be_checked.delete( o_name );
+
+                // register new files to be checked
+                const relaunch = lodash.debounce( () => {
+                    console.log("launch");
+                    parse_and_build( c, proc, cwd, nb_columns, isTTY, argv, old_to_be_checked )
+                } , 200 );
+                for( const o_name of new_to_be_checked )
+                    if ( ! old_to_be_checked.has( o_name ) )
+                        old_to_be_checked.set( o_name, fs.watch( o_name, { recursive: false }, relaunch ) );
+            } );
+        }
+        // if not watch: return
+        send_end( env.com.c, err ? 1 : 0 );
         env.com.active = false;
     }
 
     // fill inp_cns and replace compilation nodes string attributes by numbers
     let file_deps = new FileDependencies;
-    async.forEach( [ ...targets.keys() ], ( num_target: number, cb: ( boolean ) => void ) => {
-        env.get_compilation_node( targets[ num_target ], cwd, file_deps, cn => {
-            if ( ! cn ) send_err( c, `Error: don't known how to read or build target '${ targets[ num_target ] }'` );
+    async.forEachOf( targets, ( target: string, num_target: number, cb: ( boolean ) => void ) => {
+        env.get_compilation_node( target, cwd, file_deps, cn => {
+            if ( ! cn ) send_err( c, `Error: don't known how to read or build target '${ target }'` );
             env.cns[ num_target ] = cn;
             cb( cn == null );
         } );
@@ -69,9 +126,9 @@ function parse_and_build( c: net.Socket, proc: Processor, cwd: string, nb_column
             return end_comp( true, file_deps );
 
         // start a new build sequence
-        function at_wait( nb ) { env.com.note( null, nb > 1 ? `Waiting for another builds to complete (${ nb } tasks)` : `Waiting for another build to complete` ); }
-        function at_launch() { env.com.note( null, `Launching build` ); }
-        proc.start_new_build_seq( at_wait, at_launch, done_cb => {
+        function on_wait( nb ) { env.com.note( null, nb > 1 ? `Waiting for another builds to complete (${ nb } tasks)` : `Waiting for another build to complete` ); }
+        function on_launch() { env.com.note( null, `Launching build` ); }
+        proc.start_new_build_seq( on_wait, on_launch, done_cb => {
             // compilation of input CompilationNodes
             async.forEach( env.cns, ( cn: CompilationNode, cb_comp ) => {
                 proc.make( env, cn, cb_comp );
@@ -89,7 +146,7 @@ function parse_and_build( c: net.Socket, proc: Processor, cwd: string, nb_column
                         }
                         // compilation if mission node
                         proc.make( env, mission_node, err => {
-                            end_comp( err, file_deps );
+                            end_comp( err, mission_node.file_dependencies );
                             done_cb();
                         } );
                     } );

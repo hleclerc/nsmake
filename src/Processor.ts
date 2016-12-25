@@ -714,8 +714,8 @@ class Processor {
                 if ( ! ncn ) return init_cp( null, true );
                 this.make( nce, ncn, err => {
                     if ( err ) return init_cp( null, true );
-                    init_cp( child_process.spawn( ncn.outputs[ 0 ], [] ), true );
-                    // init_cp( child_process.spawn( "valgrind", [ ncn.outputs[ 0 ] ] ), true );
+                    // init_cp( child_process.spawn( ncn.outputs[ 0 ], [] ), true );
+                    init_cp( child_process.spawn( "valgrind", [ ncn.outputs[ 0 ] ] ), true );
                 } );
             } );
         } );
