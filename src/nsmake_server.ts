@@ -1,176 +1,68 @@
 require( "console-stamp" )( console, { pattern : "dd/mm/yyyy HH:MM:ss.l" } );
-import CommunicationEnvironment from "./CommunicationEnvironment"
-import CompilationEnvironment   from "./CompilationEnvironment"
-import FileDependencies         from "./FileDependencies"
-import CompilationNode          from "./CompilationNode"
-import ArgumentParser           from './ArgumentParser';
+import ParseArgvAndBuildMission from "./ParseArgvAndBuildMission"
+// import CommunicationEnvironment from "./CommunicationEnvironment"
+// import CompilationEnvironment   from "./CompilationEnvironment"
+// import FileDependencies         from "./FileDependencies"
+// import CompilationNode          from "./CompilationNode"
+// import ArgumentParser           from './ArgumentParser';
 import { SystemInfo }           from "./SystemInfo"
 import Processor                from "./Processor"
 import SpRepr                   from "./SpRepr"
-import * as lodash              from 'lodash';
 import * as rimraf              from 'rimraf';
-import * as async               from 'async';
-import * as path                from 'path';
 import * as net                 from 'net'
 import * as fs                  from 'fs'
 const getos = require( 'getos' );
 
-// helpers for basic communication to the client
-function send_out( connection: net.Socket, msg : string ) { connection.write( `I  ${ SpRepr.encode( msg + "\n" ) }\n` ); }
-function send_err( connection: net.Socket, msg : string ) { connection.write( `E  ${ SpRepr.encode( msg + "\n" ) }\n` ); }
-function send_end( connection: net.Socket, code: string | number ) {
-    if ( typeof code == "string" ) { send_err( connection, code ); return send_end( connection, 1 ); }
-    connection.end( `X ${ code.toString() }\n` );
-}
+// 
+function on_new_connection( c: net.Socket, proc: Processor ) {
+    let parse_and_build = new ParseArgvAndBuildMission( c, proc );
 
-/** */
-function launch_after_mod() {
-    console.log( "launch" );
-}
+    // if interruption of the client
+    c.on( 'end', () => parse_and_build.interrupt() );
 
-/** launch a build seq. return a function to be called if a stop is wanted */
-function parse_and_build( c: net.Socket, proc: Processor, cwd: string, nb_columns: number, isTTY: boolean, argv: Array<string>, old_to_be_checked = new Map<string,fs.FSWatcher>() ) : () => void {
-    // define common argument types (mission independant)
-    var p = new ArgumentParser( path.basename( argv[ 0 ] ), 'an hopefully less dummy build system', '0.0.1' );
-    p.add_argument( [], [], 'v,version'  , 'get version number'                                                                       , 'boolean' );
-    p.add_argument( [], [], 'w,watch'    , 'watch files, reconstruct dependencies if changed'                                         , 'boolean' );
-    p.add_argument( [], [], 'config-dir' , "specify the configuration directory (default: '~/.nsmake')"                               , "path"    );
-    p.add_argument( [], [], 'inotify'    , 'if -w or --watch, watch using inotify or equivalent (unsafe but consumes less ressources)', 'boolean' );
-    p.add_argument( [], [], 'watch-delay', 'if -w or --watch and method==polling, delay between tests, in ms'                                     );
-
-    // make a new environment
-    let env = new CompilationEnvironment( new CommunicationEnvironment( c, proc, nb_columns, isTTY ), cwd );
-    env.decl_additional_options( p );
-
-    // read arguments from the command line. args will contain number where CompilationNode are expected (numbers are indices to targets)
-    let targets = new Array<string>();
-    p.parse_args( env.args, targets, argv.slice( 1 ), cwd );
-
-    // Mgmt of trivial flags.
-    if ( env.args.version            ) { send_out( c, `${ p.prg_name } version: ${ p.version }` );                                                                          }
-    if ( env.args._error             ) { send_end( c, env.args._msg );                                                                                     return () => {}; }
-    if ( env.args.help               ) { send_out( c, p.format_help( env.args, nb_columns ) ); send_end( c, 0 );                                           return () => {}; }
-    if ( ! env.args.mission          ) { send_end( c, 'Please define a mission' );                                                                         return () => {}; }
-    if ( env.args.mission == "help"  ) { send_out( c, p.format_help( env.args, nb_columns ) ); send_end( c, 0 );                                           return () => {}; }
-    if ( env.args.mission == "clean" ) { send_out( c, `Cleaning all the build files for directory ${ cwd }` ); proc.clean( cwd, err => send_end( c, 0 ) ); return () => {}; }
-    if ( env.args.mission == "stop"  ) { process.exit( 0 );                                                                                                                 }
-
-    // called when compilation is ended
-    const end_comp = ( err: boolean, file_deps: FileDependencies ) => {
-        if ( ! env.com.active )
-            return;
-        if ( env.args.watch ) {
-            let new_to_be_checked = new Set<string>();
-            // find existing directories in parents of not found files
-            let not_found = new Set<string>();
-            for( const name of file_deps.failed.keys() )
-                not_found.add( path.dirname( name ) );
-            return async.forever( cb_test => {
-                // we continue if some the the name are still not on the filesystem 
-                let new_not_found = new Set<string>();
-                async.forEach( [ ...not_found ], ( name, cb_some ) => {
-                    fs.exists( name, exists => {
-                        if ( exists )
-                            new_to_be_checked.add( name );
-                        else if ( ! new_to_be_checked.has( path.dirname( name ) ) )
-                            new_not_found.add( path.dirname( name ) );
-                        cb_some( null );
-                    } );
-                }, err => {
-                    not_found = new_not_found;
-                    cb_test( new_not_found.size == 0 );
-                } );
-            }, err => {
-                // add found files
-                for( const name of file_deps.found.keys() ) {
-                    new_to_be_checked.add( path.dirname( name ) ); // moved file with the same inode may not emit a notification if we don't do this
-                    new_to_be_checked.add( name );
-                }
-
-                // unwatch out of scope files
-                let to_del = new Array<string>();
-                old_to_be_checked.forEach( ( watcher, o_name ) => {
-                    if ( ! new_to_be_checked.has( o_name ) ) {
-                        to_del.push( o_name );
-                        watcher.close();
+    // if data coming from the client
+    let lines = "";
+    c.on( 'data', ( data ) => {
+        lines += data.toString();
+        const index_lf = lines.lastIndexOf( "\n" );
+        if ( index_lf >= 0 ) {
+            for( const line of lines.slice( 0, index_lf ).split( "\n" ) ) {
+                const args = line.split( " " ).map( x => SpRepr.decode( x ) );
+                switch ( args[ 0 ] ) {
+                case "build":
+                    try {
+                        const cur_dir = args[ 1 ], nb_columns = Number( args[ 2 ] ), isTTY = Boolean( args[ 3 ] );
+                        parse_and_build.start_a_new_build( cur_dir, nb_columns, isTTY, args.slice( 4 ) );
+                    } catch ( e ) {
+                        try {
+                            parse_and_build.send_end( `Message from the nsmake server: ${ e.stack }\n` );
+                        } catch ( e ) {}
                     }
-                } );
-                for( const o_name of to_del )
-                    old_to_be_checked.delete( o_name );
-
-                // register new files to be checked
-                const relaunch = lodash.debounce( () => {
-                    console.log("launch");
-                    parse_and_build( c, proc, cwd, nb_columns, isTTY, argv, old_to_be_checked )
-                } , 200 );
-                for( const o_name of new_to_be_checked )
-                    if ( ! old_to_be_checked.has( o_name ) )
-                        old_to_be_checked.set( o_name, fs.watch( o_name, { recursive: false }, relaunch ) );
-            } );
-        }
-        // if not watch: return
-        send_end( env.com.c, err ? 1 : 0 );
-        env.com.active = false;
-    }
-
-    // fill inp_cns and replace compilation nodes string attributes by numbers
-    let file_deps = new FileDependencies;
-    async.forEachOf( targets, ( target: string, num_target: number, cb: ( boolean ) => void ) => {
-        env.get_compilation_node( target, cwd, file_deps, cn => {
-            if ( ! cn ) send_err( c, `Error: don't known how to read or build target '${ target }'` );
-            env.cns[ num_target ] = cn;
-            cb( cn == null );
-        } );
-    }, ( err: boolean ) => {
-        if ( err )
-            return end_comp( true, file_deps );
-
-        // start a new build sequence
-        function on_wait( nb ) { env.com.note( null, nb > 1 ? `Waiting for another builds to complete (${ nb } tasks)` : `Waiting for another build to complete` ); }
-        function on_launch() { env.com.note( null, `Launching build` ); }
-        proc.start_new_build_seq( on_wait, on_launch, done_cb => {
-            // compilation of input CompilationNodes
-            async.forEach( env.cns, ( cn: CompilationNode, cb_comp ) => {
-                proc.make( env, cn, cb_comp );
-            }, ( err: boolean ) => {
-                if ( err ) {
-                    end_comp( err, file_deps );
-                    done_cb();
-                } else {
-                    // get mission node
-                    env.get_mission_node( file_deps, mission_node => {
-                        if ( ! mission_node ) {
-                            send_err( c, `Error: don't known what to do for args ${ JSON.stringify( env.args ) }` );
-                            end_comp( true, file_deps );
-                            return done_cb();
-                        }
-                        // compilation if mission node
-                        proc.make( env, mission_node, err => {
-                            end_comp( err, mission_node.file_dependencies );
-                            done_cb();
-                        } );
-                    } );
+                    break;
+                case "spawn_done":
+                    proc._spawn_is_done( args[ 1 ], Number( args[ 2 ] ) );
+                    break;
+                case "exit":
+                    process.exit( 0 );
+                    break;
+                default:
+                    parse_and_build.send_end( `Unknown command '${ args[ 0 ] }'` );
                 }
-            } );
-        } );
+            }
+            lines = lines.slice( index_lf + 1 );
+        }
     } );
-
-    // callback to interrupt the tasks linked to this communication channel
-    return () => {
-        env.com.active = false;
-        proc.stop_tasks_from( env.com );
-    };
 }
-
 
 // arguments
 const nsmake_dir = process.argv[ 2 ];
 const fifo_file  = process.argv[ 3 ];
 const info_file  = process.argv[ 4 ];
 
-// get os information
+// get os information, wait for clients
 getos( ( err, si ) => {
-    if ( err ) return console.error( `Error while trying to get os information: ${ err }` );
+    if ( err )
+        return console.error( `Error while trying to get os information: ${ err }` );
     const system_info = {
         os      : si.os,
         dist    : si.dist,
@@ -180,47 +72,12 @@ getos( ( err, si ) => {
 
     // central task manager
     let proc = new Processor( nsmake_dir, system_info );
-    process.on( 'exit', code => { proc.kill_all(); } );
+    process.on( 'exit', code => proc.kill_all() );
 
     // creation of the server connection 
     const server = net.createServer( c => {
-        // if interruption of the client
-        let end_func = null as () => void;
-        c.on( 'end', () => { if ( end_func ) end_func(); } );
-
-        // if data coming from the client
-        let lines = "";
-        c.on( 'data', ( data ) => {
-            lines += data.toString();
-            const index_lf = lines.lastIndexOf( "\n" );
-            if ( index_lf >= 0 ) {
-                for( const line of lines.slice( 0, index_lf ).split( "\n" ) ) {
-                    const args = line.split( " " ).map( x => SpRepr.decode( x ) );
-                    switch ( args[ 0 ] ) {
-                    case "build":
-                        try {
-                            const cur_dir = args[ 1 ], nb_columns = Number( args[ 2 ] ), isTTY = Boolean( args[ 3 ] );
-                            end_func = parse_and_build( c, proc, cur_dir, nb_columns, isTTY, args.slice( 4 ) );
-                        } catch ( e ) {
-                            try {
-                                send_end( c, `Message from the nsmake server: ${ e.stack }\n` );
-                            } catch ( e ) {}
-                        }
-                        break;
-                    case "spawn_done":
-                        proc._spawn_is_done( args[ 1 ], Number( args[ 2 ] ) );
-                        break;
-                    case "exit":
-                        process.exit( 0 );
-                        break;
-                    default:
-                        send_end( c, `Unknown command '${ args[ 0 ] }'` );
-                    }
-                }
-                lines = lines.slice( index_lf + 1 );
-            }
-        } );
-    });
+        on_new_connection( c, proc );
+    } );
 
     server.listen( fifo_file, () => {
         // to delete the files at the end
@@ -241,5 +98,4 @@ getos( ( err, si ) => {
     server.on( 'error', ( err ) => {
         throw err;
     } );
-
 } );
