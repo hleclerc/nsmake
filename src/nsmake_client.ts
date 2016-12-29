@@ -7,6 +7,7 @@ import Pager              from "./Pager"
 import * as child_process from 'child_process'
 import * as path          from 'path'
 import * as net           from 'net'
+import * as os            from 'os'
 
 const homedir = require( 'homedir' );
 
@@ -40,8 +41,7 @@ function wait_for( stop_cond: ( cb: ( boolean ) => void ) => void, cb_ko: () => 
 }
 
 /** */
-function start_server( nsmake_dir: string, cb_ready: () => void ) {
-    const fifo_file = path.resolve( nsmake_dir, 'server.fifo' );
+function start_server( nsmake_dir: string, fifo_file: string, cb_ready: () => void ) {
     const info_file = path.resolve( nsmake_dir, 'server.info' );
     const log_file  = path.resolve( nsmake_dir, 'server.log'  );
     const fs = require( "fs" );
@@ -126,7 +126,7 @@ function send_query( pager: Pager, nsmake_dir: string, type: string, cur_dir: st
     }
     
     // send the message
-    const fifo_file = path.resolve( nsmake_dir, 'server.fifo' );
+    const fifo_file = os.platform() == "win32" ? '\\\\.\\pipe\\nsmake_server' : path.resolve( nsmake_dir, 'server.fifo' );
     const client = net.createConnection( fifo_file, () => {
         client.write( [ type, cur_dir, nb_columns.toString(), process.stdout.isTTY.toString(), ...args ].map( x => SpRepr.encode( x ) ).join( " " ) + "\n" );
     } );
@@ -140,7 +140,7 @@ function send_query( pager: Pager, nsmake_dir: string, type: string, cur_dir: st
         require( 'rimraf' )( fifo_file, err => {
             if ( err )
                 console.log( "Error while trying to rm fifo file:", err );
-            start_server( nsmake_dir, () => {
+            start_server( nsmake_dir, fifo_file, () => {
                 send_query( pager, nsmake_dir, type, cur_dir, nb_columns, args, false );
             } );
         } );
