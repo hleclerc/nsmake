@@ -1,41 +1,58 @@
-Nsmake is a modern, extensible and open source build system, designed in the first place to **reduce the redundancies between your sources and the configuration, the repetitive work inside or across the projects, the need-to-clean-because-the-build-system-does-not-take-care-of-this-case and the need-to-use-boilerplates-because-configuration-is-always-the-same-but-the-tools-are-scattered-and-there's-nothing-to-do-the-glue**.
+Nsmake is a modern, extensible and open source build system, designed in the first place to eliminate
+* the redundancies between the sources and the configuration,
+* the repetitive work inside or across the projects,
+* the need-to-clean-by-security-because-the-build-system-is-far-to-be-exact,
+* the discrepancies and limitations due to lack of orthogonality, use of global variables, ...
+* and the need-to-use-boilerplates-because-configuration-is-always-the-same-but-the-tools-are-scattered-and-there's-nothing-to-do-the-glue.
 
-Roughly speaking, the goal is to "automate the automation", while taking care of *exactness*, *speed* and *orthogonality*.
+<!--The goal is to "automate the automation", while taking care of *speed*, *exactness* and *orthogonality*.-->
 
-We think that developpers should never have to give information that can be found by other means, inducing friction and potential discrepancies. If they have to add information not already present in their sources, it should be in the right place, with factorization and modularity in mind, as they usually do for their codes.
+We think that developpers should never have to give information that can be found by other means. If they have to add some information not already present in the sources, it should be in the right place, with factorization and modularity in mind, as they usually do for their codes.
 
-Furthermore, nsmake is
+<!--Furthermore, nsmake is
 * **fast**: it works with a server and with micro-services, enabling parallelism, specialization and fast startup times for all the kinds of target,
 * **exact/secure**: dependencies are dynamic (notably for code generators) and cover a maximum of possibilities,
-* **fully featured** for as many fields as possible (web, compiled languages, ...).
+* **fully featured** for as many fields as possible (web, compiled languages, ...).-->
+
+It means that in most of the cases, no configuration is needed at all (information already in the sources is complete), while enabling *fast* and *secure* compilation/transpilation/testing/...
 
 # Main features
 
-## General features
+## Orthogonal, clear and clean configuration
 
-* Extensive analyses of the source tree and content. **Nsmake will never ask you to specify information that can be found directly or indirectly from the sources** (for instance, if you include `foo.h` and there's a `foo.cpp` in the same directory, we have a very high probability to need a link with the symbols of `foo.o`).
-* No DSL, no global intricate configuration(s) file(s). Information is specified where it is relevant, avoiding doubloons and potential discrepancies.
-* Automatic download of dependencies and prerequisites (a module is missing ? Mocha or Gtest is not installed ? It's handled by the build systme).
-* Automatic management of library flags (use of a CDN, specification of the include paths, the library names, etc...).
-* Incremental builds, watch mode, ...
-* Fast "nothing to do" builds (for instance, parsing nodes are cached, enabling the results are condensed to allow fast "change analyses").
-* Respect of your source tree: in addition to a significant **reduction of need for boilerplates and configuration files**, nsmake tries as much as possible to generate files in build directories, leaving your source tree as beautiful as when you created it :)
+* Extensive analyses of tree and content for all the source languages. **Nsmake will never ask you to specify information that can be found directly or indirectly from the sources**.
+* No global intricate configuration(s) file(s). **Information is specified where it is relevant**, avoiding doubloons and potential discrepancies.
+* No Domain Specific Language: most of the source languages already have conditionnals/preprocessors/... Nsmake let's you be coherent, **avoiding the need for new conventions and new tools** to do the same thing,
+* Significant **reduction of need for boilerplates and tool specific configuration files**: nsmake fills the gap, allowing cleansing and mutualisation for tools that share information (e.g. compilers, testing tools, installers...),
+* Respect of the source tree: nsmake tries as much as possible to **generate files in build directories, with proper and secure naming**, leaving your source tree as beautiful as when you created it :)
+
+## Frictionless handling of external tools and libraries
+
+* Automatic download of dependencies and prerequisites (e.g. modules, libraries, compilers, testing tools, ...).
+* Automatic management of library flags/specification (e.g. to use a CDN instead of a local copy, for the specification of the include paths, the library flags, ...).
+
+## Speed
+
+* Fast "nothing to do" builds: result of parsing and configuration tasks are cached, data for "change analyses" are condensed...
+* watch mode for all the kinds of targets (running, minifying, testing, ...).
 
 ## Features for the Js world
 
-* Concatenation and minification, with full support for Hot Module Reload,
-* Generation of complete `.html` files from `.js`-like entry points,
-* Full support of Typescript, Coffeescript, React extensions, ...
-* Support for arbitrary transformations, including with babel plugins and presets,
-* Support for testing frameworks (mocha, ...),
-* Full handling of sourcemaps,
-* Integrated preprocessing support (e.g. for handling of target execution or language environment)
+* Concatenation and minification,
+* Building for nodejs (where concatenation is not usefull, ...),
+* Full support for Hot Module Reload,
+* Full support of tools like Typescript, Coffeescript, React extensions, arbitrary transformations (e.g. with babel plugins and presets)...
+* Generation of complete `.html` files from `.js`-like entry points (handling of script inclusion, templates, ...),
+* Support for testing frameworks (mocha, karma, ...),
+* Full handling of sourcemaps througout all the process,
+* Integrated preprocessing support (e.g. for handling of target execution, language environment, ...)
 
 ## Features for the world of native executables (C++/...)
 
 * Fully compliant C/C++ preprocessor (with additional specific features, like NSMAKE_CMD, ...),
-* Automatic handling of flags and downloads for libraries.
+* Automatic handling of flags and downloads for external libraries.
 * Support for testing frameworks (gtest, ...),
+* Integrated code generation preprocessing support
 
 # Some tutorials
 

@@ -1,6 +1,6 @@
 /**
  * nsmake_client is mainly here to send commands to the server, 
- * But it may also has to start or stop it
+ * nsmake_client is also able to start or stop it
  */
 import SpRepr             from "./SpRepr"
 import Pager              from "./Pager"
