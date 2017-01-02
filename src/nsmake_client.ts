@@ -60,8 +60,10 @@ function start_server( nsmake_dir: string, fifo_file: string, cb_ready: () => vo
             child.unref();
 
             // wait for server to be started
+            if ( os.platform() == "win32" )
+                return cb_ready();
             wait_for(
-                ( ok_cond ) => fs.stat( info_file, ( err, stats ) => ok_cond( err == null ) ),
+                ( ok_cond ) => fs.exists( info_file, ok_cond ),
                 () => { console.error( `The nsmake server has not been started correctly (see ${ log_file })` ); process.exit( 1 ); },
                 cb_ready, 100, 10
             );
