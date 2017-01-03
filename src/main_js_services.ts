@@ -36,18 +36,17 @@ function send_end( err: string | boolean, output_summary = {} ) {
 }
 
 // read data
-let lines = "", waiting_line = null as string, active_service = null as Task;
+let lines = "", active_service = null as Task;
 process.on( 'message', ( data: Buffer ) => {
-    if ( waiting_line != null ) {
-        waiting_line += data.toString();
-        return;
-    }
     lines += data.toString();
-
+    console.log( "receiving", lines );
+            
     const index_lf = lines.lastIndexOf( "\n" );
     if ( index_lf >= 0 ) {
         const part = lines.slice( 0, index_lf );
         lines = lines.slice( index_lf + 1 );
+        console.log( "remaining:", JSON.stringify( lines ) );
+        
         for( const line of part.split( "\n" ) ) {
             try {
                 const args = JSON.parse( line );

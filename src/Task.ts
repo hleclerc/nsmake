@@ -234,6 +234,7 @@ abstract class Task {
                 result = err ? null : res;
                 done = true;
             } );
+
             deasync.loopWhile( () => done == false );
             return result;
         }

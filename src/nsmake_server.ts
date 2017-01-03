@@ -11,6 +11,7 @@ import SpRepr                   from "./SpRepr"
 import * as rimraf              from 'rimraf';
 import * as net                 from 'net'
 import * as fs                  from 'fs'
+import * as os                  from 'os'
 const getos = require( 'getos' );
 
 // 
@@ -31,7 +32,7 @@ function on_new_connection( c: net.Socket, proc: Processor ) {
                 switch ( args[ 0 ] ) {
                 case "build":
                     try {
-                        const cur_dir = args[ 1 ], nb_columns = Number( args[ 2 ] ), isTTY = Boolean( args[ 3 ] );
+                        const cur_dir = args[ 1 ], nb_columns = Number( args[ 2 ] ) - ( os.platform() == 'win32' ? 1 : 0 ), isTTY = Boolean( args[ 3 ] );
                         parse_and_build.start_a_new_build( cur_dir, nb_columns, isTTY, args.slice( 4 ) );
                     } catch ( e ) {
                         try {
