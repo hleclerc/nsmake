@@ -1,13 +1,13 @@
-Nsmake is a modern, extensible and open source build system, designed in the first place to **reduce the redundancies between your sources and the configuration, the repetitive work inside or across the projects, the need-to-clean-because-the-build-system-does-not-take-care-of-this-case and the need-to-use-boilerplates-because-configuration-is-always-the-same-but-the-tools-are-scattered-and-there's-nothing-to-do-the-glue**.
+Nsmake is a modern, extensible and open source build system, designed in the first place to **reduce the redundancies between your sources and the configuration, the repetitive work inside or across the projects, the need-to-clean-because-the-build-system-does-not-take-care-of-this-case and the need-to-use-boilerplates-because-configuration-is-always-the-same-but-the-tools-are-scattered-and-there's-nothing-to-do-the-glue**...
 
-Roughly speaking, the goal is to "automate the automation", while taking care of *exactness*, *speed* and *orthogonality*.
+The overall goal is to "automate the automation", while taking care of *exactness*, *speed* and *orthogonality*.
 
-We think that developpers should never have to give information that can be found by other means, inducing friction and potential discrepancies. If they have to add information not already present in their sources, it should be in the right place, with factorization and modularity in mind, as they usually do for their codes.
+We think that developpers should never have to give information that can be found by other means, inducing friction and potential discrepancies. Furthermore, if some information have to be added because it's not already present in the sources -- which actually covers something like 95% of the content of the configuration for the common build tools, it should be **in the right place**, with factorization and modularity in mind, as they usually do for their codes (where encapsulation, locality, orthogonality are not extraterrestrial words).
 
-Furthermore, nsmake is
+Besides, nsmake is
 * **fast**: it works with a server and with micro-services, enabling parallelism, specialization and fast startup times for all the kinds of target,
 * **exact/secure**: dependencies are dynamic (notably for code generators) and cover a maximum of possibilities,
-* **fully featured** for as many fields as possible (web, compiled languages, ...).
+* **fully featured** for as many fields as possible. It is not specialized on a particular language or target set, which is interesting for project with different kinds of tools and for different targets (web, mobile, native, ...).
 
 # Main features
 
