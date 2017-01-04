@@ -249,7 +249,7 @@ class JsParser extends Task {
         if ( sm.has_changes ) {
             const nsm = this.new_build_file( orig_name, ".js.map" );
             const njs = this.new_build_file( orig_name, ".js" );
-
+            
             sm.append( `\n//# sourceMappingURL=${ path.relative( path.dirname( njs ), nsm ) }` );
             this.write_file_sync( nsm, sm.toString( njs ) );
             this.write_file_sync( njs, sm.src_content );

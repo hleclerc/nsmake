@@ -164,6 +164,11 @@ class ArgumentParser {
                                 res[ attr ].push( targets.push( path.resolve( cur_dir, arg ) ) - 1 ); 
                             num_arg = args.length - 1;
                             break;
+                        case 'number':
+                            res[ attr ] = Number( args[ num_arg ] );
+                            if ( isNaN( res[ attr ] ) )
+                                throw `Error: '${ arg.name }' must be a number`;
+                            break;
                         default:
                             return error( `module definition error: unknown argument type '${ arg.type }' (for a positional argument)` );
                     }
@@ -363,7 +368,7 @@ class ArgumentParser {
                 for( let p of get_next().split( ',' ) )
                     res[ attr ].push( targets.push( path.resolve( cur_dir, p ) ) - 1 );
                 break;
-            case 'string':
+            case 'number':
                 res[ attr ] = Number( get_next() );
                 if ( isNaN( res[ attr ] ) )
                     throw `Error: '${ arg.long }' must be a number`;

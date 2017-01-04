@@ -406,14 +406,19 @@ class Processor {
 
     _make_new_service( pos = this.services.length, service_cb: ( service: Service ) => void, category = null as string, com = null as CommunicationEnvironment ): void {
         // what to do when we have the child process
-        const init_cp = ( cp: child_process.ChildProcess, use_stdio: boolean ) => {
+        const init_cp = ( cp: child_process.ChildProcess, force_stdin: boolean ) => {
             if ( ! cp )
                 return service_cb( null );
 
             let service = new Service;
-            service.send = use_stdio ?
-                ( ( data: string ) => { if ( service.cp ) service.cp.stdin.write( data ); } ) :
-                ( ( data: string ) => { if ( service.cp ) service.cp.send( data ); } );
+            service.send = ( data: string, use_stdin = false ) => {
+                if ( ! service.cp )
+                    return;
+                if ( use_stdin || force_stdin )
+                    service.cp.stdin.write( data );
+                else
+                    service.cp.send( data );    
+            };
             service.category = category;
             service.cp = cp;
 
@@ -438,7 +443,7 @@ class Processor {
                 }
             };
 
-            if ( use_stdio ) {
+            if ( force_stdin ) {
                 service.cp.stdout.on( 'data', on_message );
                 service.cp.stderr.on( 'data', data => { if ( service.env ) service.env.com.error( service.cn, data.toString(), false ); } );
             } else
@@ -463,14 +468,14 @@ class Processor {
         if ( category )
             this._make_cp_for_cat( category, com, init_cp );
         else
-            init_cp( child_process.fork( path.resolve( __dirname, "main_js_services.js" ) ), false );
+            init_cp( child_process.fork( path.resolve( __dirname, "main_js_services.js" ), [], { stdio: [ 'pipe', 1, 2, 'ipc' ] } as any ), false );
     }
 
-    _action_from_service( service: Service, cmd: { action: string, msg_id: string, args: any } ): void {
+    _action_from_service( service: Service, cmd: { action: string, msg_id: string, args: any, use_stdin: boolean } ): void {
         // helper: answer to a service command
         const ans = ( err: boolean, res = null ) => {
             if ( service.cp )
-                service.send( JSON.stringify( { msg_id: cmd.msg_id, err, res } ) + "\n" );
+                service.send( JSON.stringify( { msg_id: cmd.msg_id, err, res } ) + "\n", cmd.use_stdin );
         };
 
         // helper: display an error message

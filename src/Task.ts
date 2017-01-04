@@ -218,25 +218,28 @@ abstract class Task {
     _send_and_wait( action, args: { [ key: string ]: any }, cb: ( err: boolean, res: any ) => void, throw_if_error = false ): any {
         // send msg
         const msg_id = ++this._cur_id_waiting_cbs;
-        process.send( JSON.stringify( { action, args, msg_id } ) + "\n" );
+        process.send( JSON.stringify( { action, args, msg_id, use_stdin: ! cb } ) + "\n" );
 
-        // async version
+        // asynchronous version
         if ( cb ) {
             this._waiting_cbs.set( msg_id, cb );
             return null;
         }
 
-        // sync version
+        // synchronous version (using stdin)
         if ( ! cb ) {
-            let result = null, done = false;
-            this._waiting_cbs.set( msg_id, ( err: boolean, res: any ) => {
-                if ( err && throw_if_error ) throw '';
-                result = err ? null : res;
-                done = true;
-            } );
-
-            deasync.loopWhile( () => done == false );
-            return result;
+            let buf_size = 1024, buf = new Buffer( buf_size ), line = "";
+            while ( true ) {
+                let size = fs.readSync( this.stdin_fd, buf, 0, buf_size, null );
+                line += buf.slice( 0, size ).toString();
+                if ( buf.indexOf( "\n" ) >= 0 ) {
+                    let args = JSON.parse( line );
+                    if ( args.err && throw_if_error )
+                        throw '';
+    console.log( args.res );
+                    return args.err ? null : args.res;
+                }
+            }
         }
     }
 
@@ -260,6 +263,7 @@ abstract class Task {
     // input
     children            : Array<CnData>;
     signature           : string;
+    stdin_fd            : number;
 
     // output
     outputs             = new Array<string>();

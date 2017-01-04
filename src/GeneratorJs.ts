@@ -138,7 +138,7 @@ class GeneratorJs extends Generator {
                     }
 
                     cb( this.env.com.proc.pool.New( "Executor", ch, {
-                        executable     : this.env.arg_rec( "nodejs" ) || "nodejs",
+                        executable     : this.env.arg_rec( "nodejs" ) || "node",
                         args           : exe_args,
                         local_execution: typeof args.local_execution == "undefined" ? true: args.local_execution,
                         outputs        : args.redirect ? [ args.redirect ] : [],
