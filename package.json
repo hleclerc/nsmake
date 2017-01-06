@@ -47,7 +47,6 @@
     "babel-types": "^6.19.0",
     "coffee-script": "^1.12.1",
     "console-stamp": "^0.2.4",
-    "deasync": "^0.1.9",
     "getos": "^2.8.2",
     "glob": "^7.1.1",
     "homedir": "^0.6.0",

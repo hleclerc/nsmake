@@ -149,6 +149,7 @@ function send_query( pager: Pager, nsmake_dir: string, type: string, cur_dir: st
 
     // data from the server
     let lines = "";
+    console.time("poh");
     client.on( 'data', ( data ) => {
         lines += data.toString();
         const index_lf = lines.lastIndexOf( "\n" );
@@ -161,7 +162,7 @@ function send_query( pager: Pager, nsmake_dir: string, type: string, cur_dir: st
                 case "I": pager.write( args[ 1 ], args[ 2 ], 2 );                                  break; // information on a given channel
                 case "E": pager.write( args[ 1 ], args[ 2 ], 3 );                                  break; // error on a given channel
                 case "C": pager.close( args[ 1 ] );                                                break;  // close channel
-                case "X": process.exitCode = Number( args[ 1 ] ); pager.close_all(); client.end(); break; // end with code
+                case "X": process.exitCode = Number( args[ 1 ] ); pager.close_all(); client.end(); console.timeEnd("poh"); break; // end with code
                 case "s": spawn_local( client, args[ 1 ], args[ 2 ], args[ 3 ], args.slice( 4 ) ); break; // execute something locally 
                 case "e": exec_local( client, args[ 1 ], args[ 2 ], args[ 3 ] );                   break; // execute something locally 
                 default: console.log( "line:", line );

@@ -2,7 +2,6 @@ import * as stringify     from 'json-stable-stringify';
 import * as child_process from 'child_process';
 import * as path          from 'path';
 import * as fs            from 'fs';
-var deasync = require( 'deasync' );
 
 /** */
 interface CnData {
@@ -230,14 +229,20 @@ abstract class Task {
         if ( ! cb ) {
             let buf_size = 1024, buf = new Buffer( buf_size ), line = "";
             while ( true ) {
-                let size = fs.readSync( this.stdin_fd, buf, 0, buf_size, null );
-                line += buf.slice( 0, size ).toString();
-                if ( buf.indexOf( "\n" ) >= 0 ) {
-                    let args = JSON.parse( line );
-                    if ( args.err && throw_if_error )
-                        throw '';
-    console.log( args.res );
-                    return args.err ? null : args.res;
+                try {
+                    let size = fs.readSync( this.stdin_fd, buf, 0, buf_size, null );
+                    line += buf.slice( 0, size ).toString();
+                    if ( buf.indexOf( "\n" ) >= 0 ) {
+                        let args = JSON.parse( line );
+                        if ( args.err && throw_if_error )
+                            throw '';
+                        return args.err ? null : args.res;
+                    }
+                } catch ( e ) {
+                    if ( e.code == "EAGAIN" )
+                        continue;
+                    this.note( `Error while reading stdin for an answer: ${ e }` );
+                    return cb( true, null );
                 }
             }
         }
