@@ -1,1 +1,2 @@
-* watch
+* Trouver le compilateur. Prop: on le met comme additionnal child de BaseCompilerInfo; GeneratorCpp lui envoie la target et la suggestion de compilateur.
+  Prop 2: BaseCompilerInfo est additionnal child de CppCompiler

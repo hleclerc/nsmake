@@ -160,6 +160,7 @@ class GeneratorCpp extends Generator {
 
     make_cpp_compiler( cn: CompilationNode, output: string, cb: ( cn: CompilationNode ) => void ): void {
         this.get_exe( "cxx", ( cxx: string ) => {
+            // name of the micro-service
             const ncc = `CppCompiler@${ path.resolve( __dirname, "..", "..", "src", "cpp", "main_cpp_services.cpp" ) }`;
             cb( this.env.New( this.env.args.cpp_bootstrap ? "CppCompiler": ncc, [ cn, this.cpp_rules_cn(), this.base_compiler_info_cn( cxx, "cpp" ) ], {
                 define    : [],
@@ -178,7 +179,6 @@ class GeneratorCpp extends Generator {
             this.env.New( "Id", [], { target: path.resolve( __dirname, "..", "..", "rules", "cpp" ) } )
         ], {} );
     }
-
 
     /** get stuff like base include paths, defines, ...  `target` can be cpp, c, ... */
     base_compiler_info_cn( compiler: string, target: string ): CompilationNode {
