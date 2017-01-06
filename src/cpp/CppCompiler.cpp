@@ -48,7 +48,7 @@ void CppCompiler::exec() {
     for( const auto &inc : cp.cmd_include_paths ) append_unique( cmds, "-I" + inc );
 
     //
-    string compiler = cp.cxx_name.size() ? cp.cxx_name : args[ "compiler" ].asString();
+    string compiler = cp.cxx_name.size() ? cp.cxx_name : from_json( children[ 2 ].exe_data[ "compiler"  ] );
 
     // update of exe_data
     exe_data[ "orig_name" ] = orig_name;
@@ -57,8 +57,6 @@ void CppCompiler::exec() {
     for( const auto &inc : cp.lib_paths    ) exe_data[ "lib_paths"    ].append( inc );
     for( const auto &inc : cp.lib_names    ) exe_data[ "lib_names"    ].append( inc );
     for( const auto &inc : cp.obj_names    ) exe_data[ "obj_names"    ].append( inc );
-
-
 
     // output cmd
     Json::Value exe_args( Json::objectValue );

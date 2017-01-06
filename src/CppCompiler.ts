@@ -15,7 +15,6 @@ interface ArgsCppCompiler {
     launch_dir: string;
     inc_paths : Array<string>;
     output    : string;
-    compiler  : string;
 }
 
 /** executable or items args number => num in children
@@ -72,18 +71,15 @@ class CppCompiler extends Task {
         let cmd_args = [ "-c", "-g3", "-std=c++11", "-Wall", "-o", o, cpp_name ];
         pu( cmd_args, ...this.inc_paths.map( n => "-I" + n ) );
 
-        //
-        let compiler = args.compiler;
-
         // command
         exe_data.command_sgn = this.make_signature( "Executor", [ this.signature ], {
-            executable: compiler,
+            executable: this.compiler,
             args      : cmd_args,
             new_build_files,
             outputs,
         } as ExecutorArgs );
 
-        exe_data.compiler = compiler;
+        exe_data.compiler = this.compiler;
         this.outputs = [ cpp_name ];
     }
 
@@ -271,10 +267,13 @@ class CppCompiler extends Task {
     }
 
     read_base_include_paths() {
-        this.base_include_paths = ( this.children[ 2 ].exe_data as ExeDataBaseCompilerInfo ).inc_paths;
+        const bce = this.children[ 2 ].exe_data as ExeDataBaseCompilerInfo;
+        this.base_include_paths = bce.inc_paths;
+        this.compiler = bce.compiler;
     }
 
     base_include_paths = new Array<string>();
+    compiler           = "";
 
     inc_rules          = new Map<string,LibRulesGenCompiler>(); /** include => rules */
     inc_paths          = new Array<string>();

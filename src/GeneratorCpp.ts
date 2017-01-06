@@ -17,8 +17,6 @@ class GeneratorCpp extends Generator {
     static cpp_ext = [ ".cpp", ".cxx", ".cc" ];
     static h_ext   = [ ".h", ".hxx" ];
     static c_ext   = [ ".c" ];
-    //     assemblers = [ 'as', 'gas', 'nasm', 'masm']
-    //     fortran_compilers = ['gfortran', 'g77', 'ifort', 'ifl', 'f95', 'f90', 'f77', 'fortran']
 
     static c_family( ext : string ) { return GeneratorCpp.c_like( ext ) || GeneratorCpp.cpp_like( ext ); }
     static c_like  ( ext : string ) { return GeneratorCpp.c_ext  .indexOf( ext.toLowerCase() ) >= 0; }
@@ -124,22 +122,18 @@ class GeneratorCpp extends Generator {
 
             // executable or library ?
             if ( [ "exe", "lib" ].indexOf( args.mission ) >= 0 ) {
-                return this.get_exe( "ld", ld => { this.get_exe( "ar", ar => {
-                    cb( this.env.New( "Linker", [ cn_o, this.cpp_rules_cn() ], {
-                        output    : args.output || [],
-                        mission   : args.mission,
-                        cwd       : this.env.cwd,
-                        define    : define( args ),
-                        bootstrap : args.cpp_bootstrap || false,
-                        system    : this.env.com.proc.system_info,
-                        ld_in_args: this.env.args.ld,
-                        default_ld: ld,
-                        default_ar: ar,
-                    } as ArgsLinker ) );
-                } ); } );
+                return cb( this.env.New( "Linker", [ cn_o, this.cpp_rules_cn(), this.base_compiler_info_cn( this.env.arg_rec( "cxx" ), "cpp" ) ], {
+                    output    : args.output || [],
+                    mission   : args.mission,
+                    cwd       : this.env.cwd,
+                    define    : define( args ),
+                    bootstrap : args.cpp_bootstrap || false,
+                    system    : this.env.com.proc.system_info,
+                    ld_in_args: this.env.args.ld,
+                } as ArgsLinker ) );
             }
 
-            // well, in fact, we don't know what to do :(
+            // 
             return cb( null );
         };
 
@@ -159,18 +153,14 @@ class GeneratorCpp extends Generator {
     }
 
     make_cpp_compiler( cn: CompilationNode, output: string, cb: ( cn: CompilationNode ) => void ): void {
-        this.get_exe( "cxx", ( cxx: string ) => {
-            // name of the micro-service
-            const ncc = `CppCompiler@${ path.resolve( __dirname, "..", "..", "src", "cpp", "main_cpp_services.cpp" ) }`;
-            cb( this.env.New( this.env.args.cpp_bootstrap ? "CppCompiler": ncc, [ cn, this.cpp_rules_cn(), this.base_compiler_info_cn( cxx, "cpp" ) ], {
-                define    : [],
-                system    : this.env.com.proc.system_info,
-                launch_dir: this.env.cwd,
-                inc_paths : include_path( this.env.args ),
-                compiler  : cxx,
-                output,
-            } as ArgsCppCompiler ) );
-        } );
+        const ncc = `CppCompiler@${ path.resolve( __dirname, "..", "..", "src", "cpp", "main_cpp_services.cpp" ) }`;
+        cb( this.env.New( this.env.args.cpp_bootstrap ? "CppCompiler": ncc, [ cn, this.cpp_rules_cn(), this.base_compiler_info_cn( this.env.arg_rec( "cxx" ), "cpp" ) ], {
+            define    : [],
+            system    : this.env.com.proc.system_info,
+            launch_dir: this.env.cwd,
+            inc_paths : include_path( this.env.args ),
+            output,
+        } as ArgsCppCompiler ) );
     }
 
     /** concatenation of rules for c/cpp/... */
@@ -187,60 +177,6 @@ class GeneratorCpp extends Generator {
             target,
         } );
     }
-
-    /** name in [ "cxx", "cc", ... ] */
-    get_exe( name: string, cb: ( res: string ) => void ): void {
-        if ( this[ "_" + name ] )
-            return cb( this[ "_" + name ] );
-        if ( this.env.args[ name ] )
-            return cb( this.env.args[ name ] );
-        // look in the system directories
-        async.forEachSeries( this[ "_" + name + "_list" ](), ( comp: string, cb_test ) => {
-            which( comp, ( err, path_name ) => cb_test( err ? null : path_name ) );
-        }, cb );
-    }
-
-    /** */
-    _cxx_list(): Array<string> {
-        switch ( os.platform() ) {
-            case "win32" : return [ 'msvc', 'intelc', 'icc', 'g++', 'clang++', 'c++', 'bcc32' ];
-            case "sunos" : return [ 'sunc++', 'g++', 'clang++', 'c++'                         ];
-            case "aix"   : return [ 'aixc++', 'g++', 'clang++', 'c++'                         ];
-            case "darwin": return [ 'g++', 'clang++', 'c++'                                   ];
-            default:       return [ 'g++', 'clang++', 'msvc', 'intelc', 'icc', 'c++'          ];
-        }
-    }
-
-    /** */
-    _cc_list(): Array<string> {
-        switch ( os.platform() ) {
-            case "win32" : return [ 'msvc', 'mingw', 'gcc', 'clang', 'intelc', 'icl', 'icc', 'cc', 'bcc32' ];
-            case "sunos" : return [ 'suncc', 'gcc', 'clang', 'cc'                                          ];
-            case "aix"   : return [ 'aixcc', 'gcc', 'clang', 'cc'                                          ];
-            case "darwin": return [ 'gcc', 'clang', 'cc'                                                   ];
-            default:       return [ 'gcc', 'clang', 'msvc', 'intelc', 'icc', 'cc'                          ];
-        }
-    }
-
-    /** */
-    _ld_list(): Array<string> {
-        switch ( os.platform() ) {
-            default:       return [ 'ld' ];
-        }
-    }
-
-    /** */
-    _ar_list(): Array<string> {
-        switch ( os.platform() ) {
-            case "win32" : return [ 'ar', 'mslib' ];
-            default:       return [ 'ar'          ];
-        }
-    }
-
-    _cxx = ""; /** c++ compiler   (cached for a given compilation set) */
-    _cc  = ""; /** c   compiler   (cached for a given compilation set) */
-    _ld  = ""; /** default linker (cached for a given compilation set) */
-    _ar  = ""; /** archiver       (cached for a given compilation set) */
 }
 
 function define      ( args ): Array<string> { return args.define       || []; }

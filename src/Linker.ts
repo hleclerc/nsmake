@@ -14,7 +14,6 @@ interface ArgsLinker {
     bootstrap : boolean;
     system    : SystemInfo;    /** ubuntu 14.04, ... */
     ld_in_args: string;        /** ld specified in cmd line arguments */
-    default_ld: string;        /** ld found in the system */
 }
 
 interface ResCnGenCompiler {
