@@ -170,7 +170,6 @@ class GeneratorCpp extends Generator {
         ], {} );
     }
 
-
     /** get stuff like base include paths, defines, ...  `target` can be cpp, c, ... */
     base_compiler_info_cn( compiler: string, target: string ): CompilationNode {
         return this.env.New( "BaseCompilerInfo", [], {
