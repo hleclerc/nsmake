@@ -4,7 +4,7 @@ flag_sets:
     lib_names: [ jsoncpp ]
     inc_paths: [ /usr/include/jsoncpp, ext/json-cpp/include ]
 load_sets:
-  - systems : [ Ubuntu, Debian ]
+  - systems : [ "Ubuntu Linux", Debian ]
     command : apt-get install libjsoncpp-dev
     root    : true
   - systems : [ win32 ]

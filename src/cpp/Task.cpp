@@ -37,6 +37,14 @@ void Task::error( std::string msg ) {
     SEND( "error", "msg", msg );
 }
 
+void Task::note( std::string msg ) {
+    SEND( "note", "msg", msg );
+}
+
+void Task::info( std::string msg ) {
+    SEND( "info", "msg", msg );
+}
+
 std::string Task::read_file_sync(std::string name) {
     std::ifstream is( name.c_str() );
     std::ostringstream os;

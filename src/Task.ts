@@ -1,3 +1,4 @@
+import { SystemInfo }     from './SystemInfo';
 import * as stringify     from 'json-stable-stringify';
 import * as child_process from 'child_process';
 import * as path          from 'path';
@@ -91,8 +92,13 @@ abstract class Task {
     }
 
     /** return true if error */
-    run_install_cmd( category: string, cwd: string, cmd: Array<string> | string, prerequ: Array<string>, cb = null as ( err: boolean, fail: boolean ) => void ): boolean {
-        return this._send_and_wait( "run_install_cmd", { category, cwd, cmd, prerequ }, cb );
+    run_install_cmd( cwd: string, cmd: Array<string> | string, prerequ: Array<string>, cb = null as ( err: boolean, fail: boolean ) => void ): boolean {
+        return this._send_and_wait( "run_install_cmd", { cwd, cmd, prerequ }, cb );
+    }
+
+    /** return true if error. system is nullable */
+    run_yaml_install_cmd( cwd: string, rules: Array<any>, system_info: SystemInfo, cb = null as ( err: boolean, msg: string ) => void ): { err: boolean, msg: string } {
+        return this._send_and_wait( "run_yaml_install_cmd", { cwd, rules, system_info }, cb );
     }
 
     /** return true if error */

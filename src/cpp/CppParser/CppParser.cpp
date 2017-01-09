@@ -717,9 +717,18 @@ void CppParser::_include( const char *b, const char *e, Read *read, const char *
 
             // try again
             if ( nas.signature.empty() ) {
-                c_error( "Impossible to find include " + std::string{ b, e }, b, read );
-                P( read->filename );
-                P( to_try );
+                std::string msg = "Impossible to find include " + std::string{ b, e };
+                if ( iter != inc_rules.end() )
+                    msg += " even after use of " + iter->second[ "yaml_name" ].asString();
+                msg += ".";
+                P( b );
+                c_error( msg, e, read );
+
+                msg = "(tried";
+                for( std::string trial : to_try )
+                    msg += " '" + trial + "'";
+                msg += ").";
+                task->info( msg );
                 throw "";
             }
         }

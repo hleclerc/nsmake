@@ -68,7 +68,7 @@ class CppCompiler extends Task {
         }
 
         // args
-        let cmd_args = [ "-c", "-g3", "-std=c++11", "-Wall", "-o", o, cpp_name ];
+        let cmd_args = [ "-c", "-g3", "-O3", "-std=c++11", "-Wall", "-o", o, cpp_name ];
         pu( cmd_args, ...this.inc_paths.map( n => "-I" + n ) );
 
         // command
@@ -200,15 +200,15 @@ class CppCompiler extends Task {
         exe_data.include_strs.push( inc_str );
 
         // there's a registered rule for this library ?
-        const rules = this.inc_rules.get( inc_str );
-        if ( rules ) {
-            const rule = this.for_system( args.system, rules.flag_sets )
-            if ( rule ) {
-                if ( rule.inc_paths ) pu( this    .inc_paths, ...rule.inc_paths.map( x => path.resolve( args.launch_dir, x ) ) );
-                if ( rule.lib_paths ) pu( exe_data.lib_paths, ...rule.lib_paths.map( x => path.resolve( args.launch_dir, x ) ) );
-                if ( rule.lib_names ) pu( exe_data.lib_names, ...rule.lib_names );
-            }
-        }
+        // const rules = this.inc_rules.get( inc_str );
+        // if ( rules ) {
+        //     const rule = this.for_system( args.system, rules.flag_sets )
+        //     if ( rule ) {
+        //         if ( rule.inc_paths ) pu( this    .inc_paths, ...rule.inc_paths.map( x => path.resolve( args.launch_dir, x ) ) );
+        //         if ( rule.lib_paths ) pu( exe_data.lib_paths, ...rule.lib_paths.map( x => path.resolve( args.launch_dir, x ) ) );
+        //         if ( rule.lib_names ) pu( exe_data.lib_names, ...rule.lib_names );
+        //     }
+        // }
 
         // try to find the include
         const ext = inc_type == "<";
@@ -222,16 +222,14 @@ class CppCompiler extends Task {
         }
         let sgn = try_to_find();
 
-        // not found ? => try to load it
-        if ( ! sgn && rules ) {
-            const rule = this.for_system( args.system, rules.load_sets )
-            if ( ! rule )
-                throw `Error: in ${ rules.yaml_name } (used to get ${ inc_str }), there's no 'load_sets' rule for current system (${ JSON.stringify( args.system ) })`;
-            if ( rule && rule.command && this.run_install_cmd( "", args.launch_dir, rule.command, [] ) )
-                throw '';
-            // try again to find it
-            sgn = try_to_find();
-        }
+        // // not found ? => try to load it
+        // if ( ! sgn && rules ) {
+        //     const ryic = this.run_yaml_install_cmd( args.launch_dir, rules.load_sets, args.system );
+        //     if ( ryic.err )
+        //         throw `Error in ${ rules.yaml_name } (used to get ${ inc_str }): ${ ryic.msg }`;
+        //     // and try again to find tge the include
+        //     sgn = try_to_find();
+        // }
 
         // if still not found, here we simply return (but there's an error in the non bootstrap version)
         if ( ! sgn ) {

@@ -669,8 +669,13 @@ class Processor {
                     service.status = cmd.args.status;
                 return;
 
+            case "run_yaml_install_cmd":
+                return this.yaml_install_cmd( service.env.com, service.cn, cmd.args.cwd, cmd.args.rules, cmd.args.system_info || this.system_info, ( err, msg ) => {
+                    ans( false, { err, msg } );
+                } );
+
             case "run_install_cmd":
-                return this._install_cmd( service.env.com, service.cn, cmd.args.category, cmd.args.cwd, cmd.args.cmd, cmd.args.prerequ, err => {
+                return this.install_cmd( service.env.com, service.cn, cmd.args.cwd, cmd.args.cmd, cmd.args.prerequ, err => {
                     ans( false, err );
                 } );
 
@@ -732,28 +737,70 @@ class Processor {
         } );
     }
 
+    /**  */
+    yaml_install_cmd( com: CommunicationEnvironment, cn: CompilationNode, cwd: string, rules: Array<any>, system_info: SystemInfo, cb: ( err: boolean, msg: string ) => void ) {
+        for( const rule of rules ) {
+            if ( is_compatible_with( system_info, rule.systems ) ) {
+                // chech sub prerequisites
+                return async.forEach( rule.prerequ || [], ( sub_req: string, cb_prerequ ) => {
+                    this._check_prerequ( com, cn, sub_req, cb_prerequ );
+                }, ( err_prerequ ) => {
+                    if ( err_prerequ )
+                        return cb( true, "" );
+
+                    // command[s]
+                    const exe_cmd = ( cmd: string | Array<string>, exe_cmd_cb: ( err: boolean ) => void ) => {
+                        if ( rule.shell == "powershell" ) {
+                            if ( rule.admin )
+                                cmd = [ "powershell", "-c", "Start-Process", "powershell.exe", "-Verb", "runAs", "-Argumentlist", ( typeof cmd == "string" ? cmd : cmd.map( x => '"' + x.replace( /"/g, '`"' ) + '"' ).join( "," ) ), "-Wait" ];
+                            else
+                                cmd = [ "powershell", "-c", ...( typeof cmd == "string" ? [ cmd ] : cmd ) ];
+                        } else if ( rule.admin || rule.root ) {
+                            // TODO: admin with cmd.exe
+                            if ( typeof cmd == "string" )
+                                cmd = [ "sudo", "--", "sh", "-c", cmd ];
+                            else
+                                cmd.unshift( "sudo" );
+                        }
+                        this.__install_cmd( com, cn, cwd, cmd, exe_cmd_cb );
+                    };
+                    if ( rule.commands )
+                        return async.forEachSeries( rule.commands as Array<string | Array<string>>, ( command: string | Array<string>, cb_fe: ( err: boolean ) => void ) => exe_cmd( command, cb_fe ), err => cb( err, "" ) );
+                    if ( rule.command )
+                        return exe_cmd( rule.command, err => cb( err, "" ) );
+
+                    // nothing to execute
+                    return cb( false, "" );
+                } );
+                
+            }
+        }
+        cb( true, `there's no 'load_sets' rule for current system (${ JSON.stringify( system_info ) })` );
+    }
+
     /** ex of category: npm... */
-    _install_cmd( com: CommunicationEnvironment, cn: CompilationNode, category: string, cwd: string, cmd: Array<string> | string, prerequ: Array<string>, cb: ( err: boolean ) => void ) {
+    install_cmd( com: CommunicationEnvironment, cn: CompilationNode, cwd: string, cmd: Array<string> | string, prerequ: Array<string>, cb: ( err: boolean ) => void ) {
         async.forEach( prerequ, ( req: string, cb_prerequ ) => {
             this._check_prerequ( com, cn, req, cb_prerequ );
         }, ( err_prerequ ) => {
-            if ( err_prerequ ) return cb( true );
-            this.__install_cmd( com, cn, category, cwd, cmd, cb );
+            if ( err_prerequ )
+                return cb( true );
+            this.__install_cmd( com, cn, cwd, cmd, cb );
         } );
     }
 
     /** ex of category: npm... */
-    __install_cmd( com: CommunicationEnvironment, cn: CompilationNode, category: string, cwd: string, cmd: Array<string> | string, cb: ( err: boolean ) => void ) {
-        const key = category + ":" + cwd;
+    __install_cmd( com: CommunicationEnvironment, cn: CompilationNode, cwd: string, cmd: Array<string> | string, cb: ( err: boolean ) => void ) {
+        const key = cwd;
         if ( this.current_install_cmds.has( key ) )
-            return this.waiting_install_cmds.push( { com, cn, category, cwd, cmd, cb } );
+            return this.waiting_install_cmds.push( { com, cn, cwd, cmd, cb } );
         this.current_install_cmds.add( key );
             
         const cont = () => {
             this.current_install_cmds.delete( key );
             if ( this.waiting_install_cmds.length ) {
                 const item = this.waiting_install_cmds.shift();
-                this.__install_cmd( item.com, item.cn, item.category, item.cwd, item.cmd, item.cb );
+                this.__install_cmd( item.com, item.cn, item.cwd, item.cmd, item.cb );
             }
         }
 
@@ -785,36 +832,11 @@ class Processor {
                 return cb( true );
             }
             try {
-                for( const ls of yaml.load( res.data ) ) {
-                    if ( is_compatible_with( this.system_info, ls.systems ) ) {
-                        const exe_cmd = ( cmd: string, exe_cmd_cb: ( err: boolean ) => void ) => {
-                            let command = cmd as string | Array<string>;
-                            if ( ls.shell == "powershell" ) {
-                                if ( ls.admin )
-                                    command = [ "powershell", "-c", "Start-Process", "powershell.exe", "-Verb", "runAs", "-Argumentlist", cmd, "-Wait" ];
-                                else
-                                    command = [ "powershell", "-c", cmd ];
-                            }
-                            this._install_cmd( com, cn, "prerequ", com.launch_dir, command, ls.prerequ, exe_cmd_cb );
-                        };
-                        // chech sub prerequisites
-                        return async.forEach( ls.prerequ || [], ( sub_req: string, cb_prerequ ) => {
-                            this._check_prerequ( com, cn, sub_req, cb_prerequ );
-                        }, ( err_prerequ ) => {
-                            if ( ls.commands )
-                                return async.forEachSeries( ls.commands as Array<string>, ( command: string, cb_fe: ( err: boolean ) => void ) => exe_cmd( command, cb_fe ), cb );
-                            if ( ls.command )
-                                return exe_cmd( ls.command, cb );
-                            // nothing to execute
-                            return cb( false );
-                        } );
-                    }
-                }
-                com.error( cn, `Prerequisite ${ req } (in file ${ res.name }) does not have any install rule for the current system (${ this.system_info })` );
-                cb( true );
+                this.yaml_install_cmd( com, cn, com.launch_dir, yaml.load( res.data ), this.system_info, ( err: boolean, msg: string ) => {
+                    if ( err ) com.error( cn, `Error in prerequisite file '${ req }': ${ msg }` );
+                    cb( err );
+                } );
             } catch ( e ) {
-                console.log( e );
-                
                 com.error( cn, `error while parsing\n${ res.data } from ${ res.name }:\n` + e.toString() );
                 cb( true );
             }
@@ -864,6 +886,6 @@ class Processor {
     waiting_spw          = new Map<string,{ com: CommunicationEnvironment, cb: ( code: number ) => void }>();
     waiting_build_seqs   = new Array<{ at_launch_cb: () => void, cb: ( done_cb: () => void ) => void }>(); 
     current_install_cmds = new Set<string>();
-    waiting_install_cmds = new Array< { com: CommunicationEnvironment, cn: CompilationNode, category: string, cwd: string, cmd: Array<string> | string, cb: ( err: boolean ) => void } >();
+    waiting_install_cmds = new Array< { com: CommunicationEnvironment, cn: CompilationNode, cwd: string, cmd: Array<string> | string, cb: ( err: boolean ) => void } >();
 }
 

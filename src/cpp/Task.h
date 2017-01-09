@@ -24,6 +24,8 @@ public:
     Task( const Json::Value &root );
 
     void               error                              ( std::string msg ); ///< send an error message
+    void               note                               ( std::string msg ); ///< send an note message
+    void               info                               ( std::string msg ); ///< send an note message
 
     std::string        read_file_sync                     ( std::string name );                                                    ///< read all the content of file `name`
     void               write_file_sync                    ( std::string name, const std::string &content );                        ///< read all the content of file `name`

@@ -21,7 +21,7 @@ class ConcatYamlToJson extends Task {
                     const data = yaml.safeLoad( this.read_file_sync( 
                         this.get_filtered_target( path.resolve( dir, name ), dir ).name
                     ).toString() );
-                    res.push( { name, data } );
+                    res.push( { name: path.join( dir, name ), data } );
                 }
             }
         }
