@@ -434,8 +434,10 @@ class Processor {
                         try {
                             this._action_from_service( service, JSON.parse( line ) );
                         } catch( e ) {
+                            console.log( e );
+                            
                             if ( service.env )
-                                service.env.com.error( service.cn, `Error: while parsing '${ line }' for '${ service.cn.pretty }': ${ e.toString() }. => Service is killed` );
+                                service.env.com.error( service.cn, `Error: while parsing '${ line }' for '${ service.cn.pretty }': ${ e.toString() }. => Service is going to be killed` );
                             if ( service.cp )
                                 service.cp.kill();
                         }
@@ -512,10 +514,12 @@ class Processor {
             // actions
             case "done":
                 // save result in local memory
-                pu( service.cn.generated, ...cmd.args.output_summary.generated );
-                service.cn.outputs       = cmd.args.output_summary.outputs;
-                service.cn.exe_data      = cmd.args.output_summary.exe_data;
-                service.cn.pure_function = cmd.args.output_summary.pure_function;
+                if ( cmd.args.output_summary ) {
+                    pu( service.cn.generated, ...( cmd.args.output_summary.generated || [] ) );
+                    service.cn.outputs       = cmd.args.output_summary.outputs || [];
+                    service.cn.exe_data      = cmd.args.output_summary.exe_data || {};
+                    service.cn.pure_function = cmd.args.output_summary.pure_function || false;
+                }
                 // the service is now idle and not linked to a specific env or cn
                 return done( cmd.args.err );
 

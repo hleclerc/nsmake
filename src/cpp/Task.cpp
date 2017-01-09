@@ -45,6 +45,10 @@ void Task::info( std::string msg ) {
     SEND( "info", "msg", msg );
 }
 
+void Task::announcement( std::string msg ) {
+    SEND( "announcement", "msg", msg );
+}
+
 std::string Task::read_file_sync(std::string name) {
     std::ifstream is( name.c_str() );
     std::ostringstream os;
@@ -121,9 +125,14 @@ int Task::spawn_sync( std::string cwd, std::string cmd, std::vector<std::string>
     return from_json( res );
 }
 
-bool Task::run_install_cmd( std::string category, std::string cwd, std::string cmd, std::vector<std::string> prerequ ) {
-    Json::Value res = SAWA( "run_install_cmd", "category", category, "cwd", cwd, "cmd", cmd, "prerequ", prerequ );
+bool Task::run_install_cmd( std::string cwd, std::string cmd, std::vector<std::string> prerequ ) {
+    Json::Value res = SAWA( "run_install_cmd", "cwd", cwd, "cmd", cmd, "prerequ", prerequ );
     return from_json( res );
+}
+
+Task::Pbs Task::run_yaml_install_cmd( std::string cwd, Json::Value rules, Json::Value system_info ) {
+    Json::Value res = SAWA( "run_yaml_install_cmd", "cwd", cwd, "rules", rules, "system_info", system_info );
+    return { res[ "err" ].asBool(), res[ "msg" ].asString() };
 }
 
 void Task::register_aliases( const std::vector<std::pair<std::string,std::string> > &aliases, std::string cur_dir ) {

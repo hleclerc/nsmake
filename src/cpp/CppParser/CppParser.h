@@ -67,7 +67,6 @@ struct CppParser {
     void                 read_rules         ();
     void                 read_base_info     ();
     StringVec            include_try_list   ( std::string cur_dir, std::string launch_dir, std::string basename, unsigned min_num_path );
-    bool                 load_library       ( const Json::Value &jd );
 
 
     void                 _define            ( const char *b, const char *e, Read *read, const char *od );

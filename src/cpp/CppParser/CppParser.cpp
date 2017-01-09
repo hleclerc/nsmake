@@ -277,8 +277,8 @@ void CppParser::_variable( unsigned variable_type, const char *b, const char *&e
 
 void CppParser::c_error( const std::string &msg, const char *b, Read *read ) {
     ErrorDisp ed( msg );
-    for( ; read; read = read->prev )
-        ed.ac( read->b, read->e, read->lw, read->filename );
+    for( Read *r = read; r; r = r->prev )
+        ed.ac( r->b, r->e, r == read ? b : r->lw, r->filename );
     ed.write_to_stream( std::cerr );
     std::cerr << std::endl;
 }
@@ -711,7 +711,18 @@ void CppParser::_include( const char *b, const char *e, Read *read, const char *
             // try to load the library
             auto iter = inc_rules.find( inc_str );
             if ( iter != inc_rules.end() ) {
-                load_library( iter->second );
+                const Json::Value &rules = iter->second[ "load_sets" ];
+                if ( rules.isNull() ) {
+                    c_error( "Error while trying to download lib: there is no 'load_set' attribute in file '" + iter->second[ "yaml_name" ].asString() + "'", b, read );
+                    throw "";
+                }
+                auto ri = task->run_yaml_install_cmd( from_json( task->args[ "launch_dir" ] ), rules, task->args[ "system" ] );
+                if ( ri.first ) {
+                    c_error( "Error while trying to download lib: " + ri.second, b, read );
+                    throw "";
+                }
+
+                // try again
                 nas = task->get_first_filtered_target_signature( to_try, read->dir );
             }
 
@@ -719,16 +730,15 @@ void CppParser::_include( const char *b, const char *e, Read *read, const char *
             if ( nas.signature.empty() ) {
                 std::string msg = "Impossible to find include " + std::string{ b, e };
                 if ( iter != inc_rules.end() )
-                    msg += " even after use of " + iter->second[ "yaml_name" ].asString();
+                    msg += ", even after use of download rules of '" + iter->second[ "yaml_name" ].asString() + "'";
                 msg += ".";
-                P( b );
-                c_error( msg, e, read );
+                c_error( msg, b, read );
 
                 msg = "(tried";
                 for( std::string trial : to_try )
                     msg += " '" + trial + "'";
                 msg += ").";
-                task->info( msg );
+                task->announcement( msg );
                 throw "";
             }
         }
@@ -757,20 +767,6 @@ void CppParser::_include( const char *b, const char *e, Read *read, const char *
 
     //
     parse( filename, dir, content_of( filename ), read, true, num_path );
-}
-
-bool CppParser::load_library( const Json::Value &jd ) {
-    Json::Value load_sets = jd[ "load_sets" ];
-    if ( load_sets.isNull() )
-        return false;
-    for( Json::Value set: load_sets ) {
-        if ( ! task->system_is_in( from_json( set[ "systems" ] ), task->args[ "system" ] ) )
-            continue;
-        if ( task->run_install_cmd( from_json( set[ "command" ] ), from_json( task->args[ "launch_dir" ] ),
-                                   from_json( set[ "command" ] ), from_json( set[ "prerequ" ] ) ) == false )
-            break;
-    }
-    return true;
 }
 
 std::vector<std::string> CppParser::include_try_list( std::string cur_dir, std::string launch_dir, std::string basename, unsigned min_num_path ) {
