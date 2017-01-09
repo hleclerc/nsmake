@@ -2,37 +2,39 @@
 
 Nsmake stands for "No Script Make". It is an extensible build system, designed for **speed**, **correctness** and **orthogonality**, for all kinds of stuff that has to be built.
 
-Whereas most build tools make us write a lot of trivial information, often redundant and scattered, Nsmake takes responsibility to **ensure the link between the tools**, greatly reducing the need to write obvious content, reducing the need for boilerplates, enabling correctness even with complex code generation schemes or side modifications, ...
+Most build systems make us write a lot of trivial information, often redundant and scattered. Nsmake takes responsibility to **ensure the link between the tools** and **read all informations from the source tree**, greatly reducing the need to write obvious content. It notably makes it possible to greatly reduce the need for boilerplates, to enable correctness even with complex code generation schemes or side modifications, to eliminate most of the discrepancy sources, automatic downloading of missing parts, etc...
+
+
 
 # Main features
 
 ## Orthogonal, clean and clear configuration
 
 * Extensive analyses of tree and content for all the source languages. **Nsmake will never ask you to specify information that can be found directly or indirectly from the sources**.
-* No global intricate configuration(s) file(s). **Information is specified where it is relevant**, avoiding doubloons and potential discrepancies.
-* No Domain Specific Language: most of the source languages already have conditionals, preprocessors, ... Nsmake let's you be coherent, **avoiding the need for new conventions and new tools** to do something that was already possible without that.
-* Significant **reduction of need for boilerplates and tool specific configuration files**: Nsmake fills the gap, allowing cleansing, and cooperation for tools that share information (e.g. compilers, testing tools, installers...).
-* Respect of the source tree: Nsmake tries as much as possible to **generate files in build directories, with proper and secure naming**, leaving your in full control of your directories.
+* No global intricate configuration(s) file(s). **Information is specified where it is relevant** and use of global variables are a choice of the user, not of the build system.
+* No Domain Specific Language: most of the source languages already have conditionals, preprocessors, ... Nsmake let's you be coherent with the programming languages you're already using, **avoiding the need to cope with new conventions and new tools**.
+* Overall Significant **reduction of number of configuration files**, and need for boilerplates: Nsmake takes the responsibility to fill the gap, allowing cleansing, and cooperation for tools (compilation, testing, etc...) that need the same kinds of information.
+* Respect of the source tree: Nsmake tries as much as possible to **generate files in separate build directories, with proper and secure naming**, leaving your in full control of your directories.
 
 ## Speed
 
-* The task runner works as a **server**, dramatically reducing start-up time (and enabling consistency between parallel builds).
-* Deep and dynamic parallelism: tasks run in micro-services that can interact with the task runner to instantiate **parallel or sequential subtasks**.
-* Deep in memory and database caching: all the result of the idempotent tasks are **condensed and cached**, from the parsing results to the dependency analyses.
+* The task runner works as a **server**, dramatically reducing start-up time, and enabling consistency for parallel builds on the same target directories.
+* Tasks run in micro-services that can interact with the task runner to dynamically instantiate **subtasks in parallel**, enabling additional level of parallelism.
+* Deep in-memory and database caching: all the result of the idempotent tasks are **condensed and cached**, from the parsing results, to the dependency analyses, etc...
 
 ## General features
 
-* Deep dependency analyses for dramatically **improved correctness**: tests on files that does *not* exist, on configuration information, on external tools, ...
+* Deep dependency analyses for dramatically **improved correctness**: tests on files that does *not* exist, on configuration information, on external tool evolutions, ...
 * **Watch mode** for all the kinds of targets.
-* **Handling of dependencies and prerequisites**: need and presence of modules, libraries and tools are tested, enabling handling of downloads and installations.
-* **Handling of flags and specifications** for libraries (e.g. to use a CDN instead of a local copy, for the specification of the include paths, the library flags, ...) using extensible rule sets and extensive code analyses.
+* **Handling of dependencies and prerequisites**: automatic finding, testing and installation of missing modules, libraries and tools (e.g. for a given compiler, for a library in a given language, etc...).
+* **Handling of flags and specifications** for libraries (e.g. to use a CDN instead of a local copy, for the specification of the include paths, the library flags, ...) using extensible rule sets and extensive code analyses, enabling dramatic simplification of configuration for libraries.
 
 ## Specific features
 
 ### Javascript and friends
 
-* Concatenation, minification, Typescript, Coffeescript, React extensions, ... with of course plugins and support for arbitrary transformations (e.g. with babel plugins and presets, ...).
-* Full support for **Hot Module Reload**.
+* Concatenation, minification, Typescript, Coffeescript, React extensions, ... with of course plugins and support for arbitrary transformations (e.g. with babel plugins and presets, etc...).
+* Full support for **Hot Module Reload** (as e.g. in WebPack).
 * Rules for **Nodejs *and* Web** targets (where policies for concatenation, CDN, etc... are not the same),
 * **Generation of the surrounding of `.js`-like entry points**: from the complete needed `.html` files (handling of script inclusion, templates, ...), to the sourcemaps.
 * Integrated support for **testing frameworks** (mocha, karma, ...),
@@ -40,8 +42,8 @@ Whereas most build tools make us write a lot of trivial information, often redun
 
 ### For native executables (C++/...)
 
-* Fully compliant C/C++ preprocessor (proper variable substitution, extensions like `#include_next`, `##__VA_ARGS__`, ...)
-* Rules for **inline preprocessing** code generation (launching of tasks for code inclusion and modification).
+* Fully compliant C/C++ preprocessor (proper variable substitution, extensions like `#include_next`, `##__VA_ARGS__`, etc...)
+* Rules for **inline preprocessing** code generation (launching of nsmake tasks for code inclusion and modification during code parsing).
 * Automatic handling of **flags and downloads** for external libraries (`#include <libxml/tree.h>` probably that `libxml` is needed).
 * Integrated support for **testing frameworks** (gtest, ...),
 
