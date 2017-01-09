@@ -66,7 +66,7 @@ class CommunicationEnvironment {
     proc       : Processor;
     launch_dir : string;
     nb_columns : number;
-    color   : boolean;
+    color      : boolean;
     active     = true; /** socket still working ? */
     channels   = new Set<CompilationNode>();
 } 

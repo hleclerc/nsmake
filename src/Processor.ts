@@ -1,24 +1,25 @@
-import CommunicationEnvironment from "./CommunicationEnvironment";
-import CompilationEnvironment   from "./CompilationEnvironment";
-import FileDependencies         from "./FileDependencies";
-import CompilationNode          from "./CompilationNode";
-import RandNameSuffix           from "./RandNameSuffix";
-import { SystemInfo }           from "./SystemInfo";
-import { pu }                   from "./ArrayUtil";
+import CommunicationEnvironment from "./CommunicationEnvironment"
+import CompilationEnvironment   from "./CompilationEnvironment"
+import FileDependencies         from "./FileDependencies"
+import CompilationNode          from "./CompilationNode"
+import RandNameSuffix           from "./RandNameSuffix"
+import { SystemInfo,
+        is_compatible_with }    from "./SystemInfo"
+import { pu }                   from "./ArrayUtil"
 import { mkdir_rec,
-         mkdir_rec_sync }       from "./mkdir_rec";
-import Service                  from "./Service";
-import SpRepr                   from "./SpRepr";
-import Pool                     from "./Pool";
-import Db                       from "./Db";
-import * as child_process       from 'child_process';
-import * as yaml                from "js-yaml";
-import * as lodash              from 'lodash';
-import * as rimraf              from 'rimraf';
-import * as async               from 'async';
-import * as path                from 'path';
-import * as os                  from 'os'; // cpus()
-import * as fs                  from 'fs';
+         mkdir_rec_sync }       from "./mkdir_rec"
+import Service                  from "./Service"
+import SpRepr                   from "./SpRepr"
+import Pool                     from "./Pool"
+import Db                       from "./Db"
+import * as child_process       from 'child_process'
+import * as yaml                from "js-yaml"
+import * as lodash              from 'lodash'
+import * as rimraf              from 'rimraf'
+import * as async               from 'async'
+import * as path                from 'path'
+import * as os                  from 'os' // cpus()
+import * as fs                  from 'fs'
 
 interface DataInDb {
     outputs            : Array<string>;
@@ -673,6 +674,11 @@ class Processor {
                     ans( false, err );
                 } );
 
+            case "check_prerequ":
+                return this._check_prerequ( service.env.com, service.cn, cmd.args.req, err => {
+                    ans( false, err );
+                } );
+
             // default
             default:
                 for( const g of service.env.generators )
@@ -729,7 +735,7 @@ class Processor {
     /** ex of category: npm... */
     _install_cmd( com: CommunicationEnvironment, cn: CompilationNode, category: string, cwd: string, cmd: Array<string> | string, prerequ: Array<string>, cb: ( err: boolean ) => void ) {
         async.forEach( prerequ, ( req: string, cb_prerequ ) => {
-            this._check_prerequ( com, cn, cwd, req, cb_prerequ );
+            this._check_prerequ( com, cn, req, cb_prerequ );
         }, ( err_prerequ ) => {
             if ( err_prerequ ) return cb( true );
             this.__install_cmd( com, cn, category, cwd, cmd, cb );
@@ -753,6 +759,8 @@ class Processor {
 
         com.announcement( cn, typeof cmd == "string" ? cmd : cmd.join( " " ) );
         //
+        console.log( "cmd:", cmd );
+        
         typeof cmd == "string" ?
             this._exec_local( com, cmd, "", ( code: number ) => { cont(); cb( code != 0 ); } ) :
             this._spawn_local( com, cmd[ 0 ], cmd.slice( 1 ), "", ( code: number ) => { cont(); cb( code != 0 ); } );
@@ -766,30 +774,48 @@ class Processor {
         // cp.on( "close", ( code, signal ) => { cont(); cb( Boolean( code || signal ) ); } );
     }
 
-    _check_prerequ( com: CommunicationEnvironment, cn: CompilationNode, cwd: string, req: string, cb: ( err: boolean ) => void ) {
+    _check_prerequ( com: CommunicationEnvironment, cn: CompilationNode, req: string, cb: ( err: boolean ) => void ) {
         // try to find prerequ
         let trials = [ path.resolve( __dirname, "..", "..", "rules", "prerequ", req + ".yaml" ) ];
         async.forEachSeries( trials, ( trial, cbt ) => {
-            fs.readFile( trial, ( err, data ) => cbt( err ? null : data.toString() ) );
-        }, ( data: string ) => {
-            if ( ! data ) {
-                com.error( cn, `Prerequisite '${ req }' not found (looked into ${ JSON.stringify( trials ) })` );
+            fs.readFile( trial, ( err, data ) => cbt( err ? null : { data: data.toString(), name: trial } ) );
+        }, ( res: { data: string, name: string } ) => {
+            if ( ! res ) {
+                com.error( cn, `Prerequisite '${ req }' not found (tried ${ JSON.stringify( trials ) })` );
                 return cb( true );
             }
             try {
-                const jd = yaml.load( data );
-                
-                // load_sets:
-                //   - systems: []
-                //     prerequ: []
-                //     command: which cmake || sudo apt-get install cmake
-                //process. js.check_cmd
-                for( const ls of jd ) {
-                    this._install_cmd( com, cn, "prerequ", cwd, ls.command, ls.prerequ, cb );
-                    break; // TODO: test ls.system
+                for( const ls of yaml.load( res.data ) ) {
+                    if ( is_compatible_with( this.system_info, ls.systems ) ) {
+                        const exe_cmd = ( cmd: string, exe_cmd_cb: ( err: boolean ) => void ) => {
+                            let command = cmd as string | Array<string>;
+                            if ( ls.shell == "powershell" ) {
+                                if ( ls.admin )
+                                    command = [ "powershell", "-c", "Start-Process", "powershell.exe", "-Verb", "runAs", "-Argumentlist", cmd, "-Wait" ];
+                                else
+                                    command = [ "powershell", "-c", cmd ];
+                            }
+                            this._install_cmd( com, cn, "prerequ", com.launch_dir, command, ls.prerequ, exe_cmd_cb );
+                        };
+                        // chech sub prerequisites
+                        return async.forEach( ls.prerequ || [], ( sub_req: string, cb_prerequ ) => {
+                            this._check_prerequ( com, cn, sub_req, cb_prerequ );
+                        }, ( err_prerequ ) => {
+                            if ( ls.commands )
+                                return async.forEachSeries( ls.commands as Array<string>, ( command: string, cb_fe: ( err: boolean ) => void ) => exe_cmd( command, cb_fe ), cb );
+                            if ( ls.command )
+                                return exe_cmd( ls.command, cb );
+                            // nothing to execute
+                            return cb( false );
+                        } );
+                    }
                 }
+                com.error( cn, `Prerequisite ${ req } (in file ${ res.name }) does not have any install rule for the current system (${ this.system_info })` );
+                cb( true );
             } catch ( e ) {
-                com.error( cn, `error while parsing ${data} from ${ trials }: ` + e.toString() );
+                console.log( e );
+                
+                com.error( cn, `error while parsing\n${ res.data } from ${ res.name }:\n` + e.toString() );
                 cb( true );
             }
         } );

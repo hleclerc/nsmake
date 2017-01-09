@@ -2,8 +2,17 @@ includes: [ json/json.h ]
 flag_sets:
   - systems:   []
     lib_names: [ jsoncpp ]
-    inc_paths: [ /usr/include/jsoncpp ]
+    inc_paths: [ /usr/include/jsoncpp, ext/json-cpp/include ]
 load_sets:
-  - systems: [ Ubuntu, Debian ]
-    command: apt-get install libjsoncpp-dev
-    root:    true
+  - systems : [ Ubuntu, Debian ]
+    command : apt-get install libjsoncpp-dev
+    root    : true
+  - systems : [ win32 ]
+    prerequ : [ cmake ]
+    commands: [ 'mkdir -p ext/json-cpp',
+                'cd ext/json-cpp',
+                'git clone https://github.com/open-source-parsers/jsoncpp.git sources',
+                'cd sources',
+                'cmake -DCMAKE_BUILD_TYPE=release -DBUILD_STATIC_LIBS=ON -DBUILD_SHARED_LIBS=OFF -DARCHIVE_INSTALL_DIR=.. -G "Unix Makefiles" .',
+                'make install' ]
+    shell   : powershell

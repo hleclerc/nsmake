@@ -1,0 +1,1 @@
+- command: powershell -c $ok = get-command choco; if ( -Not $ok ) { Start-Process powershell.exe -Verb runAs -Argumentlist "iwr https://chocolatey.org/install.ps1 -UseBasicParsing | iex" -Wait }

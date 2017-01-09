@@ -1,0 +1,5 @@
+# TODO: add the command to download and install...
+- systems: [ win32 ]
+  prerequ: [ chocolatey ]
+  command: powershell -c Start-Process powershell.exe -Verb runAs -Argumentlist '' -Wait
+  # iwr "" -UseBasicParsing | Start-Process -ArgumentList "/InstallSelectableItems Common Tools for Visual C++"

@@ -95,6 +95,11 @@ abstract class Task {
         return this._send_and_wait( "run_install_cmd", { category, cwd, cmd, prerequ }, cb );
     }
 
+    /** return true if error */
+    check_prerequ( req: string, cb = null as ( err: boolean, fail: boolean ) => void ): boolean {
+        return this._send_and_wait( "check_prerequ", { req }, cb );
+    }
+
     /** @param dist: optionnal root target directory (e.g. for public files) */
     new_build_file( orig = "", ext = "", dist = "", cb = null as ( err: boolean, name: string ) => void ): string {
         return this._send_and_wait( "new_build_file", { orig, ext, dist }, cb );

@@ -225,6 +225,8 @@ class CppCompiler extends Task {
         // not found ? => try to load it
         if ( ! sgn && rules ) {
             const rule = this.for_system( args.system, rules.load_sets )
+            if ( ! rule )
+                throw `Error: in ${ rules.yaml_name } (used to get ${ inc_str }), there's no 'load_sets' rule for current system (${ JSON.stringify( args.system ) })`;
             if ( rule && rule.command && this.run_install_cmd( "", args.launch_dir, rule.command, [] ) )
                 throw '';
             // try again to find it

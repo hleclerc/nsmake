@@ -30,7 +30,9 @@ class BaseCompilerInfo extends Task {
     //     fortran_compilers = ['gfortran', 'g77', 'ifort', 'ifl', 'f95', 'f90', 'f77', 'fortran']
 
     exec( args: BaseCompilerInfoArgs, done: ( err: boolean ) => void ) {
-        this.get_base_prg( args, ( compiler: string, linker: string, archiver: string ) => {
+        this.get_base_programs( args, ( compiler: string, linker: string, archiver: string ) => {
+            if ( ! compiler || ! linker || ! archiver )
+                return done( true );
             let exe_data = this.exe_data = new ExeDataBaseCompilerInfo;
             exe_data.compiler = compiler;
             exe_data.archiver = archiver
@@ -64,7 +66,7 @@ class BaseCompilerInfo extends Task {
         } );
     }
 
-    get_base_prg( args: BaseCompilerInfoArgs, cb: ( compiler: string, linker: string, archiver: string ) => void ) {
+    get_base_programs( args: BaseCompilerInfoArgs, cb: ( compiler: string, linker: string, archiver: string ) => void ) {
         this.get_exe( args.target == "c" ? "cc" : "cxx", args.compiler, ( compiler ) => {
             const linker = args.linker || compiler;
             this.get_exe( "ar", args.archiver, ( archiver ) => {
@@ -74,13 +76,35 @@ class BaseCompilerInfo extends Task {
     }
 
     /** name in [ "cxx", "cc", "ld", "ar", ... ] */
-    get_exe( name: string, value: string, cb: ( res: string ) => void ): void {
+    get_exe( name: string, value: string, cb: ( res: string ) => void, download_allowed = true ): void {
         if ( value )
             return cb( value );
         // look in the system directories
         async.forEachSeries( this[ "_" + name + "_list" ](), ( comp: string, cb_test ) => {
             which( comp, ( err, path_name ) => cb_test( err ? null : path_name ) );
-        }, cb );
+        }, ( path_name: string ) => {
+            if ( ! path_name ) {
+                // user did provide a compiler name
+                if ( value ) {
+                    if ( ! download_allowed ) {
+                        this.error( `Installation of ${ value } did not produce the expected result (an executable)` );
+                        return cb( null );
+                    }
+                    return this.check_prerequ( value, ( err, fail ) => {
+                        fail ? cb( null ) : this.get_exe( name, value, cb, false );
+                    } );
+                }
+                // else, try to install a default compiler
+                if ( ! download_allowed ) {
+                    this.error( `Installation of ${ name } did not produce the expected result (an executable)` );
+                    return cb( null );
+                }
+                return this.check_prerequ( name, ( err, fail ) => {
+                    fail ? cb( null ) : this.get_exe( name, value, cb, false ); // retry
+                } );
+            }
+            cb( path_name );
+        } );
     }
 
     /** */
@@ -115,8 +139,8 @@ class BaseCompilerInfo extends Task {
     /** */
     _ar_list(): Array<string> {
         switch ( os.platform() ) {
-            case "win32" : return [ 'ar', 'mslib' ];
-            default:       return [ 'ar'          ];
+            case "win32" : return [ 'mslib', 'ar', 'llvm-ar' ];
+            default:       return [ 'ar', 'llvm-ar'          ];
         }
     }
 }

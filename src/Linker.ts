@@ -40,7 +40,7 @@ class Linker extends Task {
     /** called when source num `n` is parsed */
     on_parsed( args: ArgsLinker, n: number, err: boolean, res: ResCnGenCompiler ) {
         if ( err )
-            this.reg_err();
+            return this.reg_err();
         this.o_makers[ n ] = res;
 
         // look if it implies additional stuff to parse, compile or link
@@ -55,11 +55,14 @@ class Linker extends Task {
         }
 
         // launch the compilation
-        this.get_cn_data( res.exe_data.command_sgn, ( err, cn_data ) => this.on_compiled( args, n, err, cn_data.outputs[ 0 ] ) );
+        this.get_cn_data( res.exe_data.command_sgn, ( err, cn_data ) => this.on_compiled( args, n, err, cn_data && ! err ? cn_data.outputs[ 0 ] : null ) );
     }
 
     /** called when source num `n` is compiled */
     on_compiled( args: ArgsLinker, n: number, err: boolean, o_name: string ) {
+        if ( err || ! o_name )
+            return this.reg_err();
+
         // register
         this.o_names[ n ] = o_name;
 
