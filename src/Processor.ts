@@ -355,7 +355,7 @@ class Processor {
             env.com.announcement( cn, cut( `Launch of ${ cn.pretty }` ) );
         }
 
-        // if too much active service, wait a bit
+        // if would lead to too much active service, wait a bit
         if ( this.services.filter( s => s.status == "active" ).length >= this.jobs ) {
             this.waiting_cns.push( { env, cn } );
             return;
@@ -390,7 +390,7 @@ class Processor {
                 } ) + `\n` );
             };
 
-            const service = this.services.find( s => s.status == "idle" && ( ! category || category == s.category ) );
+            const service = this.services.find( s => s.status == "idle" && category == s.category );
             if ( service )
                 use_service( service );
             else

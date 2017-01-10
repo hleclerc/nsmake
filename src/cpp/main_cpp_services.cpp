@@ -7,13 +7,18 @@ int main() {
         try {
             // wait for a new message
             Json::Value root = Task::wait_for_line();
+            std::string service = root[ "type" ].asString();
 
-            // currently we only have one kind of service... so launch it
-            CppCompiler cppc( root );
-            cppc.exec();
+            if ( service == "CppCompiler" ) {
+                // currently we only have one kind of service... so launch it
+                CppCompiler cppc( root );
+                cppc.exec();
 
-            // done (synchronously)
-            Task::send_done( &cppc );
+                // done (synchronously)
+                Task::send_done( &cppc );
+            } else {
+                throw "There's no service named " + service + " in " + __FILE__ + ".";
+            }
 
         } catch ( string msg ) {
             if ( msg.length() ) std::cerr << msg << std::endl;

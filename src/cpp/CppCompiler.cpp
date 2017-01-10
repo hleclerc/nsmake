@@ -6,8 +6,8 @@ CppCompiler::CppCompiler( const Json::Value &root ) : Task( root ) {
 }
 
 void CppCompiler::exec() {
-    PL( args );
-    PL( children );
+    if ( children.size() == 1 )
+        PL( children[ 0 ].signature );
     string cpp_name = children[ 0 ].outputs[ 0 ];
     string orig_name = children[ 0 ].exe_data[ "orig_name" ].isString() ? children[ 0 ].exe_data[ "orig_name" ].asString() : cpp_name;
 
