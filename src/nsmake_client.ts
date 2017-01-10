@@ -62,7 +62,7 @@ function start_server( nsmake_dir: string, fifo_file: string, cb_ready: () => vo
             // wait for server to be started
             console.log( `Starting a new nsmake server instance (${ info_file })` );
             wait_for(
-                ( ok_cond ) => {  fs.exists( info_file, ok_cond ); },
+                ok_cond => fs.exists( info_file, ok_cond ),
                 () => { console.error( `The nsmake server has not been started correctly: timeout has expired (see ${ log_file })` ); process.exit( 1 ); },
                 cb_ready, 100, 50
             );

@@ -3,6 +3,7 @@ import FileDependencies         from "./FileDependencies";
 import CompilationNode          from './CompilationNode';
 import ArgumentParser           from './ArgumentParser';
 import Generator                from "./Generator";
+import { pu }                   from "./ArrayUtil";
 import * as async               from 'async'
 import * as path                from 'path'        
         
@@ -121,7 +122,7 @@ class CompilationEnvironment {
     append_to_env_var( env_var: string, value: any ) {
         if ( typeof this.args[ env_var ] == "undefined" )
             this.args[ env_var ] = [];
-        this.args[ env_var ].push( value );
+        pu( this.args[ env_var ], value );
     }
 
     /** */

@@ -68,8 +68,6 @@ class Processor {
     
     /** launch `cn`. When done, call `done_cb` */
     make( env: CompilationEnvironment, cn: CompilationNode, done_cb: ( err: boolean ) => void ): void {
-        console.log( cn.type );
-        
         // late answer for a killed service...
         if ( env == null || cn == null )
             return;
@@ -323,7 +321,7 @@ class Processor {
         } );
     }
 
-    _exec_done_cb( com: CommunicationEnvironment, cn: CompilationNode, err: boolean ) : void {
+    _exec_done_cb( com: CommunicationEnvironment, cn: CompilationNode, err: boolean ): void {
         cn.num_build_done = this.num_build;
 
         let done_cbs = [ ...cn.done_cbs ];
@@ -348,14 +346,14 @@ class Processor {
         
         //
         if ( env.verbose ) {
-            function cut( line: string ): string {
-                if ( line.length < env.com.nb_columns )
-                    return line;
-                let res = line.slice( 0, env.com.nb_columns ), rem = line.slice( env.com.nb_columns ), nc = env.com.nb_columns - 5;
-                for( ; rem.length > nc; rem = rem.slice( nc ) ) res += "\n  ..." + rem.slice( 0, nc );
-                return rem.length ? res + "\n  ..." + rem : res;
-            } // cn.pretty.length > env.com.nb_columns - 10 ? cn.pretty.slice( 0, env.com.nb_columns - 13 ) + "..." : cn.pretty 
-            env.com.announcement( cn, cut( `Launch of ${ cn.pretty }` ) );
+            // function cut( line: string ): string {
+            //     if ( env.com.nb_columns == 0 || line.length < env.com.nb_columns )
+            //         return line;
+            //     let res = line.slice( 0, env.com.nb_columns ), rem = line.slice( env.com.nb_columns ), nc = env.com.nb_columns - 5;
+            //     for( ; rem.length > nc; rem = rem.slice( nc ) ) res += "\n  ..." + rem.slice( 0, nc );
+            //     return rem.length ? res + "\n  ..." + rem : res;
+            // } // cn.pretty.length > env.com.nb_columns - 10 ? cn.pretty.slice( 0, env.com.nb_columns - 13 ) + "..." : cn.pretty 
+            env.com.announcement( cn, `Launch of ${ cn.pretty }` );
         }
 
         // if would lead to too much active service, wait a bit
