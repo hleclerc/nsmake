@@ -6,8 +6,6 @@ CppCompiler::CppCompiler( const Json::Value &root ) : Task( root ) {
 }
 
 void CppCompiler::exec() {
-    if ( children.size() == 1 )
-        PL( children[ 0 ].signature );
     string cpp_name = children[ 0 ].outputs[ 0 ];
     string orig_name = children[ 0 ].exe_data[ "orig_name" ].isString() ? children[ 0 ].exe_data[ "orig_name" ].asString() : cpp_name;
 
@@ -45,6 +43,7 @@ void CppCompiler::exec() {
 
     cmds.append( "-c" );
     cmds.append( cpp_name );
+    for( const auto &flg : args[ "cmd_flags" ]  ) append_unique( cmds, flg );
     for( const auto &cpf : cp.cpp_flags         ) append_unique( cmds, cpf );
     for( const auto &inc : cp.inc_paths         ) append_unique( cmds, "-I" + inc );
     for( const auto &inc : cp.cmd_include_paths ) append_unique( cmds, "-I" + inc );

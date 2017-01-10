@@ -1,7 +1,7 @@
 includes: [ pstreams/pstream.h ]
 flag_sets: []
 load_sets:
-  - systems: [ Ubuntu, Debian ]
+  - systems: [ "Ubuntu Linux", Debian ]
     command: "gksudo apt-get install pstreams"
   - systems: [ '"Netrunner Rolling"', Arch ]
     command: "sudo pacman --noconfirm -S pstreams"

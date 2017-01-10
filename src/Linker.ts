@@ -11,6 +11,7 @@ interface ArgsLinker {
     mission   : string;
     cwd       : string;
     define    : Array<string>; /** NAME(args...)=val or NAME for macros without arguments */
+    cmd_flags : Array<string>; /**  */
     bootstrap : boolean;
     system    : SystemInfo;    /** ubuntu 14.04, ... */
     ld_in_args: string;        /** ld specified in cmd line arguments */
@@ -116,6 +117,8 @@ class Linker extends Task {
         cmd_args.push( ...this.o_names );
 
         // flags
+        if ( args.cmd_flags )
+            pu( cmd_args, ...args.cmd_flags );
         for( const cp of this.o_makers ) {
             pu( cmd_args, ...( cp.exe_data.lib_names || [] ).map( n => "-l" + n ) );
             pu( cmd_args, ...( cp.exe_data.lib_paths || [] ).map( n => "-L" + n ) );

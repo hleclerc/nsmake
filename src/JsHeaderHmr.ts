@@ -168,7 +168,6 @@ class Hmr {
         if ( nb_to_load ) {
             var errors = [] as Array<string>;
             for( let id of to_load ) {
-                // console.log( "load:", id );
                 let url = newHmrManifest.md[ id ].url;
 
                 let request = this._new_XMLHttpRequest();
@@ -271,7 +270,6 @@ class Hmr {
         for( let id in this.installedModules )
             lstInstalledModules.push( { id: id, module: this.installedModules[ id ] } );
         lstInstalledModules.sort( function( a, b ) { return b.module._numChrono - a.module._numChrono } );
-        // console.log( "status:", lstInstalledModules.map( x => `${ x.id }: ${ x.module.hot.status }` ) );
 
         for( let im of lstInstalledModules ) {
             let status = this.installedModules[ im.id ].status; 

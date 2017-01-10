@@ -141,8 +141,6 @@ abstract class Task {
             if ( redirect ) {
                 try {
                     fd = fs.openSync( redirect, "w" );
-                    console.log( "fd", fd, redirect );
-                    
                 } catch ( e ) {
                     this.error( e.toString() );
                     cb( true, -1 );
@@ -157,7 +155,6 @@ abstract class Task {
 
             // outputs        
             cp.stdout.on( 'data', data => {
-                console.log( "data:", data.toString() );
                 redirect ? fs.writeSync( fd, data ) : this.info( data.toString() );
             } );
             // cp.stdout.on( 'data', data => redirect ? fs.writeSync( fd, data ) : this.info( data.toString() ) );

@@ -153,7 +153,6 @@ class SourceMap {
                     beg_items.push( end_items[ ie ] );
                 }
             }
-            // console.log( { items, ia, ib }, beg_coords.c );
 
             // remove intermediate lines
             this.lines.splice( beg_coords.l + 1, end_coords.l - beg_coords.l );

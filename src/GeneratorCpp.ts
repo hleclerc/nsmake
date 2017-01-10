@@ -41,8 +41,9 @@ class GeneratorCpp extends Generator {
         p.add_argument( comp_missions, universes, "define,D"      , "Macro definition"                                                                , 'string*' );
         p.add_argument( comp_missions, universes, "debug-level,g" , "Set debug level"                                                                             );
         p.add_argument( comp_missions, universes, "opt-level,O"   , "Set optimization level"                                                                      );
-        p.add_argument( comp_missions, universes, "cpp-flag"      , "Add flags to the C++ compiler"                                                   , 'string*' );
-        p.add_argument( comp_missions, universes, "ld-flag"       , "Add flags to the linker"                                                         , 'string*' );
+        p.add_argument( comp_missions, universes, "cpp-flag"      , "Add flags for the C++ compiler"                                                  , 'string*' );
+        p.add_argument( comp_missions, universes, "cc-flag"       , "Add flags for the C++ compiler"                                                  , 'string*' );
+        p.add_argument( comp_missions, universes, "ld-flag"       , "Add flags for the linker"                                                        , 'string*' );
         p.add_argument( comp_missions, universes, "cxx"           , "Set default C++ compiler"                                                                    );
         p.add_argument( comp_missions, universes, "cc"            , "Set default C compiler"                                                                      );
         p.add_argument( comp_missions, universes, "ld"            , "Set default linker"                                                                          );
@@ -129,6 +130,7 @@ class GeneratorCpp extends Generator {
                     define    : define( args ),
                     bootstrap : args.cpp_bootstrap || false,
                     system    : this.env.com.proc.system_info,
+                    cmd_flags : this.env.args.ld_flag || [],
                     ld_in_args: this.env.args.ld,
                 } as ArgsLinker ) );
             }
@@ -159,6 +161,7 @@ class GeneratorCpp extends Generator {
             system    : this.env.com.proc.system_info,
             launch_dir: this.env.cwd,
             inc_paths : include_path( this.env.args ),
+            cmd_flags : this.env.args.cpp_flag || [],
             output,
         } as ArgsCppCompiler ) );
     }

@@ -14,6 +14,7 @@ interface ArgsCppCompiler {
     system    : SystemInfo;
     launch_dir: string;
     inc_paths : Array<string>;
+    cmd_flags : Array<string>;
     output    : string;
 }
 

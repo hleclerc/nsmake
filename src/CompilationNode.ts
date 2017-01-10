@@ -23,8 +23,6 @@ class CompilationNode {
 
     _init_for_build( init_cb: ( err: string ) => void ) {
         // cleansing of generated output files
-        console.log( this.generated, this.generated_mtimes );
-        
         async.forEachOf( this.generated, ( name, index, cb ) => {
             fs.stat( name, ( err, stats ) => {
                 if ( err )

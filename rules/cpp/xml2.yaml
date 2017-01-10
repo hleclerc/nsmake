@@ -5,7 +5,7 @@ flag_sets:
     lib_paths: [ ext/libxml2/lib ]
     lib_names: [ xml2 ]
 load_sets:
-  - systems: [ Ubuntu, Debian ]
+  - systems: [ "Ubuntu Linux", Debian ]
     command: apt-get install libxml2
     root:    true
   - systems: []

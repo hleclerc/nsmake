@@ -137,7 +137,6 @@ class TypescriptCompiler extends Task {
 
                 // sourcemap
                 // let message = ts.flattenDiagnosticMessageText( `${ path.relative( cur_dir, file ) }(${ line + 1 },${ character + 1 }): error TS${ diagnostic.code }: ${ diagnostic.messageText }`, '\n' );
-                // console.log( diagnostic.messageText );
                 let message: string;
                 const beg_bold = ""; // "\u001b[1m";
                 const end_bold = ""; // "\u001b[0m";

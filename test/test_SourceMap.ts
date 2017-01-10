@@ -27,8 +27,6 @@ describe( 'SourceMap', () => {
 
         // insertion of several lines
         sm.replace( 8 * 0 + 1, 8 * 0 + 6, "A\nB" );
-        // console.log( sm.src_content );
-        // console.log( di( sm.lines ) );
 
         assert( di( sm.lines ) == "0=>0,0\n1=>0,6\n0=>1,0 3=>1,6\n0=>2,0 1=>3,4 2=>3,5 3=>3,6\n0=>4,0 1=>4,4 2=>4,5 3=>4,6" );
         assert( sm.src_content == "0A\nB6\n0AB6\n0456\n0456" );

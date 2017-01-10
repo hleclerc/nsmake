@@ -1,7 +1,7 @@
-includes: [ boost/random.hpp, boost/random/random_device.hpp ]
+includes: [ boost/intrusive/avl_set.hpp, boost/intrusive/avl_map.hpp ]
 flag_sets:
   - systems:   []
-    lib_names: [ boost_random ]
+    lib_names: []
 load_sets:
   - systems: [ "Ubuntu Linux", Debian ]
     command: apt-get install libboost-dev

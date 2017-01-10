@@ -39,7 +39,7 @@ class Pager {
     /** level 0: title/annoucement, 1: note, 2: information, 3: error */
     write( sig: string, msg: string, level: number ) {
         const p = level >= 3 ? process.stderr : process.stdout;
-        process.stdout.write( esc_seq_beg( p.isTTY, level ) + msg + esc_seq_end( p.isTTY, level ) );
+        p.write( esc_seq_beg( p.isTTY, level ) + msg + esc_seq_end( p.isTTY, level ) );
     }
 
     /** */
