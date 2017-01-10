@@ -1,9 +1,10 @@
 # What is Nsmake ?
 
-Nsmake stands for "No Script Make". It is an extensible build system, designed for **speed**, **correctness** and **orthogonality**, for all kinds of stuff that has to be built.
+Nsmake stands for "No Script Make". It is an extensible build system, designed for *speed*, *correctness* and *orthogonality*.
 
-Most build systems make us write a lot of trivial information, often redundant and scattered. Nsmake takes responsibility to **ensure the link between the tools** and **read all informations from the source tree**, greatly reducing the need to write obvious content. It notably makes it possible to greatly reduce the need for boilerplates, to enable correctness even with complex code generation schemes or side modifications, to eliminate most of the discrepancy sources, automatic downloading of missing parts, etc...
+While most build tools require us to write lot of trivial, tangled and redundant information, Nsmake takes responsibility to *ensure the link between the tools*
 
+It notably enable to greatly reduce the need for boilerplates, to enable correctness even with complex code generation schemes or side modifications, to eliminate most of the discrepancy sources, automatic downloading of missing parts, etc...
 
 
 # Main features
@@ -18,7 +19,7 @@ Most build systems make us write a lot of trivial information, often redundant a
 
 ## Speed
 
-* The task runner works as a **server**, dramatically reducing start-up time, and enabling consistency for parallel builds on the same target directories.
+* The task runner works as a **server**, dramatically reducing start-up time, and enabling consistency for parallel builds.
 * Tasks run in micro-services that can interact with the task runner to dynamically instantiate **subtasks in parallel**, enabling additional level of parallelism.
 * Deep in-memory and database caching: all the result of the idempotent tasks are **condensed and cached**, from the parsing results, to the dependency analyses, etc...
 
