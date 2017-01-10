@@ -68,6 +68,8 @@ class Processor {
     
     /** launch `cn`. When done, call `done_cb` */
     make( env: CompilationEnvironment, cn: CompilationNode, done_cb: ( err: boolean ) => void ): void {
+        console.log( cn.type );
+        
         // late answer for a killed service...
         if ( env == null || cn == null )
             return;

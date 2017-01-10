@@ -94,6 +94,7 @@ class ParseArgvAndBuildMission {
             // start a new build sequence
             const on_wait = nb => this.env.com.note( null, nb > 1 ? `Waiting for another builds to complete (${ nb } tasks)` : `Waiting for another build to complete` );
             const on_launch = () => this.env.com.note( null, `Launching build` );
+            
             this.proc.start_new_build_seq( on_wait, on_launch, done_cb => {
                 // compilation of input CompilationNodes
                 async.forEach( this.env.cns, ( cn: CompilationNode, cb_comp ) => {
