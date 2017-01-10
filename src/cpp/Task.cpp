@@ -232,23 +232,31 @@ void Task::send_done( Task *task ) {
 }
 
 std::string Task::nsmake_cmd( const std::vector<std::string> &args, const std::string &cwd ) {
+    // MakeFile
     Json::Value make_file_args;
     make_file_args[ "content" ] = args[ 0 ];
     make_file_args[ "orig"    ] = "";
     make_file_args[ "ext"     ] = args.size() >= 2 ? args[ 1 ] : ".cpp";
-
     std::string sgn_ep = make_signature( "MakeFile", {}, make_file_args );
+
     std::vector<std::string> signatures;
     signatures.push_back( sgn_ep );
 
+    // new_build_file
+    Json::Value new_build_file( Json::objectValue );
+    new_build_file[ "orig" ] = "NSMAKE_CMD_output";
+    new_build_file[ "ext"  ] = ".h";
+
+    // mission
     Json::Value mission_args;
     mission_args[ "entry_point"     ] = 0;
-    mission_args[ "redirect"        ] = new_build_file( "nsmake_cmd", ".h" );
+    mission_args[ "redirect"        ] = -1;
     mission_args[ "mission"         ] = "run";
     mission_args[ "cwd"             ] = cwd;
     mission_args[ "arguments"       ] = to_json( args.size() > 2 ? std::vector<std::string>{ args.begin() + 2, args.end() } : std::vector<std::string>{} );
     mission_args[ "pure_function"   ] = true;
     mission_args[ "local_execution" ] = false;
+    mission_args[ "new_build_files" ].append( new_build_file );
 
     CnData cn = run_mission_node( mission_args, signatures );
     return read_file_sync( cn.outputs[ 0 ] );
@@ -259,14 +267,21 @@ std::string Task::nsmake_run( const std::vector<std::string> &args, const std::s
     std::vector<std::string> signatures;
     signatures.push_back( sgn_ep );
 
+    // new_build_file
+    Json::Value new_build_file( Json::objectValue );
+    new_build_file[ "orig" ] = "NSMAKE_RUN_output";
+    new_build_file[ "ext"  ] = ".h";
+
+    // mission
     Json::Value mission_args;
     mission_args[ "entry_point"     ] = 0;
-    mission_args[ "redirect"        ] = new_build_file( "nsmake_run", ".h" );
+    mission_args[ "redirect"        ] = -1;
     mission_args[ "mission"         ] = "run";
     mission_args[ "cwd"             ] = cwd;
     mission_args[ "arguments"       ] = to_json( std::vector<std::string>{ args.begin() + 1, args.end() } );
     mission_args[ "pure_function"   ] = true;
     mission_args[ "local_execution" ] = false;
+    mission_args[ "new_build_files" ].append( new_build_file );
 
     CnData cn = run_mission_node( mission_args, signatures );
     return read_file_sync( cn.outputs[ 0 ] );

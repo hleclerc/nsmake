@@ -142,8 +142,8 @@ class GeneratorJs extends Generator {
                         args           : exe_args,
                         local_execution: typeof args.local_execution == "undefined" ? true: args.local_execution,
                         outputs        : args.redirect ? [ args.redirect ] : [],
-                        generated      : args.redirect ? [ args.redirect ] : [],
                         redirect       : args.redirect || '',
+                        new_build_files: args.new_build_files || [],
                         pure_function  : args.pure_function || false,
                     } as ExecutorArgs ) );
                 } );
