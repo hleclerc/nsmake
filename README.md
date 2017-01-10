@@ -1,11 +1,8 @@
 # What is Nsmake ?
 
-Nsmake stands for "No Script Make". It is an extensible build system, designed for *speed*, *correctness* and *orthogonality*.
+Nsmake stands for "No Script Make". It is a *fast* and *extensible* build system, designed to dramatically *reduce redundancies, trivial and tangled information*, while  guaranteeing *correctness*, even for complex code generation schemes.
 
-While most build tools require us to write lot of trivial, tangled and redundant information, Nsmake takes responsibility to *ensure the link between the tools*
-
-It notably enable to greatly reduce the need for boilerplates, to enable correctness even with complex code generation schemes or side modifications, to eliminate most of the discrepancy sources, automatic downloading of missing parts, etc...
-
+Nsmake takes responsibility to *ensure the link between the tools*. It most of the cases, it enable to completely remove the need for boilerplates and configuration files, suppressing sources of discrepancies.
 
 # Main features
 
@@ -17,18 +14,18 @@ It notably enable to greatly reduce the need for boilerplates, to enable correct
 * Overall Significant **reduction of number of configuration files**, and need for boilerplates: Nsmake takes the responsibility to fill the gap, allowing cleansing, and cooperation for tools (compilation, testing, etc...) that need the same kinds of information.
 * Respect of the source tree: Nsmake tries as much as possible to **generate files in separate build directories, with proper and secure naming**, leaving your in full control of your directories.
 
-## Speed
+## Speed, incrementality and correctness
 
 * The task runner works as a **server**, dramatically reducing start-up time, and enabling consistency for parallel builds.
 * Tasks run in micro-services that can interact with the task runner to dynamically instantiate **subtasks in parallel**, enabling additional level of parallelism.
-* Deep in-memory and database caching: all the result of the idempotent tasks are **condensed and cached**, from the parsing results, to the dependency analyses, etc...
-
-## General features
-
+* Deep in-memory and database caching: all the result of the idempotent tasks are **condensed and cached** (from the parsing results to the dependency analyses).
 * Deep dependency analyses for dramatically **improved correctness**: tests on files that does *not* exist, on configuration information, on external tool evolutions, ...
 * **Watch mode** for all the kinds of targets.
-* **Handling of dependencies and prerequisites**: automatic finding, testing and installation of missing modules, libraries and tools (e.g. for a given compiler, for a library in a given language, etc...).
-* **Handling of flags and specifications** for libraries (e.g. to use a CDN instead of a local copy, for the specification of the include paths, the library flags, ...) using extensible rule sets and extensive code analyses, enabling dramatic simplification of configuration for libraries.
+
+## Modules, libraries and external tools
+
+* **Automatic chesking and installation of all the kinds of dependencies and prerequisites**: automatic finding, testing and installation of missing modules, libraries, tools... Use of a collaborative content for rules defined by system, by rights, etc...
+* **Handling of flags and specifications** (e.g. to use a CDN instead of a local copy, for the specification of the include paths, the library flags, ...) extensive code analyses, enabling dramatic simplification of configuration for libraries.
 
 ## Specific features
 
