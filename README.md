@@ -2,7 +2,22 @@
 
 Nsmake stands for "No Script Make". It is a *fast* and *extensible* build system, designed to dramatically *reduce redundancies, trivial and tangled information*, while  guaranteeing *correctness*, even for complex code generation schemes.
 
-Nsmake takes responsibility to *ensure the link between the tools*. It most of the cases, it enable to completely remove the need for boilerplates and configuration files, suppressing sources of discrepancies.
+Nsmake takes responsibility to *ensure the link between the tools*. In most of the cases, it enables complete removal of the need for boilerplates and configuration files, and suppression of most of the sources of discrepancies.
+
+<!-- TOC -->
+
+- [What is Nsmake ?](#what-is-nsmake-)
+- [Main features](#main-features)
+    - [Orthogonal, clean and clear configuration](#orthogonal-clean-and-clear-configuration)
+    - [Speed, incrementality and correctness](#speed-incrementality-and-correctness)
+    - [Modules, libraries and external tools](#modules-libraries-and-external-tools)
+    - [Specific features](#specific-features)
+        - [Javascript and friends](#javascript-and-friends)
+        - [For native executables (C++/...)](#for-native-executables-c)
+- [Some tutorials](#some-tutorials)
+- [More specific information](#more-specific-information)
+
+<!-- /TOC -->
 
 # Main features
 
@@ -47,13 +62,13 @@ Nsmake takes responsibility to *ensure the link between the tools*. It most of t
 
 # Some tutorials
 
-* [Compilation of a generic web application](https://github.com/hleclerc/nsmake/wiki/Tutorial:-compilation-of-a-generic-web-application)
-* [Compilation of a C++ executable](https://github.com/hleclerc/nsmake/wiki/Tutorial:-compilation-of-a-C---executable)
+* [Packing/minification of a generic web application](https://github.com/hleclerc/nsmake/wiki/Tutorial:-compilation-of-a-generic-web-application)
+* [Compilation/link of a C++ application](https://github.com/hleclerc/nsmake/wiki/Tutorial:-compilation-of-a-C---executable)
 
 # More specific information
 
-* [Testing a web/nodejs application (using Mocha/Karma/...)](https://github.com/hleclerc/nsmake/wiki/Testing-your-code-with-Mocha,-Karma,-Chai...)
-* [Testing a C++ application](https://github.com/hleclerc/nsmake/wiki/Tutorial:-compilation-of-a-CPP-executable)
+* [Testing a web/nodejs application using Mocha, Chai and Karma](https://github.com/hleclerc/nsmake/wiki/Testing-your-code-with-Mocha,-Karma,-Chai...)
+* [Testing a C++ application using gtest](https://github.com/hleclerc/nsmake/wiki/Tutorial:-compilation-of-a-CPP-executable)
 
 <!-- It replaces tools like [webpack](https://webpack.github.io/docs/), [cmake](https://cmake.org/), [grunt](http://gruntjs.com/getting-started), [scons](http://scons.org/), [gulp](http://gulpjs.com/), [brunch](http://brunch.io/)... -->
 
@@ -72,8 +87,6 @@ Moreover, NSMake is friendly with **code generation**, notably by enabling inter
 Of course, NSMake is designed to execute fast (proper caching, "deep" parallelism, fast parsers, etc...). Large projects are welcome.
 
 NSMake is not focused on a particular language but included rules are currently mainly for the JS and C++ worlds. Nevertheless, all requests for new language support are welcome :)
-
-# C/C++ Illustration
 
 This section focuses on the C++ language. If you care more about JS or other languages, feel free to skip it.
 Let us consider the following example:
@@ -122,8 +135,6 @@ To make an executable without running it, one can type
 nsmake -m exe -o foo foo.cpp # -o means "output name"
 ```
 
-## Flags
-
 Here is an example of how to insert nsmake commands inside sourcefiles:
 
 ```cpp
@@ -157,8 +168,6 @@ It illustrate the two possible ways to add flags:
 * directly into the sources (eventually with the keyword `global` to spread outside the source)
 * or via the command line.
 
-### List of C/C++ nsmake flags
-
 * `cpp_flag`: add a flag for the compiler
 * `gpu_flag`: add a flag for the nvcc compiler
 * `cxx_name`: name of the compiler
@@ -168,8 +177,6 @@ It illustrate the two possible ways to add flags:
 * `loca_lib`: add a library handled by nsmake (see [Libraries](#libraries))
 * `ld_flag` : add a flag for the linker
 * `ld_name` : name of the linker
-
-## Conditions
 
 Here are the main possibilities:
 * the preprocessor directives are fully understood by the parsers of `nsmake`. It implies that `#if`, `#else`, `#elif` can be used to activate/disable flags, as in:
@@ -218,15 +225,11 @@ Some cpp flags are natively understood by nsmake (see the file `src/NSMake/Gener
 --lnk-flag arg            Add flags to the linker
 ```
 
-## Internal Libraries
-
 ```cpp
 //// nsmake loca_lib foo.h
 ```
 
 in a source means that `foo.h` and its dependencies (`.h`, `.cpp`, ...) should be compiled in a separate library.
-
-## External libraries
 
 Each time nsmake finds the need for an external include, it looks if it is possible to automatically add the needed flags.
 
@@ -262,13 +265,9 @@ will download/compile the library if libxml/tree.h cannot be found in the includ
 
 Currently, nsmake does not provide default `cpp_decl` files but it is planned for a near future (maybe with a server able to find which one to download, etc...).
 
-# Code generation
-
 Nsmake can handle code generation either
 - with files to be interpreted/compiled/executed (`.gen.xyz`)
 - or with inline commands, inside the code (`NSMAKE_CMD`)
-
-## .gen.$ext.$lang
 
 A first approach for code generation consists in naming the needed files with `.gen.$ext.$lang` at the end, where `ext` is the wanted final extension(s) (`.cpp`, `.h`, ...) and `$lang` describes the language of the generator.
 
@@ -311,12 +310,7 @@ For code generation, Nsmake solves the following challenges:
 * content of generated file can not be considered as prior information. It notably means that the dependencies must be dynamic (cannot be fully known after a first pass) and that content parsing can be interrupted (e.g. if a file needs the content of a generated header, one must interrupt the parsing to generate the file(s) and then it can be resumed).
 * nsmake takes care of external modifications. For instance, if a human modifies a generated file (well this is quite frequent notably if after an error a compiler points to generated stuff), nsmake will never overwrite it (unless if use of the `-f` flag), stopping the build if the file is a dependency.
 
-
-## NSMAKE_CMD / NSMAKE_RUN (inline code generation)
-
 It is possible to include generated code without having to create separated files.
-
-## NSMAKE_CMD
 
 `NSMAKE_CMD( PROG, LANG, ... )` allows for arbitrary compile time substitutions. It takes as parameters the content of a program to generate the code, and optionally, an extension (`.cpp`, `.py`, `.js`, ...) to specify the language and arguments that will be passed to the executable. The extension is optional: if `PROG` is specified without quote, nsmake assumes that it is in the same language than the surrogate source and do not expect a `LANG` argument. `NSMAKE_CMD` will execute the program with a redirected `stdout`.
 
@@ -340,8 +334,6 @@ double coords[] = GOOGLE_COORDS( "Paris, France" );
 nsmake will output a copy of `foo.cpp` in the build dir, with `GOOGLE_COORDS( "Paris, France" )` substituted by `{ 2.3522219, 48.856614 }`.
 
 Of course, nsmake will run the scripts only if necessary, and takes care of the dependencies. For instance, if there is a modification in `urllib/parse.py`, nsmake will consider that the `GOOGLE_COORDS` script will have to be executed again...
-
-## NSMAKE_RUN
 
 `NSMAKE_RUN( FILE, ... )` pursue the same goal than `NSMAKE_CMD` excepted that it takes a file as parameter (that will be compiled/executed by nsmake) + optional additional arguments.
 
@@ -369,8 +361,6 @@ int hexa_corr[] = NSMAKE_RUN( "hexa_corr.cpp", -1 /*default value*/ );
 ```
 
 Of course, the script can be in any language (`.cpp`, `.coffee`, `.py`, ...), provided that it is supported by nsmake (for the `run` "mission").
-
-# Javascript/Typescript/Coffeescript/...
 
 Nsmake has default rules to:
 * make minified versions of a javascript file with its dependencies (automatically found),
@@ -429,13 +419,9 @@ Generation:
 "./filename!..%2Fgenerator.ts(./another_name,.ts)"
 ```
 
-## Download
-
 When a module is needed, by default, it trie do download it using `npm install`
 
 ...
-
-# TODO
 
 Feel free to add stuff in this list:
 
