@@ -1,0 +1,7 @@
+includes: [ PrepArg/usage.h ]
+flag_sets:
+  - systems:   []
+    inc_paths: [ ext/PrepArg/src ]
+load_sets:
+  - systems: []
+    command: ( test -e ext || mkdir ext ) && git clone https://github.com/hleclerc/PrepArg.git ext/PrepArg

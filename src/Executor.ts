@@ -7,6 +7,7 @@ export interface ExecutorArgs {
     local_execution ?: boolean;
     redirect        ?: string | number;
     outputs         ?: Array<string | number>;                                /** outputs of the task */
+    generated       ?: Array<string | number>;                                /** outputs of the task */
     new_build_files ?: Array<{ orig?: string, ext?: string, dist?: string }>; /** build files to be created. */
     pure_function   ?: boolean;                                               /** true by default */
 }
@@ -30,6 +31,9 @@ class Executor extends Task {
         // launch
         this.spawn( av( args.executable ), args.args.map( av ), ( err, code ) => {
             this.pure_function = args.pure_function != undefined ? args.pure_function : true;
+            this.generated = ( args.generated || [] ).map( av );
+            console.log( "this.generated:", this.generated );
+            
             this.outputs = ( args.outputs || [] ).map( av );
             done( Boolean( err || code ) );
         }, args.local_execution || false, av( args.redirect || '' ) );

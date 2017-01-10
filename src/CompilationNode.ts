@@ -23,12 +23,15 @@ class CompilationNode {
 
     _init_for_build( init_cb: ( err: string ) => void ) {
         // cleansing of generated output files
+        console.log( this.generated );
+        
         async.forEachOf( this.generated, ( name, index, cb ) => {
             fs.stat( name, ( err, stats ) => {
                 if ( err )
                     return cb( null );
                 if ( stats.mtime.getTime() != this.generated_mtimes[ index ] )
-                    return cb( `Error: file ${ name } has been modified independently of nsmake. Nsmake is not going to remove/overwrite it. If you want to continue, please remove it manually.` );
+                    return cb( `Error: file ${ name } has been modified independently of nsmake. Nsmake is not going to remove/overwrite it. If you want to continue, please remove it manually (cur=${ stats.mtime.getTime() }, reg=${ this.generated_mtimes[ index ]}).` );
+                console.log( "delete", name );
                 rimraf( name, cb );
             } );
         }, err => {

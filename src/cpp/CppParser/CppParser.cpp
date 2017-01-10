@@ -703,9 +703,8 @@ void CppParser::_include( const char *b, const char *e, Read *read, const char *
         std::string inc_str{ b + 1, e - 1 };
         include_strs.insert( inc_str );
 
-        std::vector<std::string> to_try = include_try_list( *b == '"' ? read->dir : "", task->args[ "launch_dir" ].asString(), inc_str, min_num_path );
-
         // get signature
+        std::vector<std::string> to_try = include_try_list( *b == '"' ? read->dir : "", task->args[ "launch_dir" ].asString(), inc_str, min_num_path );
         Task::NumAndSignature nas = task->get_first_filtered_target_signature( to_try, read->dir );
         if ( nas.signature.empty() ) {
             // try to load the library
@@ -732,7 +731,7 @@ void CppParser::_include( const char *b, const char *e, Read *read, const char *
                 if ( iter != inc_rules.end() )
                     msg += ", even after use of download rules of '" + iter->second[ "yaml_name" ].asString() + "'";
                 msg += ".";
-                c_error( msg, b, read );
+                c_error( msg, od, read );
 
                 msg = "(tried";
                 for( std::string trial : to_try )

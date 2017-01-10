@@ -810,8 +810,6 @@ class Processor {
 
         com.announcement( cn, typeof cmd == "string" ? cmd : cmd.join( " " ) );
         //
-        console.log( "cmd:", cmd );
-        
         typeof cmd == "string" ?
             this._exec_local( com, cmd, "", ( code: number ) => { cont(); cb( code != 0 ); } ) :
             this._spawn_local( com, cmd[ 0 ], cmd.slice( 1 ), "", ( code: number ) => { cont(); cb( code != 0 ); } );

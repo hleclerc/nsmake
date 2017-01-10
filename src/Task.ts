@@ -135,21 +135,32 @@ abstract class Task {
         if ( local_execution )
             return this._send_and_wait( "spawn_local", { executable, args, redirect }, cb );
 
-        // to be launched locally by asynchronously ?
+        // to be launched locally and asynchronously ?
         if ( cb ) {
+            let fd = -1;
             if ( redirect ) {
-                this.error( 'TODO: redirect with async local microservice spawn' );
-                cb( true, -1 );
-                return null;
+                try {
+                    fd = fs.openSync( redirect, "w" );
+                    console.log( "fd", fd, redirect );
+                    
+                } catch ( e ) {
+                    this.error( e.toString() );
+                    cb( true, -1 );
+                    return null;
+                } 
             }
 
-            // execution inside the service, synchronously
+            // execution inside the service, asynchronously
             const cp = child_process.spawn( executable, args );
-            cp.on( 'error', err => cb( true, -1 ) );
-            cp.on( 'close', ( code, signal ) => cb( Boolean( signal ), signal ? -1 : code ) );
+            cp.on( 'error', err => { if ( redirect ) fs.closeSync( fd ); cb( true, -1 ); } );
+            cp.on( 'close', ( code, signal ) => { if ( redirect ) fs.closeSync( fd ); cb( Boolean( signal ), signal ? -1 : code ); } );
 
             // outputs        
-            cp.stdout.on( 'data', data => this.info( data.toString() ) );
+            cp.stdout.on( 'data', data => {
+                console.log( "data:", data.toString() );
+                redirect ? fs.writeSync( fd, data ) : this.info( data.toString() );
+            } );
+            // cp.stdout.on( 'data', data => redirect ? fs.writeSync( fd, data ) : this.info( data.toString() ) );
             cp.stderr.on( 'data', data => this.error( data.toString() ) );
 
             return null;
