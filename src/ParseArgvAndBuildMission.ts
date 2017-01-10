@@ -22,10 +22,11 @@ class ParseArgvAndBuildMission {
     }
 
     /** with watch enabled if in argv */
-    start_a_new_build( cwd: string, nb_columns: number, isTTY: boolean, argv: Array<string> ) {
+    start_a_new_build( cwd: string, nb_columns: number, siTTY: boolean, soTTY: boolean, argv: Array<string> ) {
         this.cwd         = cwd;
         this.nb_columns  = nb_columns;
-        this.isTTY       = isTTY;
+        this.siTTY       = siTTY;
+        this.soTTY       = soTTY;
         this.argv        = argv;
 
         this._launch();
@@ -61,7 +62,7 @@ class ParseArgvAndBuildMission {
         p.add_argument( [], [], 'watch-delay', 'if -w or --watch and method==polling, delay between tests, in ms'                                     );
 
         // make a new environment
-        this.env = new CompilationEnvironment( new CommunicationEnvironment( this.c, this.proc, this.nb_columns, this.isTTY ), this.cwd );
+        this.env = new CompilationEnvironment( new CommunicationEnvironment( this.c, this.proc, this.nb_columns, this.siTTY, this.soTTY ), this.cwd );
         this.env.decl_additional_options( p );
 
         // read arguments from the command line. args will contain number where CompilationNode are expected (numbers are indices to targets)
@@ -181,7 +182,8 @@ class ParseArgvAndBuildMission {
     proc          : Processor;
     cwd           : string;
     nb_columns    : number;
-    isTTY         : boolean;
+    siTTY         : boolean;                        /** stdin is a TTY */
+    soTTY         : boolean;                        /** stdout is a TTY */
     argv          : Array<string>;
     env           = null as CompilationEnvironment;
     firt_time     = false;

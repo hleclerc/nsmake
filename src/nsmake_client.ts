@@ -111,7 +111,7 @@ function send_query( pager: Pager, nsmake_dir: string, type: string, cur_dir: st
     // send the message
     const fifo_file = os.platform() == "win32" ? '\\\\.\\pipe\\nsmake_server' : path.resolve( nsmake_dir, 'server.fifo' );
     const client = net.createConnection( fifo_file, () => {
-        client.write( [ type, cur_dir, nb_columns.toString(), ( process.stdout.isTTY || false ).toString(), ...args ].map( x => SpRepr.encode( x ) ).join( " " ) + "\n" );
+        client.write( [ type, cur_dir, nb_columns.toString(), ( process.stdin.isTTY || false ).toString(), ( process.stdout.isTTY || false ).toString(), ...args ].map( x => SpRepr.encode( x ) ).join( " " ) + "\n" );
     } );
 
     // no connection ? Try to spawn a new server.

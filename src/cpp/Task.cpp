@@ -298,4 +298,8 @@ Task::CnData Task::run_mission_node( const Json::Value &args, const std::vector<
     return out;
 }
 
+void Task::append_to_env_var( std::string env_var, std::string value ) {
+    SEND( "append_to_env_var", "env_var", env_var, "value", value );
+}
+
 

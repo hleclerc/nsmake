@@ -39,10 +39,11 @@ public:
     int                spawn_sync                         ( std::string cwd, std::string cmd, std::vector<std::string> args );         ///<
     bool               run_install_cmd                    ( std::string cwd, std::string cmd, std::vector<std::string> prerequ = {} ); ///< return true if error
     Pbs                run_yaml_install_cmd               ( std::string cwd, Json::Value cmd, Json::Value system_info );               ///< return true if error
-    void               register_aliases                   ( const std::vector<std::pair<std::string,std::string>> &aliases, std::string cur_dir );     ///<
+    void               register_aliases                   ( const std::vector<std::pair<std::string,std::string>> &aliases, std::string cur_dir ); ///<
     std::string        nsmake_cmd                         ( const std::vector<std::string> &args, const std::string &cwd );            ///<
     std::string        nsmake_run                         ( const std::vector<std::string> &args, const std::string &cwd );            ///<
     CnData             run_mission_node                   ( const Json::Value &args, const std::vector<std::string> &signatures );     ///< in args, stuff which is described as a number whereas a string would be expected means that the string is the output of signature[ the number ]
+    void               append_to_env_var                  ( std::string env_var, std::string value );
 
     std::string        make_signature                     ( std::string type, std::vector<std::string> children_signatures, Json::Value args );
     static bool        system_is_in                       ( const std::vector<std::string> &systems, const Json::Value &sys );

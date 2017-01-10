@@ -97,7 +97,8 @@ class Processor {
         // kill and restart
         for( let i = 0; i < this.services.length; ++i ) {
             if ( this.services[ i ].env && this.services[ i ].env.com == com ) {
-                this.services[ i ].cp.kill(); // will be restarted
+                if ( this.services[ i ].cp )
+                    this.services[ i ].cp.kill(); // will be restarted
                 this.services[ i ].cp = null;
            }
         }
@@ -547,6 +548,8 @@ class Processor {
 
             case "get_filtered_target_signatures":
                 return async.map( cmd.args.targets, ( target: string, cb ) => {
+                    if ( ! service.env )
+                        return cb( true, null );
                     service.env.get_compilation_node( target, cmd.args.cwd, service.cn.file_dependencies, ncn => {
                         cb( null, ncn ? ncn.signature : null );
                     }, cmd.args.care_about_target );
@@ -557,6 +560,8 @@ class Processor {
             case "get_first_filtered_target_signature": {
                 let num = -1;
                 return async.forEachSeries( cmd.args.targets, ( target: string, cb: ( err: CompilationNode ) => void ) => {
+                    if ( ! service.env )
+                        return cb( null );
                     service.env.get_compilation_node( target, cmd.args.cwd, service.cn.file_dependencies, ncn => {
                         ++num;
                         cb( ncn );
@@ -582,18 +587,17 @@ class Processor {
             case "get_cns_data":
                 service.status = "waiting";
                 return async.map( cmd.args.lst, ( sgn: string, cb: ( err: boolean, cn: CompilationNode ) => void ) => {
-                    if ( service.env ) {
-                        if ( sgn ) {
-                            const ncn = service.env.com.proc.pool.factory( sgn );
-                            this.make( service.env, ncn, err => {
-                                if ( service.cn )
-                                    service.cn.additional_children.push( ncn );
-                                cb( err, ncn );
-                            } );
-                        } else
-                            cb( false, null );
+                    if ( ! service.env )
+                        return cb( true, null );
+                    if ( sgn ) {
+                        const ncn = service.env.com.proc.pool.factory( sgn );
+                        this.make( service.env, ncn, err => {
+                            if ( service.cn )
+                                service.cn.additional_children.push( ncn );
+                            cb( err, ncn );
+                        } );
                     } else
-                        cb( true, null );
+                        cb( false, null );
                 }, ( err, ncns ) => {
                     service.status = "active";
                     ans( err, err ? null : ncns.map( cn => ({
@@ -604,9 +608,14 @@ class Processor {
             case "register_aliases":
                 return service.env.register_aliases( service.cn, cmd.args.lst );
 
+            case "append_to_env_var":
+                return service.env.append_to_env_var( cmd.args.env_var, cmd.args.value );
+
             case "run_mission_node":
                 service.status = "waiting";
                 return async.map( cmd.args.signatures, ( signature: string, cb ) => {
+                    if ( ! service.env )
+                        return cb( true, null );
                     const ncn = this.pool.factory( signature ); 
                     this.make( service.env, ncn, err => {
                         if ( service.cn )
@@ -615,7 +624,7 @@ class Processor {
                     } );
                 }, ( err, inp_cns: Array<CompilationNode> ) => {
                     service.status = "active";
-                    if ( err )
+                    if ( err || ! service.env )
                         return ans( true );
                     let nce = service.env.make_child( cmd.args.args, inp_cns );
                     nce.get_mission_node( service.cn ? service.cn.file_dependencies : new FileDependencies, ncn => {
@@ -761,10 +770,12 @@ class Processor {
                                 cmd = [ "powershell", "-c", ...( typeof cmd == "string" ? [ cmd ] : cmd ) ];
                         } else if ( rule.admin || rule.root ) {
                             // TODO: admin with cmd.exe
+                            //const prg = com.siTTY ? "sudo" : "pkexec";
+                            const prg = "pkexec";
                             if ( typeof cmd == "string" )
-                                cmd = [ "sudo", "--", "sh", "-c", cmd ];
+                                cmd = [ prg, "sh", "-c", cmd ];
                             else
-                                cmd.unshift( "sudo" );
+                                cmd.unshift( prg );
                         }
                         this.__install_cmd( com, cn, cwd, cmd, exe_cmd_cb );
                     };

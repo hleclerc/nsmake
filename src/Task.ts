@@ -122,6 +122,11 @@ abstract class Task {
     }
 
     /** */
+    append_to_env_var( env_var: string, value: string ): void  {
+        process.send( JSON.stringify( { action: "append_to_env_var", args: { env_var, value } } ) + "\n" );
+    }
+
+    /** */
     register_ext_lib( name: string, url: string, glob: string ): void  {
         process.send( JSON.stringify( { action: "GeneratorJs:register_ext_lib", args: { name, url, glob } } ) + "\n" );
     }

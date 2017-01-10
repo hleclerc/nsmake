@@ -196,13 +196,24 @@ void CppParser::_nsmake( const char *b, const char *e, Read *read ) {
         return;
     include_cache.clear();
 
+    // global flag ?
     std::vector<std::string> spl = split( { b, e }, ' ' );
+    bool glob = false;
+    if ( spl.size() && spl[ 0 ] == "global" ) {
+        spl.erase( spl.begin(), spl.begin() + 1 );
+        while ( spl.size() && spl[ 0 ].empty() )
+            spl.erase( spl.begin(), spl.begin() + 1 );
+        glob = true;
+    }
+
+    //
     std::vector<unsigned> nspl;
     for( unsigned i = 0; i < spl.size(); ++i )
         if ( spl[ i ].size() )
             nspl.push_back( i );
     if ( nspl.empty() )
         return;
+
 
     // to get trimmed end of line, starting from...
     auto cf = [&]( unsigned n ) { return n < nspl.size() ? join( { spl.begin() + nspl[ n ], spl.begin() + nspl[ nspl.size() - 1 ] + 1 }, " " ) : ""; };
@@ -215,11 +226,13 @@ void CppParser::_nsmake( const char *b, const char *e, Read *read ) {
     }
     if ( spl[ 0 ] == "inc_path" ) {
         if ( nspl.size() < 2 ) throw "'//// nsmake inc_path' is supposed to be followed by 1 argument";
+        if ( glob ) task->append_to_env_var( "include_path", cf( 1 ) );
         inc_paths.push_back( cf( 1 ) );
         return;
     }
     if ( spl[ 0 ] == "cpp_flag" ) {
         if ( nspl.size() < 2 ) throw "'//// nsmake cpp_flag' is supposed to be followed by 1 argument";
+        if ( glob ) task->append_to_env_var( "cpp_flag", cf( 1 ) );
         cpp_flags.push_back( cf( 1 ) );
         return;
     }
@@ -239,7 +252,8 @@ void CppParser::_nsmake( const char *b, const char *e, Read *read ) {
         return;
     }
 
-    throw "'" + spl[ 0 ] + "' is not a known command";
+    c_error( "'" + spl[ 0 ] + "' is not a known nsmake command", b, read );
+    throw "";
 }
 
 void CppParser::_preprocessor( const char *b, const char *e, Read *read ) {
@@ -730,6 +744,8 @@ void CppParser::_include( const char *b, const char *e, Read *read, const char *
                 std::string msg = "Impossible to find include " + std::string{ b, e };
                 if ( iter != inc_rules.end() )
                     msg += ", even after use of download rules of '" + iter->second[ "yaml_name" ].asString() + "'";
+                else
+                    msg += " (and nothing was found in the rules/cpp/*.yaml files)";
                 msg += ".";
                 c_error( msg, od, read );
 

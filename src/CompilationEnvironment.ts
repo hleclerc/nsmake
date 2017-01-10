@@ -118,6 +118,13 @@ class CompilationEnvironment {
     }
 
     /** */
+    append_to_env_var( env_var: string, value: any ) {
+        if ( typeof this.args[ env_var ] == "undefined" )
+            this.args[ env_var ] = [];
+        this.args[ env_var ].push( value );
+    }
+
+    /** */
     New( type: string, children: Array<CompilationNode>, args: any ): CompilationNode {
         return this.com.proc.pool.New( type, children, args );
     }
