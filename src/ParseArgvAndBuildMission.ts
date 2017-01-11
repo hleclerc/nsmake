@@ -63,7 +63,7 @@ class ParseArgvAndBuildMission {
         p.add_argument( [], [], 'no-root'    , 'Automatically refuse root/admin installations'                                            , 'boolean' );
 
         // make a new environment
-        this.env = new CompilationEnvironment( new CommunicationEnvironment( this.c, this.proc, this.nb_columns, this.siTTY, this.soTTY ), this.cwd );
+        this.env = new CompilationEnvironment( new CommunicationEnvironment( this.c, this.proc, this.nb_columns, this.siTTY, this.soTTY, this.cwd ), this.cwd );
         this.env.decl_additional_options( p );
 
         // read arguments from the command line. args will contain number where CompilationNode are expected (numbers are indices to targets)

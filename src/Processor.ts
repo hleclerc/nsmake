@@ -791,7 +791,7 @@ class Processor {
             } );
         }, ok => {
             if ( ! ok )
-                cb( true, tried ? "errors during installation/prerequisites" : `there's no 'load_sets' rule for current system (${ JSON.stringify( system_info ) })` );
+                cb( true, tried ? "errors during installation" : `there's no 'load_sets' rule for current system (${ JSON.stringify( system_info ) })` );
         } );
     }
 
@@ -847,7 +847,7 @@ class Processor {
                 return cb( true );
             }
             try {
-                this.yaml_install_cmd( com, cn, com.launch_dir, yaml.load( res.data ), this.system_info, ( err: boolean, msg: string ) => {
+                this.yaml_install_cmd( com, cn, com.cwd, yaml.load( res.data ), this.system_info, ( err: boolean, msg: string ) => {
                     if ( err ) com.error( cn, `Error in prerequisite file '${ req }': ${ msg }` );
                     cb( err );
                 } );

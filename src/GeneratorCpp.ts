@@ -1,4 +1,5 @@
 import CompilationEnvironment, { GcnItem } from "./CompilationEnvironment"
+import { ConcatYamlToJsonArgs }            from "./ConcatYamlToJson"
 import FileDependencies                    from "./FileDependencies"
 import CompilationNode                     from "./CompilationNode"
 import ArgumentParser                      from "./ArgumentParser"
@@ -173,9 +174,12 @@ class GeneratorCpp extends Generator {
 
     /** concatenation of rules for c/cpp/... */
     cpp_rules_cn(): CompilationNode {
-        return this.env.New( "ConcatYamlToJson", [
-            this.env.New( "Id", [], { target: path.resolve( __dirname, "..", "..", "rules", "cpp" ) } )
-        ], {} );
+        return this.env.New( "ConcatYamlToJson", [], {
+            directories: [
+                path.resolve( this.env.cwd, "nsmake", "rules", "cpp" ),
+                path.resolve( __dirname, "..", "..", "rules", "cpp" ),
+            ]
+        } as ConcatYamlToJsonArgs );
     }
 
     /** get stuff like base include paths, defines, ...  `target` can be cpp, c, ... */

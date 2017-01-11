@@ -7,13 +7,14 @@ import * as net         from 'net'
 /** store context for a given build */
 export default 
 class CommunicationEnvironment {
-    constructor( c: net.Socket, proc: Processor, nb_columns: number, siTTY: boolean, soTTY: boolean ) {
+    constructor( c: net.Socket, proc: Processor, nb_columns: number, siTTY: boolean, soTTY: boolean, cwd: string ) {
         this.c          = c;
         this.proc       = proc;
         this.nb_columns = nb_columns;
         this.color      = soTTY;
         this.siTTY      = siTTY;
         this.soTTY      = soTTY;
+        this.cwd        = cwd;
     }
 
     decl_additional_options( p : ArgumentParser ) {
@@ -66,7 +67,7 @@ class CommunicationEnvironment {
 
     c          : net.Socket;
     proc       : Processor;
-    launch_dir : string;
+    cwd        : string;
     nb_columns : number;
     color      : boolean;
     siTTY      : boolean;
