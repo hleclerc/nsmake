@@ -43,7 +43,7 @@ class GeneratorCpp extends Generator {
         p.add_argument( comp_missions, universes, "debug-level,g" , "Set debug level"                                                                             );
         p.add_argument( comp_missions, universes, "opt-level,O"   , "Set optimization level"                                                                      );
         p.add_argument( comp_missions, universes, "cpp-flag"      , "Add flags for the C++ compiler"                                                  , 'string*' );
-        p.add_argument( comp_missions, universes, "cc-flag"       , "Add flags for the C++ compiler"                                                  , 'string*' );
+        p.add_argument( comp_missions, universes, "c-flag"        , "Add flags for the C compiler"                                                    , 'string*' );
         p.add_argument( comp_missions, universes, "ld-flag"       , "Add flags for the linker"                                                        , 'string*' );
         p.add_argument( comp_missions, universes, "cxx"           , "Set default C++ compiler"                                                                    );
         p.add_argument( comp_missions, universes, "cc"            , "Set default C compiler"                                                                      );
@@ -134,7 +134,7 @@ class GeneratorCpp extends Generator {
                     dylib     : dylib( args ),
                     bootstrap : args.cpp_bootstrap || false,
                     system    : this.env.com.proc.system_info,
-                    cmd_flags : this.env.args.ld_flag || [],
+                    cmd_flags : split_spurienc( this.env.args.ld_flag || [] ),
                     ld_in_args: this.env.args.ld,
                     ar_in_args: this.env.args.ar,
                 } as ArgsLinker ) );
@@ -159,14 +159,14 @@ class GeneratorCpp extends Generator {
         return cb( null );
     }
 
-    make_cpp_compiler( cn: CompilationNode, output: string, cb: ( cn: CompilationNode ) => void ): void {
+    make_cpp_compiler( cn: CompilationNode, output: string, cb: ( cn: CompilationNode ) => void, for_c = false ): void {
         const ncc = `CppCompiler@${ path.resolve( __dirname, "..", "..", "src", "cpp", "main_cpp_services.cpp" ) }`;
         cb( this.env.New( this.env.args.cpp_bootstrap ? "CppCompiler": ncc, [ cn, this.cpp_rules_cn(), this.base_compiler_info_cn( this.env.arg_rec( "cxx" ), "cpp" ) ], {
             define    : [],
             system    : this.env.com.proc.system_info,
             launch_dir: this.env.cwd,
             inc_paths : include_path( this.env.args ),
-            cmd_flags : this.env.args.cpp_flag || [],
+            cmd_flags : split_spurienc( ( for_c ? this.env.args.c_flag :  this.env.args.cpp_flag ) || [] ),
             pic       : pic( this.env.args ),
             output,
         } as ArgsCppCompiler ) );
@@ -196,3 +196,11 @@ function dylib       ( args ): boolean       { return args.dylib        || false
 function pic         ( args ): boolean       { return args.mission == "lib" && ( args.dylib || ( args.output && args.output.length && [ ".so", ".dll", ".dylib" ].indexOf( path.extname( args.output[ 0 ] ).toLowerCase() ) >= 0 ) ); }
 function include_path( args ): Array<string> { return args.include_path || [];    }
 
+function split_spurienc( lst: Array<string> ): Array<string> {
+    let res = new Array<string>();
+    for( const inp of lst )
+        for( const str of inp.split( " " ) )
+            if ( str.length )
+                res.push( decodeURIComponent( str ) );
+    return res;
+}
