@@ -11,7 +11,6 @@ import * as async               from 'async';
 import * as path                from 'path';
 import * as net                 from 'net'
 import * as fs                  from 'fs'
-const getos = require( 'getos' );
 
 /** */
 export default

@@ -838,7 +838,10 @@ class Processor {
 
     _check_prerequ( com: CommunicationEnvironment, cn: CompilationNode, req: string, cb: ( err: boolean ) => void ) {
         // try to find prerequ
-        let trials = [ path.resolve( __dirname, "..", "..", "rules", "prerequ", req + ".yaml" ) ];
+        let trials = [
+            path.resolve( __dirname, "..", "..", "rules", "prerequ", req + ".yaml" ),
+            path.resolve( com.cwd, "nsmake", "rules", "prerequ", req + ".yaml" ),
+        ];
         async.forEachSeries( trials, ( trial, cbt ) => {
             fs.readFile( trial, ( err, data ) => cbt( err ? null : { data: data.toString(), name: trial } ) );
         }, ( res: { data: string, name: string } ) => {
