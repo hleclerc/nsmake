@@ -17,6 +17,8 @@ Nsmake takes responsibility to *ensure the link between the tools*. In most of t
 - [Some tutorials](#some-tutorials)
 - [More specific information](#more-specific-information)
 
+# Table of contents
+
 <!-- /TOC -->
 
 # Main features
