@@ -20,19 +20,19 @@ class GeneratorCpp extends Generator {
                 // run
                 if ( args.mission == "run" ) {
                     // arguments for "Executor"
-                    let ch = [ cns[ args.entry_point ] ], exe_args = [ 0 ] as Array<string|number>;
-                    for( const arg of ( args.arguments || [] ) as Array<string|CompilationNode> ) {
-                        if ( arg instanceof CompilationNode ) {
-                            exe_args.push( ch.length );
-                            ch.push( arg );
-                        } else
-                            exe_args.push( arg );
-                    }
+                    // let ch = [ ...cns ], exe_args = [ 0 ] as Array<string|number>;
+                    // for( const arg of ( args.arguments || [] ) as Array<string|CompilationNode> ) {
+                    //     if ( arg instanceof CompilationNode ) {
+                    //         exe_args.push( ch.length );
+                    //         ch.push( arg );
+                    //     } else
+                    //         exe_args.push( arg );
+                    // }
 
                     // launch
-                    return cb( this.env.com.proc.pool.New( "Executor", ch, {
+                    return cb( this.env.com.proc.pool.New( "Executor", cns, {
                         executable     : "sh",
-                        args           : exe_args,
+                        args           : [ args.entry_point, ...( args.arguments || [] ) ],
                         local_execution: args.local_execution == undefined ? true: args.local_execution,
                         outputs        : args.redirect ? [ args.redirect ] : [],
                         redirect       : args.redirect || '',

@@ -269,8 +269,7 @@ abstract class Task {
                 } catch ( e ) {
                     if ( e.code == "EAGAIN" )
                         continue;
-                    this.note( `Error while reading stdin for an answer: ${ e }` );
-                    return cb( true, null );
+                    throw `Error while reading stdin for an answer: ${ e }`;
                 }
             }
         }

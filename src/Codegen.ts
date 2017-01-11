@@ -45,6 +45,12 @@ class Codegen extends Task {
             }
         }
 
+        if ( res.tokens.length && res.tokens[ 0 ].type == "Quoted" ) {
+            if ( res.tokens.length < 2 || res.tokens[ 1 ].type != "Quoted" )
+                throw `If the first argument is quoted (script content), the second have also to be quoted (the extension of the script)`;
+            argv.splice( 0, 2, inp_sgns.push( this.make_signature( "MakeFile", [], { ext: argv[ 1 ], content: argv[ 0 ], } ) ) - 1 );
+        }
+
         this.run_mission_node( Object.assign( {}, {
             mission        : "run",
             redirect       : args.output,
