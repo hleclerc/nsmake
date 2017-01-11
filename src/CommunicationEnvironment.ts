@@ -71,6 +71,7 @@ class CommunicationEnvironment {
     color      : boolean;
     siTTY      : boolean;
     soTTY      : boolean;
+    no_root    : boolean;
     active     = true; /** socket still working ? */
     channels   = new Set<CompilationNode>();
 } 

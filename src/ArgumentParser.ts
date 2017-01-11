@@ -135,7 +135,7 @@ class ArgumentParser {
                     // positional argument
                     const pag = this.positional.get( res.mission );
                     if ( ! pag )
-                        return error( `mission ${ res.mission } do not accept positional arguments` );
+                        return error( `mission ${ res.mission } does not accept positional arguments` );
                     if ( num_positional > pag.length )
                         return error( `too much positional arguments (for mission ${ res.mission })` );
                     const arg = pag[ num_positional++ ];

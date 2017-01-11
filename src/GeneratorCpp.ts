@@ -35,7 +35,7 @@ class GeneratorCpp extends Generator {
                 'that can be glob patterns and launch all the tests found in these entries'                               );
 
         const comp_missions = [ 'lib', 'exe', 'run', 'gtest' ], universes = [ 'cpp', 'c', 'fortran', 'asm' ];
-        p.add_argument( comp_missions, universes, 'output,o'      , 'set name(s) of the output file(s), separated by a comma if several are expected' , 'path*'   );
+        p.add_argument( comp_missions, universes, "output,o"      , 'set name(s) of the output file(s), separated by a comma if several are expected' , 'path*'   );
         p.add_argument( comp_missions, universes, "include-path,I", "Add the directory arg to the list of directories to be searched for header files", 'path*'   );
         p.add_argument( comp_missions, universes, "library-path,L", "Add the directory arg to the list of directories to be searched for libraries"   , 'path*'   );
         p.add_argument( comp_missions, universes, "define,D"      , "Macro definition"                                                                , 'string*' );
@@ -47,6 +47,8 @@ class GeneratorCpp extends Generator {
         p.add_argument( comp_missions, universes, "cxx"           , "Set default C++ compiler"                                                                    );
         p.add_argument( comp_missions, universes, "cc"            , "Set default C compiler"                                                                      );
         p.add_argument( comp_missions, universes, "ld"            , "Set default linker"                                                                          );
+        p.add_argument( comp_missions, universes, "ar"            , "Set default archiver"                                                                        );
+        p.add_argument( comp_missions, universes, "dylib"         , "Make dynamic libraries"                                                          , 'boolean' );
 
         // p.add_positionnal_argument( [ 'exe', 'lib' ], 'entry_point', 'Entry point (sourcefile)', 'cn' );
         p.add_positional_argument( [ 'gtest' ], 'entry_points', 'Entry points. Glob patterns are accepted', 'string*' );
@@ -128,10 +130,12 @@ class GeneratorCpp extends Generator {
                     mission   : args.mission,
                     cwd       : this.env.cwd,
                     define    : define( args ),
+                    dylib     : dylib( args ),
                     bootstrap : args.cpp_bootstrap || false,
                     system    : this.env.com.proc.system_info,
                     cmd_flags : this.env.args.ld_flag || [],
                     ld_in_args: this.env.args.ld,
+                    ar_in_args: this.env.args.ar,
                 } as ArgsLinker ) );
             }
 
@@ -162,6 +166,7 @@ class GeneratorCpp extends Generator {
             launch_dir: this.env.cwd,
             inc_paths : include_path( this.env.args ),
             cmd_flags : this.env.args.cpp_flag || [],
+            pic       : pic( this.env.args ),
             output,
         } as ArgsCppCompiler ) );
     }
@@ -182,6 +187,8 @@ class GeneratorCpp extends Generator {
     }
 }
 
-function define      ( args ): Array<string> { return args.define       || []; }
-function include_path( args ): Array<string> { return args.include_path || []; }
+function define      ( args ): Array<string> { return args.define       || [];    }
+function dylib       ( args ): boolean       { return args.dylib        || false; }
+function pic         ( args ): boolean       { return args.mission == "lib" && ( args.dylib || ( args.output && args.output.length && [ ".so", ".dll", ".dylib" ].indexOf( path.extname( args.output[ 0 ] ).toLowerCase() ) >= 0 ) ); }
+function include_path( args ): Array<string> { return args.include_path || [];    }
 

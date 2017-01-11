@@ -18,4 +18,5 @@ class ExeDataGenCompiler {
     //
     command_sgn          = "";                                    /** signature of the command to execute to get the .o file */
     compiler             = "";                                    /** should be also in command_sgn */
+    archiver             = "";                                    /**  */
 }

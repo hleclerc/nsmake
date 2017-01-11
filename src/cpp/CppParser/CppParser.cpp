@@ -251,6 +251,16 @@ void CppParser::_nsmake( const char *b, const char *e, Read *read ) {
         obj_names.push_back( resolve( read->dir, cf( 1 ) ) );
         return;
     }
+    if ( spl[ 0 ] == "cxx_name" ) {
+        if ( nspl.size() < 2 ) throw "'//// nsmake cxx_name' is supposed to be followed by 1 argument";
+        cxx_name = cf( 1 );
+        return;
+    }
+    if ( spl[ 0 ] == "ar_name" ) {
+        if ( nspl.size() < 2 ) throw "'//// nsmake cxx_name' is supposed to be followed by 1 argument";
+        ar_name = cf( 1 );
+        return;
+    }
 
     c_error( "'" + spl[ 0 ] + "' is not a known nsmake command", b, read );
     throw "";

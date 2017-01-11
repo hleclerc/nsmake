@@ -104,6 +104,7 @@ struct CppParser {
     std::string          cpp_content;
     MapSJV               inc_rules;   ///< what to do if a given file is included
     std::string          cxx_name;    ///< from nsmake cmd
+    std::string          ar_name;     ///< from nsmake cmd
     StringSet            includes;
     Defines              defines;
     std::stack<Block>    blocks;

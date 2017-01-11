@@ -13,8 +13,10 @@ interface ArgsLinker {
     define    : Array<string>; /** NAME(args...)=val or NAME for macros without arguments */
     cmd_flags : Array<string>; /**  */
     bootstrap : boolean;
-    system    : SystemInfo;    /** ubuntu 14.04, ... */
+    system    : SystemInfo;    /** e.g. ubuntu 14.04, ... */
+    dylib     : boolean;       /**  */
     ld_in_args: string;        /** ld specified in cmd line arguments */
+    ar_in_args: string;        /** ld specified in cmd line arguments */
 }
 
 interface ResCnGenCompiler {
@@ -83,35 +85,48 @@ class Linker extends Task {
         this.done_cb( true );
     }
 
+    extension( args: ArgsLinker ): string {
+        if ( args.mission == "lib" ) {
+            if ( args.dylib ) {
+                switch ( args.system.os ) {
+                    case "win32" : return ".dll";
+                    case "darwin": return ".dylib";
+                    default      : return ".so";
+                }
+            }
+            return ".a";
+        }
+        return ".exe";
+    }
+
     make_executable( args: ArgsLinker ) {
-        this.new_build_file( this.o_makers[ 0 ].exe_data.orig_name || "", ".exe", "", ( err, name ) => {
+        this.new_build_file( this.o_makers[ 0 ].exe_data.orig_name || "", this.extension( args ), "", ( err, name ) => {
             if ( err )
                 return this.done_cb( true );
             this.make_executable_with_name( args, name );
-        } );
+        }, args.output.length ? args.output[ 0 ] : null );
     }
 
     make_executable_with_name( args: ArgsLinker, exe_name: string ) {
         this.set_status( "active" );
         this.outputs = [ exe_name ];
 
-        //
-        let ld = args.ld_in_args;
-        if ( ! ld ) {
-            // currently, we use the first compiler... it's not formely a linker but it does a good job at setting the flags.
-            // to be changed for languages where it does not work
-            ld = this.o_makers[ 0 ].exe_data.compiler;
-        }
+        // if not specified, we link using the compiler... it's not formely a linker but it does a good job at setting the flags.
+        // to be changed for languages for which it does not work
+        let ld = args.ld_in_args || this.o_makers[ 0 ].exe_data.compiler;
         
         // flags for output
-        // const add_flags = lib_type == "dynamic" ? [ "-fpic" ] : [];
-        let ext: string, cmd_args = [] as Array<string>, lib_type = "exe";
-        switch ( lib_type ) {
-            case "static" : ext = '.a';   cmd_args.push( 'rc' ); ld = "ar"; break;
-            case "dynamic": ext = '.so';  cmd_args.push( '-shared', '-o' ); break;
-            default       : ext = '.exe'; cmd_args.push( '-o' );
+        let cmd_args = [] as Array<string>;
+        if ( args.mission == "lib" ) {
+            if ( args.dylib || ( args.output.length && [ ".so", ".dll", ".dylib" ].indexOf( path.extname( args.output[ 0 ] ).toLowerCase() ) >= 0 ) ) {
+                cmd_args.push( '-shared', '-o', exe_name );
+            } else {
+                ld = args.ar_in_args || this.o_makers[ 0 ].exe_data.archiver;
+                cmd_args.push( 'rc', exe_name );
+            }
+        } else {
+            cmd_args.push( '-o', exe_name );
         }
-        cmd_args.push( exe_name );
 
         // objects
         cmd_args.push( ...this.o_names );
@@ -124,7 +139,7 @@ class Linker extends Task {
             pu( cmd_args, ...( cp.exe_data.lib_paths || [] ).map( n => "-L" + n ) );
         }
 
-        // go (call the linker)
+        // go (call the linker directly in the task: that's the only remaining thing to do)
         this.spawn( ld, cmd_args, ( err, code ) => this.done_cb( Boolean( err || code ) ) );
     }
 

@@ -47,9 +47,11 @@ void CppCompiler::exec() {
     for( const auto &cpf : cp.cpp_flags         ) append_unique( cmds, cpf );
     for( const auto &inc : cp.inc_paths         ) append_unique( cmds, "-I" + inc );
     for( const auto &inc : cp.cmd_include_paths ) append_unique( cmds, "-I" + inc );
+    if ( args[ "pic" ].asBool()                 ) append_unique( cmds, "-fpic" );
 
     //
     string compiler = cp.cxx_name.size() ? cp.cxx_name : from_json( children[ 2 ].exe_data[ "compiler"  ] );
+    string archiver = cp.ar_name .size() ? cp.ar_name  : from_json( children[ 2 ].exe_data[ "archiver"  ] );
 
     // update of exe_data
     exe_data[ "orig_name" ] = orig_name;
@@ -68,4 +70,5 @@ void CppCompiler::exec() {
 
     exe_data[ "command_sgn" ] = make_signature( "Executor", { signature }, exe_args );
     exe_data[ "compiler"    ] = compiler;
+    exe_data[ "archiver"    ] = archiver;
 }

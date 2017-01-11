@@ -71,10 +71,10 @@ class CompilationEnvironment {
         p.set_mission_description( 'run'  , [], '...'                                                                                                 );
         p.set_mission_description( 'sleep', [], 'wait for n milliseconds'                                                                             );
 
-        p.add_positional_argument( [ 'help'       ], 'help-args'  , 'mission(s) or universe(s) to focus on', 'string*' );
-        p.add_positional_argument( [ 'exe', 'run' ], 'entry-point', 'name of the sourcefile)'              , 'cn'      );
-        p.add_positional_argument( [ 'run'        ], 'arguments'  , "arguments passed to the executable"   , 'string*' );
-        p.add_positional_argument( [ 'sleep'      ], 'time'       , "time in milliseconds to wait for"     , 'number'  );
+        p.add_positional_argument( [ 'help'              ], 'help-args'  , 'mission(s) or universe(s) to focus on', 'string*' );
+        p.add_positional_argument( [ 'exe', 'run', 'lib' ], 'entry-point', 'name of the sourcefile'               , 'cn'      );
+        p.add_positional_argument( [ 'run'               ], 'arguments'  , "arguments passed to the executable"   , 'string*' );
+        p.add_positional_argument( [ 'sleep'             ], 'time'       , "time in milliseconds to wait for"     , 'number'  );
 
         for( let g of this.generators )
             g.decl_additional_options( p );

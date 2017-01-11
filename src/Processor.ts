@@ -752,45 +752,47 @@ class Processor {
 
     /**  */
     yaml_install_cmd( com: CommunicationEnvironment, cn: CompilationNode, cwd: string, rules: Array<any>, system_info: SystemInfo, cb: ( err: boolean, msg: string ) => void ) {
-        for( const rule of rules ) {
-            if ( is_compatible_with( system_info, rule.systems ) ) {
-                // chech sub prerequisites
-                return async.forEach( rule.prerequ || [], ( sub_req: string, cb_prerequ ) => {
-                    this._check_prerequ( com, cn, sub_req, cb_prerequ );
-                }, ( err_prerequ ) => {
-                    if ( err_prerequ )
-                        return cb( true, "" );
+        let tried = false;
+        async.forEachSeries( rules, ( rule, cb_rule_trial: ( ok: boolean ) => void ) => {
+            if ( ! is_compatible_with( system_info, rule.systems ) || ( com.no_root && ( rule.root || rule.admin ) ) )
+                return cb_rule_trial( false );
+            tried = true;
 
-                    // command[s]
-                    const exe_cmd = ( cmd: string | Array<string>, exe_cmd_cb: ( err: boolean ) => void ) => {
-                        if ( rule.shell == "powershell" ) {
-                            if ( rule.admin )
-                                cmd = [ "powershell", "-c", "Start-Process", "powershell.exe", "-Verb", "runAs", "-Argumentlist", ( typeof cmd == "string" ? cmd : cmd.map( x => '"' + x.replace( /"/g, '`"' ) + '"' ).join( "," ) ), "-Wait" ];
-                            else
-                                cmd = [ "powershell", "-c", ...( typeof cmd == "string" ? [ cmd ] : cmd ) ];
-                        } else if ( rule.admin || rule.root ) {
-                            // TODO: admin with cmd.exe
-                            //const prg = com.siTTY ? "sudo" : "pkexec";
-                            const prg = "pkexec";
-                            if ( typeof cmd == "string" )
-                                cmd = [ prg, "sh", "-c", cmd ];
-                            else
-                                cmd.unshift( prg );
-                        }
-                        this.__install_cmd( com, cn, cwd, cmd, exe_cmd_cb );
-                    };
-                    if ( rule.commands )
-                        return async.forEachSeries( rule.commands as Array<string | Array<string>>, ( command: string | Array<string>, cb_fe: ( err: boolean ) => void ) => exe_cmd( command, cb_fe ), err => cb( err, "" ) );
-                    if ( rule.command )
-                        return exe_cmd( rule.command, err => cb( err, "" ) );
+            // chech sub prerequisites
+            return async.forEach( rule.prerequ || [], ( sub_req: string, cb_prerequ ) => {
+                this._check_prerequ( com, cn, sub_req, cb_prerequ );
+            }, ( err_prerequ ) => {
+                if ( err_prerequ )
+                    return cb_rule_trial( false );
 
-                    // nothing to execute
-                    return cb( false, "" );
-                } );
-                
-            }
-        }
-        cb( true, `there's no 'load_sets' rule for current system (${ JSON.stringify( system_info ) })` );
+                // command[s]
+                const exe_cmd = ( cmd: string | Array<string>, exe_cmd_cb: ( err: boolean ) => void ) => {
+                    if ( rule.shell == "powershell" ) {
+                        if ( rule.admin )
+                            cmd = [ "powershell", "-c", "Start-Process", "powershell.exe", "-Verb", "runAs", "-Argumentlist", ( typeof cmd == "string" ? cmd : cmd.map( x => '"' + x.replace( /"/g, '`"' ) + '"' ).join( "," ) ), "-Wait" ];
+                        else
+                            cmd = [ "powershell", "-c", ...( typeof cmd == "string" ? [ cmd ] : cmd ) ];
+                    } else if ( rule.admin || rule.root ) {
+                        // TODO: admin with cmd.exe
+                        // const prg = com.siTTY ? "sudo" : "pkexec";
+                        const prg = "pkexec";
+                        if ( typeof cmd == "string" )
+                            cmd = [ prg, "sh", "-c", cmd ];
+                        else
+                            cmd.unshift( prg );
+                    }
+                    this.__install_cmd( com, cn, cwd, cmd, exe_cmd_cb );
+                };
+                if ( rule.commands )
+                    return async.forEachSeries( rule.commands as Array<string | Array<string>>, ( command: string | Array<string>, cb_fe: ( err: boolean ) => void ) => exe_cmd( command, cb_fe ), err => cb_rule_trial( ! err ) );
+                if ( rule.command )
+                    return exe_cmd( rule.command, err => cb_rule_trial( ! err ) );
+                return cb_rule_trial( true );
+            } );
+        }, ok => {
+            if ( ! ok )
+                cb( true, tried ? "errors during installation/prerequisites" : `there's no 'load_sets' rule for current system (${ JSON.stringify( system_info ) })` );
+        } );
     }
 
     /** ex of category: npm... */

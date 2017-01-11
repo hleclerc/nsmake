@@ -31,8 +31,6 @@ class BaseCompilerInfo extends Task {
 
     exec( args: BaseCompilerInfoArgs, done: ( err: boolean ) => void ) {
         this.get_base_programs( args, ( compiler: string, linker: string, archiver: string ) => {
-            this.note( `compiler: ${ JSON.stringify( compiler ) }` );
-
             if ( ! compiler || ! linker || ! archiver )
                 return done( true );
             let exe_data = this.exe_data = new ExeDataBaseCompilerInfo;

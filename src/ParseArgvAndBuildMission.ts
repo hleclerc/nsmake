@@ -60,6 +60,7 @@ class ParseArgvAndBuildMission {
         p.add_argument( [], [], 'config-dir' , "specify the configuration directory (default: '~/.nsmake')"                               , "path"    );
         p.add_argument( [], [], 'inotify'    , 'if -w or --watch, watch using inotify or equivalent (unsafe but consumes less ressources)', 'boolean' );
         p.add_argument( [], [], 'watch-delay', 'if -w or --watch and method==polling, delay between tests, in ms'                                     );
+        p.add_argument( [], [], 'no-root'    , 'Automatically refuse root/admin installations'                                            , 'boolean' );
 
         // make a new environment
         this.env = new CompilationEnvironment( new CommunicationEnvironment( this.c, this.proc, this.nb_columns, this.siTTY, this.soTTY ), this.cwd );
@@ -76,8 +77,11 @@ class ParseArgvAndBuildMission {
         if ( ! this.env.args.mission          ) { this.send_end( 'Please define a mission' );                                            return; }
         if ( this.env.args.mission == "help"  ) { this.send_out( p.format_help( this.env.args, this.nb_columns ) );  this.send_end( 0 ); return; }
         if ( this.env.args.mission == "clean" ) { this.send_out( `Cleaning all the build files for directory ${ this.cwd }` );
-                                             this.proc.clean( this.cwd, err => this.send_end( 0 ) );                                     return; }
+                                                  this.proc.clean( this.cwd, err => this.send_end( 0 ) );                                return; }
         if ( this.env.args.mission == "stop"  ) { process.exit( 0 );                                                                             }
+
+        // com environment
+        this.env.com.no_root = this.env.args.no_root;
 
         // fill inp_cns and replace compilation nodes string attributes by numbers
         let file_dependencies = new FileDependencies;

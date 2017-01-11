@@ -107,7 +107,11 @@ abstract class Task {
     }
 
     /** @param dist: optionnal root target directory (e.g. for public files) */
-    new_build_file( orig = "", ext = "", dist = "", cb = null as ( err: boolean, name: string ) => void ): string {
+    new_build_file( orig = "", ext = "", dist = "", cb = null as ( err: boolean, name: string ) => void, value?: string ): string {
+        if ( value ) {
+            if ( cb ) cb( null, value );
+            return value;
+        }
         return this._send_and_wait( "new_build_file", { orig, ext, dist }, cb );
     }
 
