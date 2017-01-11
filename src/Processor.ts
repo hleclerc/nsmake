@@ -565,13 +565,16 @@ class Processor {
                     service.env.get_compilation_node( target, cmd.args.cwd, service.cn.file_dependencies, ncn => {
                         ++num;
                         cb( ncn );
-                    } );
+                    }, false, cmd.args.allow_generation );
                 }, ncn => {
                     ans( false, ncn ? { signature: ncn.signature, num } : null );
                 } );
             }
 
             case "get_cn_data": {
+                if ( ! cmd.args.signature )
+                    console.log( service.cn.pretty );
+                
                 let ncn = service.env.com.proc.pool.factory( cmd.args.signature );
                 service.status = "waiting";
                 return this.make( service.env, ncn, err => {
@@ -743,7 +746,7 @@ class Processor {
                 if ( ! ncn ) return init_cp( null, true );
                 this.make( nce, ncn, err => {
                     if ( err ) return init_cp( null, true );
-                    init_cp( child_process.spawn( ncn.outputs[ 0 ], [] ), true );
+                    init_cp( child_process.spawn( ncn.outputs[ 0 ] ), true );
                     // init_cp( child_process.spawn( "valgrind", [ ncn.outputs[ 0 ] ] ), true );
                 } );
             } );

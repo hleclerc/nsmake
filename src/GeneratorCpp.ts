@@ -56,18 +56,18 @@ class GeneratorCpp extends Generator {
     }
 
     get_gcn_funcs( funcs: Array<GcnItem> ) {
-        funcs.push( { prio: 0, func: ( target: string, output: string, cwd: string, cb: ( cn: CompilationNode ) => void, for_found: FileDependencies, care_about_target: boolean ): void => {
+        funcs.push( { prio: 0, func: ( target: string, output: string, cwd: string, cb: ( cn: CompilationNode ) => void, for_found: FileDependencies, care_about_target: boolean, allow_generation: boolean ): void => {
             // make .o from .cpp or .c or ...
             const t_ext = path.extname( target );
             if ( t_ext == ".o_maker" ) {
-                const basename = target.substr( 0, target.length - t_ext.length);
+                const basename = target.substr( 0, target.length - t_ext.length );
                 return async.forEachSeries( [
                     ...GeneratorCpp.cpp_ext.map( ext => ({ ext, make_cn: ( ch, cb ) => this.make_cpp_compiler( ch, care_about_target ? target : "", cb ) }) ),
                     ...GeneratorCpp.c_ext  .map( ext => ({ ext, make_cn: ( ch, cb ) => this.make_cpp_compiler( ch, care_about_target ? target : "", cb ) }) ),
                 ], ( trial, cb_ext ) => {
                     this.env.get_compilation_node( basename + trial.ext, cwd, for_found, cn => {
                         cn ? trial.make_cn( cn, cb_ext ) : cb_ext( null );
-                    } );
+                    }, false, allow_generation );
                 }, cb );
             }
             return cb( null );
@@ -153,7 +153,7 @@ class GeneratorCpp extends Generator {
             const name_o = en.slice( 0, en.length - path.extname( en ).length ) + ".o_maker";
             return this.env.get_compilation_node( name_o, path.dirname( en ), for_found, cn => {
                 with_a_dot_o( cn && cn.some_rec( x => x.type == "Id" && x.args.target == en ) ? cn : null );
-            } );
+            }, false, false );
         }
 
         return cb( null );

@@ -14,7 +14,7 @@ import GeneratorJs              from "./GeneratorJs";
 
 export declare type GcnItem = {
     prio: number;
-    func: ( target: string, output: string, cwd: string, cb: ( cn: CompilationNode ) => void, for_found: FileDependencies, care_about_target: boolean ) => void;
+    func: ( target: string, output: string, cwd: string, cb: ( cn: CompilationNode ) => void, for_found: FileDependencies, care_about_target: boolean, allow_generation: boolean ) => void;
 };
 
 /** compilation context */
@@ -81,7 +81,7 @@ class CompilationEnvironment {
     }
 
     /**  */
-    get_compilation_node( target: string, cwd: string, for_found: FileDependencies, cb: ( cn: CompilationNode ) => void, care_about_target = false ): void {
+    get_compilation_node( target: string, cwd: string, for_found: FileDependencies, cb: ( cn: CompilationNode ) => void, care_about_target = false, allow_generation = true ): void {
         target = path.normalize( target );
 
         // aliases
@@ -89,7 +89,7 @@ class CompilationEnvironment {
         
         // test with gcn_funcs in priority order
         async.forEachSeries( this.gcn_funcs, ( gf, foreach_cb ) => {
-            gf.func( subs, target, cwd, foreach_cb, for_found, care_about_target );
+            gf.func( subs, target, cwd, foreach_cb, for_found, care_about_target, allow_generation );
         }, cb );
     }
 

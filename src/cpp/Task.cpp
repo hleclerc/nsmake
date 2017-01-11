@@ -103,10 +103,10 @@ std::string Task::get_filtered_target_signature( std::string target, std::string
     return res;
 }
 
-Task::NumAndSignature Task::get_first_filtered_target_signature( std::vector<std::string> targets, std::string cwd ) {
+Task::NumAndSignature Task::get_first_filtered_target_signature( std::vector<std::string> targets, std::string cwd, bool allow_generation ) {
     if ( ! targets.size() )
         return { 0, "" };
-    Json::Value res = SAWA( "get_first_filtered_target_signature", "targets", targets, "cwd", cwd );
+    Json::Value res = SAWA( "get_first_filtered_target_signature", "targets", targets, "cwd", cwd, "allow_generation", allow_generation );
     return { res[ "num" ].asUInt(), res[ "signature" ].asString() };
 }
 

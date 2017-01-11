@@ -61,9 +61,9 @@ abstract class Task {
     }
 
     /** get signature for generator of first possible `target`. num is the number in the list */
-    get_first_filtered_target_signature( targets: Array<string>, cwd: string, cb = null as ( err: boolean, res: { signature: string, num: number } ) => void ): { signature: string, num: number } {
+    get_first_filtered_target_signature( targets: Array<string>, cwd: string, cb = null as ( err: boolean, res: { signature: string, num: number } ) => void, allow_generation = true ): { signature: string, num: number } {
         if ( targets.length == 0 ) return cb ? ( cb( false, null ), null ) : null;
-        return this._send_and_wait( "get_first_filtered_target_signature", { targets, cwd }, cb );
+        return this._send_and_wait( "get_first_filtered_target_signature", { targets, cwd, allow_generation }, cb );
     }
 
     /** get outputs/exe_data of a Compilation Node. children = array of signatures */

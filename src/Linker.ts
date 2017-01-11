@@ -46,10 +46,10 @@ class Linker extends Task {
             return this.reg_err();
         this.o_makers[ n ] = res;
 
-        // look if it implies additional stuff to parse, compile or link
+        // look if it implies additional stuff to parse, compile or link. TODO: async version
         for( const moj of [ ...( res.exe_data.includes || [] ), ...( res.exe_data.obj_names || [] ) ] ) {
             const wo_ext = moj.slice( 0, moj.length - path.extname( moj ).length );
-            const o_maker = this.get_first_filtered_target_signature( [ wo_ext + ".o_maker" ], path.dirname( moj ) );
+            const o_maker = this.get_first_filtered_target_signature( [ wo_ext + ".o_maker" ], path.dirname( moj ), null, false );
             if ( o_maker && ! this.to_parse.has( o_maker.signature ) ) {
                 const nn = this.to_parse.size;
                 this.get_cn_data( o_maker.signature, ( err, cn_data ) => this.on_parsed( args, nn, err, cn_data as ResCnGenCompiler ) );
