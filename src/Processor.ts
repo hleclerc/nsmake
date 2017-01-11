@@ -97,9 +97,9 @@ class Processor {
         // kill and restart
         for( let i = 0; i < this.services.length; ++i ) {
             if ( this.services[ i ].env && this.services[ i ].env.com == com ) {
-                if ( this.services[ i ].cp )
-                    this.services[ i ].cp.kill(); // will be restarted
+                this.services[ i ].cp.kill();
                 this.services[ i ].cp = null;
+                this.services.splice( i--, 1 );
            }
         }
 
@@ -124,10 +124,10 @@ class Processor {
     kill_all(): void {
         // kill and do not restart
         for( let i = 0; i < this.services.length; ++i ) {
-            this.services[ i ].want_restart = false;
             if ( this.services[ i ].cp ) {
                 this.services[ i ].cp.kill(); // won't be restarted
                 this.services[ i ].cp = null;
+                this.services.splice( i--, 1 );
             }
         }
 
@@ -175,7 +175,9 @@ class Processor {
 
         // if error => cleansing
         if ( err ) {
-            return async.forEach( cn.generated, rimraf, rimraf_err => {
+            return async.forEach( cn.generated, ( name, cb ) => rimraf( name, err => cb( null ) ), rimraf_err => {
+                cn.outputs.length = 0;
+                cn.generated.length = 0;
                 this._exec_done_cb( env.com, cn, err );
             } );
         }
@@ -242,12 +244,12 @@ class Processor {
             return this._exec_done_cb( env.com, cn, err );
 
         // if has to be re-executed each time, we do not have to make tests
-        if ( cn.type == "Id" || ! cn.pure_function )
+        if ( cn.type == "Id" || ! cn.pure_function || cn.build_error )
             return this._launch( env, cn );
 
-        // launched at least once ?
+        // launched at least once (i.e. data is in memory) ?
         if ( cn.num_build_exec )
-            return this._done_for_this_build( env, cn );
+            return this._test_if_done_for_this_build( env, cn );
 
         // else, we try to download data from db
         this.db.get( cn.signature, ( err, value: string ) => {
@@ -271,14 +273,14 @@ class Processor {
                 cn.file_dependencies.found  = new Map<string,number>( json_data.found );
 
                 // and continue
-                this._done_for_this_build( env, cn );
+                this._test_if_done_for_this_build( env, cn );
             } catch ( e ) {
                 this._launch( env, cn );
             }
         } );
     }
 
-    _done_for_this_build( env: CompilationEnvironment, cn: CompilationNode ): void {
+    _test_if_done_for_this_build( env: CompilationEnvironment, cn: CompilationNode ): void {
         let _ko = ( msg: string ) => {
             if ( env.verbose )
                 env.com.note( cn, `  Update of ${ cn.pretty }. Reason: ${ msg }` );
@@ -323,6 +325,7 @@ class Processor {
 
     _exec_done_cb( com: CommunicationEnvironment, cn: CompilationNode, err: boolean ): void {
         cn.num_build_done = this.num_build;
+        cn.build_error    = err;
 
         let done_cbs = [ ...cn.done_cbs ];
         cn.done_cbs.length = 0;
@@ -436,11 +439,12 @@ class Processor {
                             this._action_from_service( service, JSON.parse( line ) );
                         } catch( e ) {
                             console.log( e );
-                            
                             if ( service.env )
-                                service.env.com.error( service.cn, `Error: while parsing '${ line }' for '${ service.cn.pretty }': ${ e.toString() }. => Service is going to be killed` );
-                            if ( service.cp )
+                                service.env.com.error( service.cn, `Error: while parsing '${ line }' for '${ service.cn.pretty }': ${ e.toString() }. => Service is going to be killed (see server.log for full stack)` );
+                            if ( service.cp ) {
                                 service.cp.kill();
+                                service.cp = null;
+                            }
                         }
                     }
                     lines = lines.slice( index_lf + 1 );
@@ -453,13 +457,10 @@ class Processor {
             } else
                 service.cp.on( 'message', on_message );
 
-            service.cp.on( 'close', ( code: number, signal: string ) => {
+            service.cp.on( 'exit', ( code: number, signal: string ) => {
                 if ( signal && service.env )
                     service.env.com.error( service.cn, `Service ${ category } ended with signal ${ signal }` );
-                this._action_from_service( service, null );
-                // restart
-                // if ( service.want_restart )
-                //     this.services[ pos ] = this._make_new_service( pos );
+                setTimeout( () => this._action_from_service( service, null ), 100 ); // this is ugly... but tools continue to produce content after exit
             } );
 
             service.cp.on( 'error', err => {
@@ -470,9 +471,10 @@ class Processor {
         };
 
         if ( category )
-            this._make_cp_for_cat( category, com, init_cp );
+            this._make_child_process_for_cat( category, com, init_cp );
         else
-            init_cp( child_process.fork( path.resolve( __dirname, "main_js_services.js" ), [], { stdio: [ 'pipe', 1, 2, 'ipc' ] } as any ), false );
+            init_cp( child_process.spawn( process.argv[ 0 ], [ path.resolve( __dirname, "main_js_services.js" ) ], { stdio: [ 'pipe', 1, 2, 'ipc' ] } as any ), false );
+            // init_cp( child_process.fork( path.resolve( __dirname, "main_js_services.js" ), [], { stdio: [ 'pipe', 1, 2, 'ipc' ] } as any ), false );
     }
 
     _action_from_service( service: Service, cmd: { action: string, msg_id: string, args: any, use_stdin: boolean } ): void {
@@ -572,9 +574,6 @@ class Processor {
             }
 
             case "get_cn_data": {
-                if ( ! cmd.args.signature )
-                    console.log( service.cn.pretty );
-                
                 let ncn = service.env.com.proc.pool.factory( cmd.args.signature );
                 service.status = "waiting";
                 return this.make( service.env, ncn, err => {
@@ -729,7 +728,7 @@ class Processor {
     }
 
     /** make child process for a given "category" (which is actually the path of the service entry point) */
-    _make_cp_for_cat( category: string, com: CommunicationEnvironment, init_cp: ( cp: child_process.ChildProcess, use_stdio: boolean ) => void ): void {
+    _make_child_process_for_cat( category: string, com: CommunicationEnvironment, init_cp: ( cp: child_process.ChildProcess, use_stdio: boolean ) => void ): void {
         // new environment 
         const ep = this.pool.factory( Pool.signature( "Id", [], { target: category } ) );
         let nce = new CompilationEnvironment( com, this.build_dir, {

@@ -60,6 +60,7 @@ class CompilationNode {
     num_build_done      = 0;                                     /** */
     num_build_seen      = 0;                                     /** */
     num_build_exec      = 0;                                     /** */
+    build_error         = false;                                 /** true is previous build led to an error */        
     loaded_from_db      = false;                                 /** true if already loaded from the database */
     done_cbs            = new Array<( err: boolean ) => void>(); /** waiting done_cb */
     start               : [ number, number ]; // time
