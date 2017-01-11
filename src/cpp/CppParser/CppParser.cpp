@@ -236,6 +236,12 @@ void CppParser::_nsmake( const char *b, const char *e, Read *read ) {
         cpp_flags.push_back( cf( 1 ) );
         return;
     }
+    if ( spl[ 0 ] == "c_flag" ) {
+        if ( nspl.size() < 2 ) throw "'//// nsmake c_flag' is supposed to be followed by 1 argument";
+        if ( glob ) task->append_to_env_var( "c_flag", cf( 1 ) );
+        c_flags.push_back( cf( 1 ) );
+        return;
+    }
     if ( spl[ 0 ] == "lib_path" ) {
         if ( nspl.size() < 2 ) throw "'//// nsmake lib_path' is supposed to be followed by 1 argument";
         lib_paths.push_back( cf( 1 ) );
@@ -256,8 +262,13 @@ void CppParser::_nsmake( const char *b, const char *e, Read *read ) {
         cxx_name = cf( 1 );
         return;
     }
+    if ( spl[ 0 ] == "ld_name" ) {
+        if ( nspl.size() < 2 ) throw "'//// nsmake ld_name' is supposed to be followed by 1 argument";
+        ld_name = cf( 1 );
+        return;
+    }
     if ( spl[ 0 ] == "ar_name" ) {
-        if ( nspl.size() < 2 ) throw "'//// nsmake cxx_name' is supposed to be followed by 1 argument";
+        if ( nspl.size() < 2 ) throw "'//// nsmake ar_name' is supposed to be followed by 1 argument";
         ar_name = cf( 1 );
         return;
     }

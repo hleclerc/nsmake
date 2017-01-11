@@ -52,6 +52,7 @@ void CppCompiler::exec() {
     //
     string compiler = cp.cxx_name.size() ? cp.cxx_name : from_json( children[ 2 ].exe_data[ "compiler"  ] );
     string archiver = cp.ar_name .size() ? cp.ar_name  : from_json( children[ 2 ].exe_data[ "archiver"  ] );
+    string linker   = cp.ld_name .size() ? cp.ld_name  : from_json( children[ 2 ].exe_data[ "linker"    ] );
 
     // update of exe_data
     exe_data[ "orig_name" ] = orig_name;
@@ -70,5 +71,6 @@ void CppCompiler::exec() {
 
     exe_data[ "command_sgn" ] = make_signature( "Executor", { signature }, exe_args );
     exe_data[ "compiler"    ] = compiler;
+    exe_data[ "linker"      ] = linker;
     exe_data[ "archiver"    ] = archiver;
 }

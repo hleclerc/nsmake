@@ -10,6 +10,7 @@ interface BaseCompilerInfoArgs {
     compiler: string; /** null if compiler has to be found automatically */
     linker  : string; /** null if linker has to be found automatically */
     archiver: string; /** null if archiver has to be found automatically */
+
     target  : string; /** c, cpp, ... */
 }
 
@@ -17,6 +18,7 @@ export
 class ExeDataBaseCompilerInfo {
     inc_paths = new Array<string>(); /** "system" include paths */
     defines   = "";                  /** "system" defines */
+    
     compiler  = "";                  /** g++, gcc, clang++, ... */
     linker    = "";                  /** g++, ld, ... */
     archiver  = "";                  /** ar, ... */
