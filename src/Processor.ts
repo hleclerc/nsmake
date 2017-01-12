@@ -68,6 +68,9 @@ class Processor {
     
     /** launch `cn`. When done, call `done_cb` */
     make( env: CompilationEnvironment, cn: CompilationNode, done_cb: ( err: boolean ) => void ): void {
+        // if ( cn.type != "Id" )
+        //     console.log( cn.pretty, env == null, cn == null, cn.num_build_done == this.num_build, cn.num_build_seen == this.num_build );
+
         // late answer for a killed service...
         if ( env == null || cn == null )
             return;
@@ -144,7 +147,7 @@ class Processor {
                 try {
                     lst.push( ...JSON.parse( val ).generated );
                 } catch ( e ) {
-                    console.log( e );
+                    console.error( e );
                 }
                 return true;
             }
@@ -175,9 +178,6 @@ class Processor {
 
         // if error => cleansing
         if ( err ) {
-console.log( "done:", cn.pretty );
-console.log( "rm:", cn.generated );
-            
             return async.forEach( cn.generated, ( name, cb ) => rimraf( name, err => cb( null ) ), rimraf_err => {
                 cn.outputs.length = 0;
                 cn.generated.length = 0;
@@ -441,7 +441,7 @@ console.log( "rm:", cn.generated );
                         try {
                             this._action_from_service( service, JSON.parse( line ) );
                         } catch( e ) {
-                            console.log( e );
+                            console.error( e );
                             if ( service.env )
                                 service.env.com.error( service.cn, `Error: while parsing '${ line }' for '${ service.cn.pretty }': ${ e.toString() }. => Service is going to be killed (see server.log for full stack)` );
                             if ( service.cp ) {
@@ -462,10 +462,9 @@ console.log( "rm:", cn.generated );
 
             service.cp.on( 'exit', ( code: number, signal: string ) => {
                 if ( signal && service.env )
-                    service.env.com.error( service.cn, `Service ${ category } ended with signal ${ signal }` );
-console.log( 'exit:', service.cn.pretty );
+                    service.env.com.error( service.cn, `Service${ category ? " " + category : "" } ended with signal ${ signal }` );
                 setTimeout( () => this._action_from_service( service, null ), 5000 ); // this is ugly... but tools continue to produce content after exit
-                // this._action_from_service( service, null ); // this is ugly... but tools continue to produce content after exit
+                // this._action_from_service( service, null );
             } );
 
             service.cp.on( 'error', err => {
@@ -476,10 +475,10 @@ console.log( 'exit:', service.cn.pretty );
         };
 
         if ( category )
-            this._make_child_process_for_cat( category, com, init_cp );
+            this._make_child_process_for_category( category, com, init_cp );
         else
             init_cp( child_process.spawn( process.argv[ 0 ], [ path.resolve( __dirname, "main_js_services.js" ) ], { stdio: [ 'pipe', 1, 2, 'ipc' ] } as any ), false );
-            // init_cp( child_process.fork( path.resolve( __dirname, "main_js_services.js" ), [], { stdio: [ 'pipe', 1, 2, 'ipc' ] } as any ), false );
+        // init_cp( child_process.fork( path.resolve( __dirname, "main_js_services.js" ), [], { stdio: [ 'pipe', 1, 2, 'ipc' ] } as any ), false );
     }
 
     _action_from_service( service: Service, cmd: { action: string, msg_id: string, args: any, use_stdin: boolean } ): void {
@@ -513,10 +512,10 @@ console.log( 'exit:', service.cn.pretty );
         const spl_act = cmd.action.split( ":" );
         switch ( spl_act[ 0 ] ) {
             // display
-            case "announcement": if ( service.env ) service.env.com.announcement( service.cn, cmd.args.msg ); else console.log( cmd.args.msg ); return;
-            case "note"        : if ( service.env ) service.env.com.note        ( service.cn, cmd.args.msg ); else console.log( cmd.args.msg ); return;
-            case "info"        : if ( service.env ) service.env.com.info        ( service.cn, cmd.args.msg ); else console.log( cmd.args.msg ); return;
-            case "error"       : if ( service.env ) service.env.com.error       ( service.cn, cmd.args.msg ); else console.log( cmd.args.msg ); return;
+            case "announcement": if ( service.env ) service.env.com.announcement( service.cn, cmd.args.msg ); else console.error( cmd.args.msg ); return;
+            case "note"        : if ( service.env ) service.env.com.note        ( service.cn, cmd.args.msg ); else console.error( cmd.args.msg ); return;
+            case "info"        : if ( service.env ) service.env.com.info        ( service.cn, cmd.args.msg ); else console.error( cmd.args.msg ); return;
+            case "error"       : if ( service.env ) service.env.com.error       ( service.cn, cmd.args.msg ); else console.error( cmd.args.msg ); return;
 
             // actions
             case "done":
@@ -733,7 +732,7 @@ console.log( 'exit:', service.cn.pretty );
     }
 
     /** make child process for a given "category" (which is actually the path of the service entry point) */
-    _make_child_process_for_cat( category: string, com: CommunicationEnvironment, init_cp: ( cp: child_process.ChildProcess, use_stdio: boolean ) => void ): void {
+    _make_child_process_for_category( category: string, com: CommunicationEnvironment, init_cp: ( cp: child_process.ChildProcess, use_stdio: boolean ) => void ): void {
         // new environment 
         const ep = this.pool.factory( Pool.signature( "Id", [], { target: category } ) );
         let nce = new CompilationEnvironment( com, this.build_dir, {
@@ -749,7 +748,7 @@ console.log( 'exit:', service.cn.pretty );
             nce.get_mission_node( new FileDependencies, ncn => {
                 if ( ! ncn ) return init_cp( null, true );
                 this.make( nce, ncn, err => {
-                    if ( err ) return init_cp( null, true );
+                   if ( err ) return init_cp( null, true );
                     init_cp( child_process.spawn( ncn.outputs[ 0 ] ), true );
                     // init_cp( child_process.spawn( "valgrind", [ ncn.outputs[ 0 ] ] ), true );
                 } );

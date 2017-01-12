@@ -18,7 +18,13 @@ class Pool {
     }
 
     factory( signature: string ): CompilationNode {
-        return this.m.get( signature ) || this._make_cn( JSON.parse( signature ) );
+        try {
+            return this.m.get( signature ) || this._make_cn( JSON.parse( signature ) );
+        } catch ( e ) {
+            console.log( "signature:", signature );
+            console.log( e );
+            throw e;
+        }
     }
 
     _make_cn( dat: [ string, Array<any>, any ] ): CompilationNode {
