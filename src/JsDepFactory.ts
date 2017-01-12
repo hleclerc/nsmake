@@ -68,7 +68,7 @@ class JsDepFactory extends Task {
             // parse required file in parallel
             const lst = to_be_parsed.slice( num_to_be_parsed ).map( sgn => this.make_signature( "JsParser", [ sgn ], {
                 js_env             : args.js_env,
-                define             : args.define,
+                define             : [ ...args.define, `NSMAKE_JS_ENV_IS_${ args.js_env }` ],
                 babel_env_arguments: args.babel_env_arguments,
                 target_browsers    : args.target_browsers,
             } as ArgsJsParser ) );

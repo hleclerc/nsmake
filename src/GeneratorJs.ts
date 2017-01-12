@@ -123,23 +123,13 @@ class GeneratorJs extends Generator {
             // run a js file ?
             if ( args.mission == "run" ) {
                 // new mission, to make an "executable"
-                let nce = this.env.clone( {
-                    mission: args.js_env == "browser" && ! args.run_loc ? "html" : "exe"
-                } );
+                let nce = this.env.clone( { mission: args.js_env == "browser" && ! args.run_loc ? "html" : "exe" } );
                 return nce.get_mission_node( for_found, cn => {
-                    // arguments for "Executor"
-                    // let ch = [ cn ] as Array<CompilationNode>, exe_args = [ 0 ] as Array<string|number>;
-                    // for( const arg of ( args.arguments || [] ) as Array<string|CompilationNode> ) {
-                    //     if ( arg instanceof CompilationNode ) {
-                    //         exe_args.push( ch.length );
-                    //         ch.push( arg );
-                    //     } else
-                    //         exe_args.push( arg );
-                    // }
-
-                    cb( this.env.com.proc.pool.New( "Executor", cns, {
+                    if ( ! cn )
+                        return cb( null );
+                    cb( this.env.com.proc.pool.New( "Executor", [ ...cns, cn ], {
                         executable     : this.env.arg_rec( "nodejs" ) || "node",
-                        args           : [ args.entry_point, ...( args.arguments || [] ) ],
+                        args           : [ cns.length, ...( args.arguments || [] ) ],
                         local_execution: typeof args.local_execution == "undefined" ? true: args.local_execution,
                         outputs        : args.redirect ? [ args.redirect ] : [],
                         redirect       : args.redirect || '',

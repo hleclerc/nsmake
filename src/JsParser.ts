@@ -277,7 +277,7 @@ class JsParser extends Task {
         const tokens = sm.src_content.match( js_tokens_matcher );
         let comments = new Array<Comment>(), beg = 0; // only nsmake comments 
         for( let token of tokens ) {
-            const m = token.match( "^////[ \t]+nsmake[ \t]+(.*)" );
+            const m = token.match( /^\/\/\/\/[ \t]+nsmake[ \t]+(.*)/ );
             if ( m ) {
                 let end = beg + m[ 0 ].length;
                 if ( sm.src_content[ end ] == "\n" )
@@ -311,6 +311,7 @@ class JsParser extends Task {
             switch ( spl[ 0 ] ) {
                 case "ifndef":
                 case "ifdef":
+                    this.note( `spl: ${ JSON.stringify( spl ) }` );
                     // find the corresponding endif
                     let m = find_endif( n );
                     if ( m < 0 ) {

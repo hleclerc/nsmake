@@ -463,8 +463,8 @@ class Processor {
             service.cp.on( 'exit', ( code: number, signal: string ) => {
                 if ( signal && service.env )
                     service.env.com.error( service.cn, `Service${ category ? " " + category : "" } ended with signal ${ signal }` );
-                setTimeout( () => this._action_from_service( service, null ), 5000 ); // this is ugly... but tools continue to produce content after exit
-                // this._action_from_service( service, null );
+                // setTimeout( () => this._action_from_service( service, null ), 5000 ); // this is ugly... but tools continue to produce content after exit
+                this._action_from_service( service, null );
             } );
 
             service.cp.on( 'error', err => {
