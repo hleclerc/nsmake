@@ -74,6 +74,7 @@ getos( ( err, si ) => {
     // central task manager
     let proc = new Processor( nsmake_dir, system_info );
     process.on( 'exit', code => proc.kill_all() );
+    process.on( 'uncaughtException', err => console.error( err ) );
 
     // creation of the server connection 
     const server = net.createServer( c => {

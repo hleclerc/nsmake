@@ -175,6 +175,9 @@ class Processor {
 
         // if error => cleansing
         if ( err ) {
+console.log( "done:", cn.pretty );
+console.log( "rm:", cn.generated );
+            
             return async.forEach( cn.generated, ( name, cb ) => rimraf( name, err => cb( null ) ), rimraf_err => {
                 cn.outputs.length = 0;
                 cn.generated.length = 0;
@@ -460,7 +463,9 @@ class Processor {
             service.cp.on( 'exit', ( code: number, signal: string ) => {
                 if ( signal && service.env )
                     service.env.com.error( service.cn, `Service ${ category } ended with signal ${ signal }` );
-                setTimeout( () => this._action_from_service( service, null ), 100 ); // this is ugly... but tools continue to produce content after exit
+console.log( 'exit:', service.cn.pretty );
+                setTimeout( () => this._action_from_service( service, null ), 5000 ); // this is ugly... but tools continue to produce content after exit
+                // this._action_from_service( service, null ); // this is ugly... but tools continue to produce content after exit
             } );
 
             service.cp.on( 'error', err => {
@@ -480,8 +485,7 @@ class Processor {
     _action_from_service( service: Service, cmd: { action: string, msg_id: string, args: any, use_stdin: boolean } ): void {
         // helper: answer to a service command
         const ans = ( err: boolean, res = null ) => {
-            if ( service.cp )
-                service.send( JSON.stringify( { msg_id: cmd.msg_id, err, res } ) + "\n", cmd.use_stdin );
+            service.send( JSON.stringify( { msg_id: cmd.msg_id, err, res } ) + "\n", cmd.use_stdin );
         };
 
         // helper: display an error message
@@ -706,6 +710,7 @@ class Processor {
                         return g.msg_from_service( service, spl_act[ 1 ], cmd.args, ans, msg );
                 msg( `Unknown service command '${ cmd.action }'. => service is going to be killed` );
                 service.cp.kill();
+                service.cp = null;
         }
     }
 
