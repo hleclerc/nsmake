@@ -7,6 +7,7 @@ Nsmake takes responsibility to *ensure the link between the tools*. In most of t
 <!-- TOC -->
 
 - [What is Nsmake ?](#what-is-nsmake-)
+- [Table of contents](#table-of-contents)
 - [Main features](#main-features)
     - [Orthogonal, clean and clear configuration](#orthogonal-clean-and-clear-configuration)
     - [Speed, incrementality and correctness](#speed-incrementality-and-correctness)
@@ -14,10 +15,9 @@ Nsmake takes responsibility to *ensure the link between the tools*. In most of t
     - [Specific features](#specific-features)
         - [Javascript and friends](#javascript-and-friends)
         - [For native executables (C++/...)](#for-native-executables-c)
+- [Installation](#installation)
 - [Some tutorials](#some-tutorials)
 - [More specific information](#more-specific-information)
-
-# Table of contents
 
 <!-- /TOC -->
 
@@ -61,6 +61,21 @@ Nsmake takes responsibility to *ensure the link between the tools*. In most of t
 * Rules for **inline preprocessing** code generation (launching of nsmake tasks for code inclusion and modification during code parsing).
 * Automatic handling of **flags and downloads** for external libraries (`#include <libxml/tree.h>` probably that `libxml` is needed).
 * Integrated support for **testing frameworks** (gtest, ...),
+
+# Installation
+
+```
+npm install nsmake -g
+```
+
+Alternatively, you can use the git repository:
+
+```
+git clone https://github.com/hleclerc/nsmake.git
+cd nsmake
+npm install
+sudo npm link
+```
 
 # Some tutorials
 

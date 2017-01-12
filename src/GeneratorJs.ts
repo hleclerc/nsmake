@@ -299,7 +299,8 @@ class GeneratorJs extends Generator {
                     return require_cb( null, '' );
                 }
                 //
-                env.com.proc.install_cmd( env.com, cn, path.dirname( node_modules_dir ), [ "npm", 'install', typescript ? `@types/` + str : str ], [], err => err ? require_cb( null, '' ) : test_from( node_modules_dir, false ) );
+                const inds = str.indexOf( "/" ), base = inds >= 0 ? str.slice( 0, inds ) : str;
+                env.com.proc.install_cmd( env.com, cn, path.dirname( node_modules_dir ), [ "npm", 'install', typescript ? `@types/` + base : base ], [], err => err ? require_cb( null, '' ) : test_from( node_modules_dir, false ) );
             };
 
             // local, or look for a 'node_modules' directory, starting from cwd
