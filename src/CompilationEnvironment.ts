@@ -10,6 +10,7 @@ import * as path                from 'path'
 import GeneratorCodegen         from "./GeneratorCodegen";
 import GeneratorCpp             from "./GeneratorCpp";
 import GeneratorSh              from "./GeneratorSh";
+import GeneratorPy              from "./GeneratorPy";
 import GeneratorId              from "./GeneratorId";
 import GeneratorJs              from "./GeneratorJs";
 
@@ -31,6 +32,7 @@ class CompilationEnvironment {
         // add the default generators
         this.generators.push( new GeneratorCodegen( this ) );
         this.generators.push( new GeneratorCpp    ( this ) );
+        this.generators.push( new GeneratorPy     ( this ) );
         this.generators.push( new GeneratorSh     ( this ) );
         this.generators.push( new GeneratorJs     ( this ) );
         this.generators.push( new GeneratorId     ( this ) );
