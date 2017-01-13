@@ -62,8 +62,11 @@ function explore_variants( lst, var_name, img_name ) {
             } );
         } );
     }
-    for( const value of variants[ lst.length ].values )
-        explore_variants( [ ...lst, { name: variants[ lst.length ].name, value } ], `${ var_name }${ var_name.length ? "__" : "" }${ variants[ lst.length ].name }_${ value }`, img_name );
+    for( const value of variants[ lst.length ].values ) {
+        explore_variants( [ ...lst, { name: variants[ lst.length ].name, value } ], var_name + (
+            value.length ? ( var_name.length ? "__" : "" ) +`${ variants[ lst.length ].name }_${ value }` : ''
+        ), img_name );
+    }
 }
 
 for( const img_name of img_names )
