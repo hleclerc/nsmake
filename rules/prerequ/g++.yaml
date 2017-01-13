@@ -1,0 +1,4 @@
+- systems : [ "Ubuntu Linux", Debian ]
+  check   : which g++ > /dev/null
+  commands: pkexec apt-get install g++
+  root    : true

@@ -292,7 +292,7 @@ class Processor {
 
         // test for_found.failed
         async.forEach( [ ...cn.file_dependencies.failed.keys() ], ( name: string, cb: ( err: string ) => void ) => {
-            fs.exists( name, exists => cb( exists ? `now, file ${ name } exists (that was not the case before)` : '' ) );
+            fs.exists( name, exists => cb( exists ? `now, file '${ name }' exists (that was not the case before)` : '' ) );
         }, ( err ) => {
             if ( err )
                 return _ko( err );
@@ -300,8 +300,8 @@ class Processor {
             // test for_found.found
             async.forEach( [ ...cn.file_dependencies.found.keys() ], ( name: string, cb: ( err: string ) => void ) => {
                 fs.stat( name, ( err, stats ) => {
-                    if ( err ) return cb( `file ${ name } does not exist anymore` );
-                    cb( stats.mtime.getTime() != cn.file_dependencies.found.get( name ) ? `file ${ name } has changed` : '' );
+                    if ( err ) return cb( `file '${ name }' does not exist anymore` );
+                    cb( stats.mtime.getTime() != cn.file_dependencies.found.get( name ) ? `file '${ name }' has changed` : '' );
                 } );
             }, ( err ) => {
                 if ( err )
@@ -310,8 +310,8 @@ class Processor {
                 // test output mtime
                 async.forEachOf( cn.outputs, ( name: string, index: number, cb: ( err: string ) => void ) => {
                     fs.stat( name, ( err, stats ) => {
-                        if ( err ) return cb( `output file ${ name } does not exist anymore` );
-                        cb( stats.mtime.getTime() != cn.output_mtimes[ index ] ? `Error: file ${ name } has been modified outside of nsmake. Nsmake will not take the initiative to change the content (you can delete it if you want nsmake to generate it again)` : null );
+                        if ( err ) return cb( `output file '${ name }' does not exist anymore` );
+                        cb( stats.mtime.getTime() != cn.output_mtimes[ index ] ? `Error: file '${ name }' has been modified outside of nsmake. Nsmake will not take the initiative to change the content (you can delete it if you want nsmake to generate it again)` : null );
                     } );
                 }, ( err ) => {
                     if ( err )
@@ -767,18 +767,18 @@ class Processor {
             // chech sub prerequisites
             return async.forEach( rule.prerequ || [], ( sub_req: string, cb_prerequ ) => {
                 this._check_prerequ( com, cn, sub_req, cb_prerequ );
-            }, ( err_prerequ ) => {
+            }, err_prerequ => {
                 if ( err_prerequ )
                     return cb_rule_trial( false );
 
                 // command[s]
-                const exe_cmd = ( cmd: string | Array<string>, exe_cmd_cb: ( err: boolean ) => void ) => {
+                const exe_cmd = ( cmd: string | Array<string>, exe_cmd_cb: ( err: boolean ) => void, use_root: boolean, disp = true ) => {
                     if ( rule.shell == "powershell" ) {
                         if ( rule.admin )
                             cmd = [ "powershell", "-c", "Start-Process", "powershell.exe", "-Verb", "runAs", "-Argumentlist", ( typeof cmd == "string" ? cmd : cmd.map( x => '"' + x.replace( /"/g, '`"' ) + '"' ).join( "," ) ), "-Wait" ];
                         else
                             cmd = [ "powershell", "-c", ...( typeof cmd == "string" ? [ cmd ] : cmd ) ];
-                    } else if ( rule.admin || rule.root ) {
+                    } else if ( use_root && ( rule.admin || rule.root ) ) {
                         // TODO: admin with cmd.exe
                         // const prg = com.siTTY ? "sudo" : "pkexec";
                         const prg = "pkexec";
@@ -787,17 +787,29 @@ class Processor {
                         else
                             cmd.unshift( prg );
                     }
-                    this.__install_cmd( com, cn, cwd, cmd, exe_cmd_cb );
+                    this.__install_cmd( com, cn, cwd, cmd, exe_cmd_cb, disp );
                 };
-                if ( rule.commands )
-                    return async.forEachSeries( rule.commands as Array<string | Array<string>>, ( command: string | Array<string>, cb_fe: ( err: boolean ) => void ) => exe_cmd( command, cb_fe ), err => cb_rule_trial( ! err ) );
-                if ( rule.command )
-                    return exe_cmd( rule.command, err => cb_rule_trial( ! err ) );
-                return cb_rule_trial( true );
+                const pre_check = ( check_cmd: string | Array<string>, pre_check_cb: ( has: boolean ) => void ) => {
+                    if ( ! check_cmd )
+                        return pre_check_cb( true );
+                    exe_cmd( check_cmd, err => pre_check_cb( ! err ), false, false );
+                }
+                pre_check( rule.check, has => {
+                    if ( ! has ) {
+                        if ( rule.commands ) {
+                            return async.forEachSeries( rule.commands as Array<string | Array<string>>, ( command: string | Array<string>, 
+                                cb_fe: ( err: boolean ) => void ) => exe_cmd( command, cb_fe, rule.admin || rule.root ),
+                                err => cb_rule_trial( ! err )
+                            );
+                        }
+                        if ( rule.command )
+                            return exe_cmd( rule.command, err => cb_rule_trial( ! err,  ), rule.admin || rule.root );
+                    }
+                    return cb_rule_trial( true );
+                } );
             } );
         }, ok => {
-            if ( ! ok )
-                cb( true, tried ? "errors during installation" : `there's no 'load_sets' rule for current system (${ JSON.stringify( system_info ) })` );
+            ok ? cb( false, "" ) : cb( true, tried ? "errors during installation" : `there's no 'load_sets' rule for current system (${ JSON.stringify( system_info ) })` );
         } );
     }
 
@@ -813,7 +825,7 @@ class Processor {
     }
 
     /** ex of category: npm... */
-    __install_cmd( com: CommunicationEnvironment, cn: CompilationNode, cwd: string, cmd: Array<string> | string, cb: ( err: boolean ) => void ) {
+    __install_cmd( com: CommunicationEnvironment, cn: CompilationNode, cwd: string, cmd: Array<string> | string, cb: ( err: boolean ) => void, disp = true ) {
         const key = cwd;
         if ( this.current_install_cmds.has( key ) )
             return this.waiting_install_cmds.push( { com, cn, cwd, cmd, cb } );
@@ -827,7 +839,8 @@ class Processor {
             }
         }
 
-        com.announcement( cn, typeof cmd == "string" ? cmd : cmd.join( " " ) );
+        if ( disp )
+            com.announcement( cn, typeof cmd == "string" ? cmd : cmd.join( " " ) );
         //
         typeof cmd == "string" ?
             this._exec_local( com, cmd, "", ( code: number ) => { cont(); cb( code != 0 ); } ) :

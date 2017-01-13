@@ -27,7 +27,7 @@ class Codegen extends Task {
             switch ( tok.type ) {
                 case "Target":
                     argv.push( inp_sgns.length );
-                    inp_sgns.push( this.get_filtered_target_signature( path.resolve( args.cwd, tok.name ), args.cwd ) );
+                    inp_sgns.push( this.get_filtered_target_signature( path.resolve( args.cwd, tok.name.startsWith( "#" ) ? path.resolve( __dirname, "..", "..", "rules", "gen", tok.name.slice( 1 ) ) : tok.name ), args.cwd ) );
                     break;
                 case "Quoted":
                     argv.push( tok.str );

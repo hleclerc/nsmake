@@ -1,2 +1,4 @@
-- systems: []
+- systems: [ win32 ]
   prerequ: [ clang ]
+- systems: []
+  prerequ: [ g++ ]

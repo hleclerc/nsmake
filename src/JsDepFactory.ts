@@ -73,6 +73,10 @@ class JsDepFactory extends Task {
                 target_browsers    : args.target_browsers,
             } as ArgsJsParser ) );
             const res_js_parsers = this.get_cns_data( lst ) as Array<ResJsParser>;
+            if ( ! res_js_parsers ) {
+                this.error( `pb in lst: ${ JSON.stringify( lst ) }` );
+                throw "";
+            }
             num_to_be_parsed = to_be_parsed.length;
             
             // store the aliases, find the new required files

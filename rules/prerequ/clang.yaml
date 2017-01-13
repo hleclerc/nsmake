@@ -1,4 +1,5 @@
 - systems : [ win32 ]
   # TODO: use a temp file
+  check   : which clang
   commands: [ 'iwr "http://releases.llvm.org/3.9.1/LLVM-3.9.1-win64.exe" -OutFile llvm.exe -UseBasicParsing', 'Start-Process .\llvm.exe -Wait', 'rm .\llvm.exe' ]
   shell   : powershell

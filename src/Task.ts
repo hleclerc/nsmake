@@ -42,7 +42,7 @@ abstract class Task {
     get_filtered_target( target: string, cwd: string, cb = null as ( err: boolean, res: { name: string, signature: string } ) => void, throw_if_err = ! cb ): { name: string, signature: string } {
         const res = this._send_and_wait( "get_filtered_target", { target, cwd }, cb, throw_if_err );
         if ( throw_if_err && cb == null && res == null )
-            throw `Don't know how to make or build target ${ target }`;
+            throw `Don't know how to make or build target '${ target }'`;
         return res;
     }
 
@@ -50,7 +50,7 @@ abstract class Task {
     get_filtered_target_signature( target: string, cwd: string, cb = null as ( err: boolean, res: string ) => void, throw_if_err = ! cb ): string {
         const res = this._send_and_wait( "get_filtered_target_signature", { target, cwd }, cb, throw_if_err );
         if ( throw_if_err && cb == null && res == null )
-            throw `Don't know how to make or build target ${ target }`;
+            throw `Don't know how to make or build target '${ target }'`;
         return res;
     }
 

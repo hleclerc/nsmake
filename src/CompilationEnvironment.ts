@@ -69,13 +69,15 @@ class CompilationEnvironment {
 
         p.add_argument( [], [], 'dist-dir'    , 'Set directory for public/distribution (i.e. not intermediate) outputs' );
 
-        p.set_mission_description( 'clean', [], 'remove all the output files'                                                                         );
-        p.set_mission_description( 'stop' , [], 'stop the server'                                                                                     );
-        p.set_mission_description( 'help' , [], 'get help, generic, or for a given mission (in [__MISSION_TYPES__]) or universe (in [__UNIVERSES__])' );
-        p.set_mission_description( 'run'  , [], '...'                                                                                                 );
-        p.set_mission_description( 'sleep', [], 'wait for n milliseconds'                                                                             );
+        p.set_mission_description( 'clean'  , [], 'remove all the output files'                                                                         );
+        p.set_mission_description( 'prerequ', [], 'check for prerequisites'                                                                             );
+        p.set_mission_description( 'stop'   , [], 'stop the server'                                                                                     );
+        p.set_mission_description( 'help'   , [], 'get help, generic, or for a given mission (in [__MISSION_TYPES__]) or universe (in [__UNIVERSES__])' );
+        p.set_mission_description( 'run'    , [], '...'                                                                                                 );
+        p.set_mission_description( 'sleep'  , [], 'wait for n milliseconds'                                                                             );
 
         p.add_positional_argument( [ 'help'              ], 'help-args'  , 'mission(s) or universe(s) to focus on', 'string*' );
+        p.add_positional_argument( [ 'prerequ'           ], 'prerequs'   , 'needed prerequisite(s)'               , 'string*' );
         p.add_positional_argument( [ 'exe', 'run', 'lib' ], 'entry-point', 'name of the sourcefile'               , 'cn'      );
         p.add_positional_argument( [ 'run'               ], 'arguments'  , "arguments passed to the executable"   , 'string*' );
         p.add_positional_argument( [ 'sleep'             ], 'time'       , "time in milliseconds to wait for"     , 'number'  );
