@@ -27,13 +27,13 @@ class CommunicationEnvironment {
     }
 
     /** launch executable from the client */
-    spawn_local( id: string, executable: string, args: Array<string>, redirect = "" ): void {
-        this.c.write( `s ${ [ id, redirect, executable, ...args ].map( SpRepr.encode ).join( " " ) }\n` );
+    spawn_local( id: string, executable: string, args: Array<string>, redirect = "", cwd = this.cwd ): void {
+        this.c.write( `s ${ [ id, redirect, cwd, executable, ...args ].map( SpRepr.encode ).join( " " ) }\n` );
     }
 
     /** launch executable from the client */
-    exec_local( id: string, cmd: string, redirect = "" ): void {
-        this.c.write( `e ${ [ id, redirect, cmd ].map( SpRepr.encode ).join( " " ) }\n` );
+    exec_local( id: string, cmd: string, redirect = "", cwd = this.cwd ): void {
+        this.c.write( `e ${ [ id, redirect, cwd, cmd ].map( SpRepr.encode ).join( " " ) }\n` );
     }
 
     // communication

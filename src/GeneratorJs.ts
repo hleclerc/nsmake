@@ -274,19 +274,19 @@ class GeneratorJs extends Generator {
                 //
                 if ( ! node_modules_dir ) {
                     // if file is in the launch directory, we add a node_module here
-                    if ( cwd.startsWith( env.cwd ) ) {
-                        const new_node_modules_dir = path.resolve( env.cwd, "node_modules" );
-                        return fs.mkdir( new_node_modules_dir, err => {
-                            if ( err && err.code != 'EEXIST' ) {
-                                env.com.error( cn, `Impossible to create directory ${ new_node_modules_dir }` );
-                                return require_cb( null, '' );
-                            }
-                            try_installation( install_allowed, new_node_modules_dir );
-                        } );
-                    }
-                    //
-                    env.com.error( cn, `Error while trying to load module '${ str }': there's no 'node_modules' directory from '${ cwd }' and the later is not in the launch dir ('${ env.cwd }'). Nsmake is not willing to create a 'node_modules' by itself... Please add a new one in '${ cwd }' or in a parent dir if you want nsmake to install the module (or... directly install the module, it would be another good solution :) )` );
-                    return require_cb( null, '' );
+                    let dir = cwd.startsWith( env.cwd ) ? env.cwd : cwd;
+                    const new_node_modules_dir = path.resolve( dir, "node_modules" );
+                    return fs.mkdir( new_node_modules_dir, err => {
+                        if ( err && err.code != 'EEXIST' ) {
+                            env.com.error( cn, `Impossible to create directory ${ new_node_modules_dir }` );
+                            return require_cb( null, '' );
+                        }
+                        try_installation( install_allowed, new_node_modules_dir );
+                    } );
+                    // }
+                    // //
+                    // env.com.error( cn, `Error while trying to load module '${ str }': there's no 'node_modules' directory from '${ cwd }' and the later is not in the launch dir ('${ env.cwd }'). Nsmake is not willing to create a 'node_modules' by itself... Please add a new one in '${ cwd }' or in a parent dir if you want nsmake to install the module (or... directly install the module, it would be another good solution :) )` );
+                    // return require_cb( null, '' );
                 }
                 //
                 const inds = str.indexOf( "/" ), base = inds >= 0 ? str.slice( 0, inds ) : str;

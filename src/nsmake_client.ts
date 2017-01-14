@@ -71,18 +71,18 @@ function start_server( nsmake_dir: string, fifo_file: string, cb_ready: () => vo
 }
 
 /** */
-function spawn_local( client: net.Socket, id: string, redirect: string, executable: string, args: Array<string> ) {
+function spawn_local( client: net.Socket, id: string, redirect: string, cwd: string, executable: string, args: Array<string> ) {
     if ( redirect )
         throw new Error( "TODO" );
-    const cp = child_process.spawn( executable, args, { env: process.env, stdio: [ 0, 1, 2 ] } );
+    const cp = child_process.spawn( executable, args, { env: process.env, stdio: [ 0, 1, 2 ], cwd } );
     cp.on( 'close', code => client.write( `spawn_done ${ SpRepr.encode( id ) } ${ code.toString() }\n` ) );
 }
 
 /** */
-function exec_local( client: net.Socket, id: string, redirect: string, cmd: string ) {
+function exec_local( client: net.Socket, id: string, redirect: string, cwd: string, cmd: string ) {
     if ( redirect )
         throw new Error( "TODO" );
-    const cp = child_process.spawn( cmd, [], { env: process.env, stdio: [ 0, 1, 2 ], shell: true } );
+    const cp = child_process.spawn( cmd, [], { env: process.env, stdio: [ 0, 1, 2 ], shell: true, cwd } );
     cp.on( 'close', code => {
         client.write( `spawn_done ${ SpRepr.encode( id ) } ${ code.toString() }\n` );
     } );
@@ -138,14 +138,14 @@ function send_query( pager: Pager, nsmake_dir: string, type: string, cur_dir: st
             for( const line of lines.slice( 0, index_lf ).split( "\n" ) ) {
                 const args = line.split( " " ).map( x => SpRepr.decode( x ) );
                 switch ( args[ 0 ] ) {
-                case "A": pager.write( args[ 1 ], args[ 2 ], 0 );                                  break; // annoucement on a given channel
-                case "N": pager.write( args[ 1 ], args[ 2 ], 1 );                                  break; // note on a given channel
-                case "I": pager.write( args[ 1 ], args[ 2 ], 2 );                                  break; // information on a given channel
-                case "E": pager.write( args[ 1 ], args[ 2 ], 3 );                                  break; // error on a given channel
-                case "C": pager.close( args[ 1 ] );                                                break;  // close channel
-                case "X": process.exitCode = Number( args[ 1 ] ); pager.close_all(); client.end(); break; // end with code
-                case "s": spawn_local( client, args[ 1 ], args[ 2 ], args[ 3 ], args.slice( 4 ) ); break; // execute something locally 
-                case "e": exec_local( client, args[ 1 ], args[ 2 ], args[ 3 ] );                   break; // execute something locally 
+                case "A": pager.write( args[ 1 ], args[ 2 ], 0 );                                             break; // annoucement on a given channel
+                case "N": pager.write( args[ 1 ], args[ 2 ], 1 );                                             break; // note on a given channel
+                case "I": pager.write( args[ 1 ], args[ 2 ], 2 );                                             break; // information on a given channel
+                case "E": pager.write( args[ 1 ], args[ 2 ], 3 );                                             break; // error on a given channel
+                case "C": pager.close( args[ 1 ] );                                                           break;  // close channel
+                case "X": process.exitCode = Number( args[ 1 ] ); pager.close_all(); client.end();            break; // end with code
+                case "s": spawn_local( client, args[ 1 ], args[ 2 ], args[ 3 ], args[ 4 ], args.slice( 5 ) ); break; // execute something locally 
+                case "e": exec_local ( client, args[ 1 ], args[ 2 ], args[ 3 ], args[ 4 ] );                  break; // execute something locally 
                 default: console.log( "line:", line );
                 }
             }

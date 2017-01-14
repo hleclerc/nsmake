@@ -54,12 +54,13 @@ class ParseArgvAndBuildMission {
     _launch(): void {
         // define common argument types (mission independant)
         var p = new ArgumentParser( path.basename( this.argv[ 0 ] ), 'an hopefully less dummy build system', '0.0.1' );
-        p.add_argument( [], [], 'v,version'  , 'get version number'                                                                       , 'boolean' );
-        p.add_argument( [], [], 'w,watch'    , 'watch files, reconstruct dependencies if changed'                                         , 'boolean' );
-        p.add_argument( [], [], 'config-dir' , "specify the configuration directory (default: '~/.nsmake')"                               , "path"    );
-        p.add_argument( [], [], 'inotify'    , 'if -w or --watch, watch using inotify or equivalent (unsafe but consumes less ressources)', 'boolean' );
-        p.add_argument( [], [], 'watch-delay', 'if -w or --watch and method==polling, delay between tests, in ms'                                     );
-        p.add_argument( [], [], 'no-root'    , 'Automatically refuse root/admin installations'                                            , 'boolean' );
+        p.add_argument( [], [], 'v,version'        , 'get version number'                                                                       , 'boolean' );
+        p.add_argument( [], [], 'w,watch'          , 'watch files, reconstruct dependencies if changed'                                         , 'boolean' );
+        p.add_argument( [], [], 'config-dir'       , "specify the configuration directory (default: '~/.nsmake')"                               , "path"    );
+        p.add_argument( [], [], 'inotify'          , 'if -w or --watch, watch using inotify or equivalent (unsafe but consumes less ressources)', 'boolean' );
+        p.add_argument( [], [], 'watch-delay'      , 'if -w or --watch and method==polling, delay between tests, in ms'                                     );
+        p.add_argument( [], [], 'no-root'          , 'Automatically refuse root/admin installations'                                            , 'boolean' );
+        p.add_argument( [], [], 'current-build-seq', 'Do not wait for the previous to be completed'                                             , 'boolean' );
 
         // make a new environment
         this.env = new CompilationEnvironment( new CommunicationEnvironment( this.c, this.proc, this.nb_columns, this.siTTY, this.soTTY, this.cwd ), this.cwd );
@@ -98,35 +99,40 @@ class ParseArgvAndBuildMission {
             if ( err )
                 return this._end_comp( true, file_dependencies, [] );
 
-            // start a new build sequence
-            const on_wait = nb => this.env.com.note( null, nb > 1 ? `Waiting for another builds to complete (${ nb } tasks)` : `Waiting for another build to complete` );
-            const on_launch = () => this.env.com.note( null, `Launching build` );
-            
-            this.proc.start_new_build_seq( on_wait, on_launch, done_cb => {
+            // helper
+            const compilation = done_cb => {
                 // compilation of input CompilationNodes
                 async.forEach( this.env.cns, ( cn: CompilationNode, cb_comp ) => {
                     this.proc.make( this.env, cn, cb_comp );
                 }, ( err: boolean ) => {
                     if ( err ) {
                         this._end_comp( err, file_dependencies, this.env.cns );
-                        done_cb();
-                    } else {
-                        // get mission node
-                        this.env.get_mission_node( file_dependencies, mission_node => {
-                            if ( ! mission_node ) {
-                                this.send_err( `Error: don't known what to do for args ${ JSON.stringify( this.env.args ) }` );
-                                this._end_comp( true, file_dependencies, this.env.cns );
-                                return done_cb();
-                            }
-                            // compilation if mission node
-                            this.proc.make( this.env, mission_node, err => {
-                                this._end_comp( err, mission_node.file_dependencies, [ mission_node ] );
-                                done_cb();
-                            } );
+                        return done_cb();
+                    } 
+                    // get mission node
+                    this.env.get_mission_node( file_dependencies, mission_node => {
+                        if ( ! mission_node ) {
+                            this.send_err( `Error: don't known what to do for args ${ JSON.stringify( this.env.args ) } and cns=[${ this.env.cns.map( x => x.pretty ) }]` );
+                            this._end_comp( true, file_dependencies, this.env.cns );
+                            return done_cb();
+                        }
+                        // compilation if mission node
+                        this.proc.make( this.env, mission_node, err => {
+                            this._end_comp( err, mission_node.file_dependencies, [ mission_node ] );
+                            return done_cb();
                         } );
-                    }
+                    } );
                 } );
-            } );
+            };
+
+            // do it in the current build sequence ?
+            if ( this.env.args.current_build_seq )
+                return compilation( () => {} );
+
+            // start a new build sequence
+            const on_wait = nb => this.env.com.note( null, nb > 1 ? `Waiting for another builds to complete (${ nb } tasks)` : `Waiting for another build to complete` );
+            const on_launch = () => this.env.com.note( null, `Launching build` );
+            this.proc.start_new_build_seq( on_wait, on_launch, compilation );
         } );
     }
 

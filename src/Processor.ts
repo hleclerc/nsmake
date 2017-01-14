@@ -713,22 +713,26 @@ class Processor {
         }
     }
 
-    _spawn_local( com: CommunicationEnvironment, executable: string, args: Array<string>, redirect: string, cb: ( code: number ) => void ) {
+    _spawn_local( com: CommunicationEnvironment, executable: string, args: Array<string>, redirect: string, cb: ( code: number ) => void, cwd = com.cwd ) {
         const id = this.waiting_spw.size.toString();
-        com.spawn_local( id, executable, args, redirect );
+        com.spawn_local( id, executable, args, redirect, cwd );
         this.waiting_spw.set( id, { com, cb: ( code: number ) => {
             this.waiting_spw.delete( id );
             cb( code );
-        } } );
+            if ( this.waiting_spw.size )
+                throw "TODO !!";
+        }, cwd } );
     }
 
-    _exec_local( com: CommunicationEnvironment, cmd: string, redirect: string, cb: ( code: number ) => void ) {
+    _exec_local( com: CommunicationEnvironment, cmd: string, redirect: string, cb: ( code: number ) => void, cwd = com.cwd ) {
         const id = this.waiting_spw.size.toString();
-        com.exec_local( id, cmd, redirect );
+        com.exec_local( id, cmd, redirect, cwd );
         this.waiting_spw.set( id, { com, cb: ( code: number ) => {
             this.waiting_spw.delete( id );
+            if ( this.waiting_spw.size )
+                throw "TODO !!";
             cb( code );
-        } } );
+        }, cwd } );
     }
 
     /** make child process for a given "category" (which is actually the path of the service entry point) */
@@ -843,8 +847,8 @@ class Processor {
             com.announcement( cn, typeof cmd == "string" ? cmd : cmd.join( " " ) );
         //
         typeof cmd == "string" ?
-            this._exec_local( com, cmd, "", ( code: number ) => { cont(); cb( code != 0 ); } ) :
-            this._spawn_local( com, cmd[ 0 ], cmd.slice( 1 ), "", ( code: number ) => { cont(); cb( code != 0 ); } );
+            this._exec_local( com, cmd, "", ( code: number ) => { cont(); cb( code != 0 ); }, cwd ) :
+            this._spawn_local( com, cmd[ 0 ], cmd.slice( 1 ), "", ( code: number ) => { cont(); cb( code != 0 ); }, cwd );
 
         // const cp = typeof cmd == "string" ?
         //     child_process.exec( cmd, { cwd } ) : 
@@ -920,7 +924,7 @@ class Processor {
     services             = new Array<Service>();
     building             = false;
     waiting_cns          = new Array<{ env: CompilationEnvironment, cn: CompilationNode }>();
-    waiting_spw          = new Map<string,{ com: CommunicationEnvironment, cb: ( code: number ) => void }>();
+    waiting_spw          = new Map<string,{ com: CommunicationEnvironment, cb: ( code: number ) => void, cwd: string }>();
     waiting_build_seqs   = new Array<{ at_launch_cb: () => void, cb: ( done_cb: () => void ) => void }>(); 
     current_install_cmds = new Set<string>();
     waiting_install_cmds = new Array< { com: CommunicationEnvironment, cn: CompilationNode, cwd: string, cmd: Array<string> | string, cb: ( err: boolean ) => void } >();
