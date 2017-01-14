@@ -278,6 +278,7 @@ class JsParser extends Task {
         let comments = new Array<Comment>(), beg = 0; // only nsmake comments 
         for( let token of tokens ) {
             const m = token.match( /^\/\/\/\/[ \t]+nsmake[ \t]+(.*)/ );
+            const n = token.match( /^\/\*\*\*[ \t]+nsmake[ \t]+(.*)\*\/$/ );
             if ( m ) {
                 let end = beg + m[ 0 ].length;
                 if ( sm.src_content[ end ] == "\n" )
@@ -285,9 +286,13 @@ class JsParser extends Task {
                 else if ( sm.src_content.substr( end, 2 ) == "\r\n" )
                     end += 2;
                 comments.push({ content: m[ 1 ], beg, end });
+            } else if ( n ) {
+                let end = beg + n[ 0 ].length;
+                comments.push({ content: n[ 1 ], beg, end });
             }
             beg += token.length;
         }
+        this.note( `comments: ${ JSON.stringify( comments ) }` );
 
         // helper
         function find_endif( n: number ): number {
@@ -362,5 +367,12 @@ class JsParser extends Task {
         //
         for( let rem of to_remove.reverse() )
             sm.remove( rem.beg, rem.end );
+
+        // NSMAKE_CMD/NSMAKE_RUN
+        for( let token of tokens ) {
+            if ( token == "NSMAKE_CMD" || token == "NSMAKE_RUN" ) {
+            }
+            this.note( `token: ${ JSON.stringify( token ) }` );
+        }
     }
 }
