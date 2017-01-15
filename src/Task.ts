@@ -115,6 +115,61 @@ abstract class Task {
         return this._send_and_wait( "new_build_file", { orig, ext, dist }, cb );
     }
 
+    /** */
+    nsmake_cmd( args: Array<string>, cwd: string, ext: string, cb = null as ( err: boolean, name: string ) => void, default_lang = ".js" ): string {
+        const cn = this.run_mission_node( {
+            entry_point    : 0,
+            redirect       : -1,
+            mission        : "run",
+            cwd            : cwd,
+            arguments      : args.length > 2 ? args.slice( 2 ) : [],
+            pure_function  : true,
+            local_execution: false,
+            new_build_files: [ { orig: "NSMAKE_CMD_output", ext } ],
+        }, [
+            this.make_signature( "MakeFile", [], { content: args[ 0 ], orig: "", ext: args.length >= 2 ? args[ 1 ] : default_lang } )
+        ], cb ? ( err, res: CnData ) => {
+            if ( err )
+                return cb( true, null );
+            this.read_file( cn.outputs[ 0 ], ( err, data ) => {
+                if ( err ) {
+                    this.error( err.toString() );
+                    return cb( true, null );
+                }
+                cb( false, data.toString() );
+            } );
+        } : null, true );
+        // read content
+        return cb ? null : this.read_file_sync( cn.outputs[ 0 ] ).toString();
+    }
+
+    nsmake_run( args: Array<string>, cwd: string, ext: string, cb = null as ( err: boolean, name: string ) => void ): string {
+        const cn = this.run_mission_node( {
+            entry_point    : 0,
+            redirect       : -1,
+            mission        : "run",
+            cwd            : cwd,
+            arguments      : args.length > 2 ? args.slice( 2 ) : [],
+            pure_function  : true,
+            local_execution: false,
+            new_build_files: [ { orig: "NSMAKE_RUN_output", ext } ],
+        }, [
+            this.get_filtered_target_signature( path.resolve( cwd, args[ 0 ] ), cwd )
+        ], cb ? ( err, res: CnData ) => {
+            if ( err )
+                return cb( true, null );
+            this.read_file( cn.outputs[ 0 ], ( err, data ) => {
+                if ( err ) {
+                    this.error( err.toString() );
+                    return cb( true, null );
+                }
+                cb( false, data.toString() );
+            } );
+        } : null, true );
+        // read content
+        return cb ? null : this.read_file_sync( cn.outputs[ 0 ] ).toString();
+    }
+
     /** children = array of signatures */
     make_signature( type: string, children: Array<string>, args: any ): string {
         return stringify( [ type, children.map( sgn => JSON.parse( sgn ) ), args ] );

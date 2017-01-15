@@ -292,7 +292,6 @@ class JsParser extends Task {
             }
             beg += token.length;
         }
-        this.note( `comments: ${ JSON.stringify( comments ) }` );
 
         // helper
         function find_endif( n: number ): number {
@@ -369,10 +368,63 @@ class JsParser extends Task {
             sm.remove( rem.beg, rem.end );
 
         // NSMAKE_CMD/NSMAKE_RUN
-        for( let token of tokens ) {
+        for( let num_token = 0, pos = 0; num_token < tokens.length; ++num_token ) {
+            const token = tokens[ num_token ], beg = pos;
+            pos += token.length;
             if ( token == "NSMAKE_CMD" || token == "NSMAKE_RUN" ) {
+                // go to first '('
+                const skip_beg = ( sub_tok: string ) => sub_tok == ' ' || sub_tok.startsWith( "/*" ) || sub_tok.startsWith( "//" );
+                while ( ++num_token < tokens.length && skip_beg( tokens[ num_token ] ) )
+                    pos += tokens[ num_token ].length;
+                if ( tokens[ num_token ] != '(' ) {
+                    this.error( `Error: ${ token } is supposed to be followed by parenthesis (while parsing '${ orig_name }'). This command won't be substituted.` );
+                    continue;
+                }
+                pos += tokens[ num_token ].length;
+
+                // helper to get arguments
+                const simp_arg = ( tl: Array<string> ) => {
+                    while ( tl.length && tl[ 0 ] == ' ' )
+                        tl.shift();
+                    while ( tl.length && tl[ tl.length - 1 ] == ' ' )
+                        tl.pop();
+                    if ( tl.length == 1 && ( tl[ 0 ].startsWith( '"' ) || tl[ 0 ].startsWith( "'" ) || tl[ 0 ].startsWith( "`" ) ) )
+                        tl[ 0 ] = tl[ 0 ].substring( 1, tl[ 0 ].length - 1 );
+                    return tl.join( "" );
+                };
+
+                // get arguments
+                let nb_opened = 1, tl = new Array<string>(), args = new Array<string>();
+                for( ++num_token; num_token < tokens.length; ++num_token ) {
+                    const sub_tok = tokens[ num_token ];
+                    pos += sub_tok.length;
+                    if ( sub_tok == ")" ) {
+                        if( --nb_opened == 0 )
+                            break;
+                        tl.push( sub_tok );
+                    } else if ( sub_tok == "(" ) {
+                        tl.push( sub_tok );
+                        ++nb_opened;
+                    } else if ( sub_tok == "," ) {
+                        if ( nb_opened == 1 ) {
+                            args.push( simp_arg( tl ) );
+                            tl.length = 0;
+                        } else {
+                            tl.push( sub_tok );
+                        }
+                    } else {
+                        tl.push( sub_tok );
+                    }
+                }
+                if ( tl.length )
+                    args.push( simp_arg( tl ) );
+                //
+                const str = token == "NSMAKE_CMD" ?
+                    this.nsmake_cmd( args, path.dirname( orig_name ), ".js", null, ".js" ) :
+                    this.nsmake_run( args, path.dirname( orig_name ), ".js" );
+                sm.replace( beg, pos, str );
+                pos = beg + str.length;
             }
-            this.note( `token: ${ JSON.stringify( token ) }` );
         }
     }
 }
