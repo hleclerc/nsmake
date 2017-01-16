@@ -1,12 +1,16 @@
 import { fill_sm_with_js_tokens } from "./JsLazySourceMap"
 import SourceMap, { SmItem }      from "./SourceMap"
 import { pu }                     from "./ArrayUtil"
-import { ExeDataJsParser, ArgsJsParser,  
+import { ExeDataCssParser, 
+         ArgsCssParser  }         from "./CssParser"
+import { ExeDataJsParser,
+         ArgsJsParser,  
          Require, Accept, Pss  }  from "./JsParser"
 import Task                       from "./Task"
 import * as babel                 from 'babel-core'
 import * as path                  from 'path'
 
+// cn content of a js parser child + additionnal stuff for JsDepFactory
 interface ResJsParser {
     signature     : string;            /** signature of JsParser(...) */
     outputs       : Array<string>;
@@ -18,6 +22,18 @@ interface ResJsParser {
     content       : string;             /** content used in JsParser */
     sourcemap     : SourceMap;          /** */
     mtime         : number;             /** modification date of the used output */
+}
+
+// cn content of a css parser child + additionnal stuff for JsDepFactory
+interface ResCssParser {
+    signature     : string;            /** signature of CssParser(...) */
+    outputs       : Array<string>;
+    exe_data      : ExeDataCssParser;
+    // added by JsDepFactory
+    // need_rewrite  : boolean;
+    // content       : string;             /** content used in JsParser */
+    // sourcemap     : SourceMap;          /** */
+    // mtime         : number;             /** modification date of the used output */
 }
 
 export
@@ -92,6 +108,12 @@ class JsDepFactory extends Task {
             }
         }
         this.ep_js_parser = this.js_parsers.get( to_be_parsed[ 0 ] );
+
+        // css
+        let needed_css = new Array<string>();
+        for( let js of this.js_parsers.values() )
+            pu( needed_css, ...js.exe_data.needed_css );
+        this.css_parsers = this.get_cns_data( needed_css.map( x => this.make_signature( "CssParser", [ x ], {} ) ) ) as Array<ResCssParser>;
 
         //
         this._want_concat( args ) ?
@@ -357,7 +379,7 @@ class JsDepFactory extends Task {
         this.outputs.unshift( this._html_name );
 
         // default html template
-        let html_template = `<html>\n<head>\n  <meta charset='utf-8'>\n</head>\n<body>\n$HTML_CONTENT$SCRIPTS\n</body>\n</html>\n`;
+        let html_template = `<html>\n<head>\n  <meta charset='utf-8'>\n</head>\n$HEAD<body>\n$HTML_CONTENT$SCRIPTS\n</body>\n</html>\n`;
 
         // there's a nsmake html_template ?
         for( let js of this.js_parsers.values() ) {
@@ -372,14 +394,25 @@ class JsDepFactory extends Task {
 
         // scripts (ext_libs + result)
         let scripts = '';
-        for( let url_ext_lib of ( this.exe_data as ResJsDepFactory ).url_ext_libs )
+        for( const url_ext_lib of ( this.exe_data as ResJsDepFactory ).url_ext_libs )
             scripts += `  <script type='text/javascript' src='${ url_ext_lib }' charset='utf-8'></script>\n`;
         scripts += `  <script type='text/javascript' src='${ this.rel_with_dot( path.dirname( this._html_name ), this._js_name ) }' charset='utf-8'></script>`;
+
+        // head
+        let head = '';
+        for( const css of this.css_parsers ) {
+            // copy css
+            const css_name = this.new_build_file( css.outputs[ 0 ], ".css", args.dist_dir );
+            this.note( `Emission of '${ css_name }'` );
+            this.write_file_sync( css_name, this.read_file_sync( css.outputs[ 0 ] ) );
+            head += `  <link rel="stylesheet" type="text/css" href=${ JSON.stringify( this.rel_with_dot( path.dirname( this._html_name ), css_name ) ) }/>\n`;
+        }
 
         // substitutions
         const new_data = html_template.
             replace( "$HTML_CONTENT", [ ...this.js_parsers.values() ].map( x => x.exe_data.html_content.map( x => x + "\n" ) ).reduce( ( x, y ) => x.concat( y ) ).join( "" ) ).
-            replace( "$SCRIPTS"     , scripts );
+            replace( "$SCRIPTS"     , scripts ).
+            replace( "$HEAD"        , head );
 
         // output
         this.note( `Emission of '${ this._html_name }'` );
@@ -515,6 +548,7 @@ class JsDepFactory extends Task {
 
 
     js_parsers   = new Map<string,ResJsParser>();  /** signature => res of JsParser */ 
+    css_parsers  = new Array<ResCssParser>();      /**  */ 
     requires     = new Map<Require,string>();      /** require => signature */
     accepts      = new Map<Accept,string>();       /** require => signature */
     ep_js_parser : ResJsParser;                    /** JsParser of entry point */

@@ -6,7 +6,7 @@ import * as babel            from "babel-core";
 import * as yaml             from "js-yaml";
 import * as path             from "path";
 import * as fs               from "fs";
-const js_tokens_matcher = require("js-tokens");
+const js_tokens_matcher = require( "js-tokens" );
 
 export
 class Require {
@@ -45,6 +45,7 @@ class ExeDataJsParser {
     requires             = new Array<Require>();
     accepts              = new Array<Accept>();
     define               = new Array<string>();
+    needed_css           = new Array<string>();
     aliases              = new Array<{key:string,val:string}>();
     js_content_is_new    = false;                                           /** if JsParser has modified the original js content */
     pos_sharp_sourcemaps = new Array<Pss>();
@@ -141,7 +142,7 @@ function parser( js_parser: JsParser, exe_data: ExeDataJsParser, js_env: string 
                                     return;
                             }
 
-                            return js_parser.info( "TODO nsmake: `require` with complex expressions." );
+                            return js_parser.info( `TODO nsmake: "require" with complex expressions (${ JSON.stringify( arg ) }).` );
                         }
                     } else if ( expr.callee.type == 'MemberExpression' ) {
                         if ( expr.callee.object.type == 'MemberExpression' && expr.callee.object.object.type == 'Identifier' &&
@@ -358,6 +359,9 @@ class JsParser extends Task {
                 case "trans":
                     trans_list.push( { prog: path.resolve( path.dirname( orig_name ), spl[ nspl[ 1 ] ] ), args: cf( 2 ) } );
                     break;
+                case "css":
+                    exe_data.needed_css.push( this.get_filtered_target_signature( path.resolve( path.dirname( orig_name ), cf( 1 ) ), path.dirname( orig_name ) ) );
+                    break;
                 default:
                     this.error( `Unknown nsmake cmd: '${ spl[ nspl[ 0 ] ] }'` );
             }
@@ -378,15 +382,16 @@ class JsParser extends Task {
                     pos += tokens[ num_token ].length;
                 if ( tokens[ num_token ] != '(' ) {
                     this.error( `Error: ${ token } is supposed to be followed by parenthesis (while parsing '${ orig_name }'). This command won't be substituted.` );
+                    --num_token;
                     continue;
                 }
                 pos += tokens[ num_token ].length;
 
                 // helper to get arguments
                 const simp_arg = ( tl: Array<string> ) => {
-                    while ( tl.length && tl[ 0 ] == ' ' )
+                    while ( tl.length && skip_beg( tl[ 0 ] ) )
                         tl.shift();
-                    while ( tl.length && tl[ tl.length - 1 ] == ' ' )
+                    while ( tl.length && skip_beg( tl[ tl.length - 1 ] ) )
                         tl.pop();
                     if ( tl.length == 1 && ( tl[ 0 ].startsWith( '"' ) || tl[ 0 ].startsWith( "'" ) || tl[ 0 ].startsWith( "`" ) ) )
                         tl[ 0 ] = tl[ 0 ].substring( 1, tl[ 0 ].length - 1 );

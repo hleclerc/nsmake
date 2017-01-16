@@ -48,6 +48,7 @@
     "babel-types": "^6.19.0",
     "coffee-script": "^1.12.1",
     "console-stamp": "^0.2.4",
+    "css-tokens": "^2.0.0",
     "getos": "^2.8.2",
     "glob": "^7.1.1",
     "homedir": "^0.6.0",

@@ -122,7 +122,7 @@ abstract class Task {
             redirect       : -1,
             mission        : "run",
             cwd            : cwd,
-            arguments      : args.length > 2 ? args.slice( 2 ) : [],
+            arguments      : args.slice( 2 ),
             pure_function  : true,
             local_execution: false,
             new_build_files: [ { orig: "NSMAKE_CMD_output", ext } ],
@@ -149,7 +149,7 @@ abstract class Task {
             redirect       : -1,
             mission        : "run",
             cwd            : cwd,
-            arguments      : args.length > 2 ? args.slice( 2 ) : [],
+            arguments      : args.slice( 1 ),
             pure_function  : true,
             local_execution: false,
             new_build_files: [ { orig: "NSMAKE_RUN_output", ext } ],
@@ -256,7 +256,7 @@ abstract class Task {
     }
 
     /** */
-    write_file_sync( filename: string, content: string ): void {
+    write_file_sync( filename: string, content: string | Buffer ): void {
         fs.writeFileSync( filename, content );
     }
 

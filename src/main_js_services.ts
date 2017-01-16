@@ -14,6 +14,7 @@ adt( "MissionMaker"          );
 adt( "JsDepFactory"          );
 adt( "CppCompiler"           );
 adt( "MakeFile"              );
+adt( "CssParser"             );
 adt( "JsParser"              );
 adt( "Executor"              );
 adt( "Codegen"               );
