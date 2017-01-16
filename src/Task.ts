@@ -5,6 +5,7 @@ import * as path          from 'path';
 import * as fs            from 'fs';
 
 /** */
+export 
 interface CnData {
     signature: string;
     outputs  : Array<string>;
@@ -176,7 +177,7 @@ abstract class Task {
     }
 
     /** */
-    register_aliases( lst: Array< { key: string, val: string} > ): void  {
+    _register_aliases( lst: Array< { key: string, val: string} > ): void  {
         process.send( JSON.stringify( { action: "register_aliases", args: { lst } } ) + "\n" );
     }
 

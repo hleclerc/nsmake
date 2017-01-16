@@ -380,6 +380,8 @@ class JsParser extends Task {
                 const skip_beg = ( sub_tok: string ) => sub_tok == ' ' || sub_tok.startsWith( "/*" ) || sub_tok.startsWith( "//" );
                 while ( ++num_token < tokens.length && skip_beg( tokens[ num_token ] ) )
                     pos += tokens[ num_token ].length;
+                if ( num_token >= tokens.length )
+                    break;
                 if ( tokens[ num_token ] != '(' ) {
                     this.error( `Error: ${ token } is supposed to be followed by parenthesis (while parsing '${ orig_name }'). This command won't be substituted.` );
                     --num_token;

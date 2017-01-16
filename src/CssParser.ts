@@ -7,7 +7,7 @@ const css_tokens_matcher = require( "css-tokens" ).default;
 
 export
 class Url {
-    txt: string; /** ./foo */
+    sgn: string; /** compilation node signature */
     bin: number; /** begin input data (quote included if there's any) */
     bqu: number; /** begin quote (quote excluded) */
     equ: number; /** end quote (quote excluded) */
@@ -208,6 +208,8 @@ class CssParser extends Task {
                 const skip_beg = ( sub_tok: string ) => sub_tok == ' ' || sub_tok.startsWith( "/*" ) || sub_tok.startsWith( "//" );
                 while ( ++num_token < tokens.length && skip_beg( tokens[ num_token ] ) )
                     pos += tokens[ num_token ].length;
+                if ( num_token >= tokens.length )
+                    break;
                 if ( tokens[ num_token ] != '(' ) {
                     this.error( `Error: ${ token } is supposed to be followed by parenthesis (while parsing '${ orig_name }'). This command won't be substituted.` );
                     --num_token;
@@ -268,11 +270,33 @@ class CssParser extends Task {
             const token = tokens[ num_token ];
             this.note( `token: ${ JSON.stringify( token ) }` );
             pos += token.length;
-            if ( token == "url" ) {
+            if ( token == "@import" ) {
+                const skip_beg = ( sub_tok: string ) => sub_tok == ' ' || sub_tok.startsWith( "/*" ) || sub_tok.startsWith( "//" );
+                while ( ++num_token < tokens.length && skip_beg( tokens[ num_token ] ) )
+                    pos += tokens[ num_token ].length;
+                if ( num_token >= tokens.length )
+                    break;
+                
+                // register the url 
+                const txt = tokens[ num_token ];
+                if ( `'"`.indexOf( txt[ 0 ] ) >= 0 ) {
+                    const arg = txt.substring( 1, txt.length - 1 );
+                    exe_data.urls.push( {
+                        sgn: this.get_filtered_target_signature( path.resolve( path.dirname( orig_name ), arg ), path.dirname( orig_name ) ),
+                        bin: pos,
+                        bqu: pos + 1,                     
+                        equ: pos + txt.length - 1, 
+                        ein: pos + txt.length
+                    } );
+                }
+                pos += txt.length;
+            } else if ( token == "url" ) {
                 // go to first '('
                 const skip_beg = ( sub_tok: string ) => sub_tok == ' ' || sub_tok.startsWith( "/*" ) || sub_tok.startsWith( "//" );
                 while ( ++num_token < tokens.length && skip_beg( tokens[ num_token ] ) )
                     pos += tokens[ num_token ].length;
+                if ( num_token >= tokens.length )
+                    break;
                 if ( tokens[ num_token ] != '(' ) {
                     this.error( `Error: ${ token } is supposed to be followed by parenthesis (while parsing '${ orig_name }').` );
                     --num_token;
@@ -329,14 +353,17 @@ class CssParser extends Task {
                     continue;
                 }
                 exe_data.urls.push( {
-                    txt: args[ 0 ],                   /** ./foo */
+                    sgn: this.get_filtered_target_signature( path.resolve( path.dirname( orig_name ), args[ 0 ] ), path.dirname( orig_name ) ),
                     bin,
-                    bqu,                              /** begin quote (quote included) */
-                    equ: bqu + args[ 0 ].length,      /** end quote (quote included) */
-                    ein: bqu + args[ 0 ].length + din /** end quote (quote included) */
+                    bqu,                              
+                    equ: bqu + args[ 0 ].length,      
+                    ein: bqu + args[ 0 ].length + din 
                 } );
             }
         }
+        // this.note( `exe_data: ${ JSON.stringify( exe_data.urls.map( x => sm.src_content.substring( x.bin, x.ein ) ) ) }` );
+        // this.note( `exe_data: ${ JSON.stringify( exe_data.urls.map( x => sm.src_content.substring( x.bqu, x.equ ) ) ) }` );
+        // this.note( `exe_data: ${ JSON.stringify( exe_data.urls.map( x => x.sgn ) ) }` );
     }
 }
 
