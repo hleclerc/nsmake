@@ -1,5 +1,6 @@
 import JsLazySourceMap       from "./JsLazySourceMap"
 import SourceMap, { coords } from "./SourceMap"
+import { pu }                from "./ArrayUtil"
 import Task                  from "./Task"
 import * as bt               from "babel-types";
 import * as babel            from "babel-core";
@@ -263,7 +264,7 @@ class JsParser extends Task {
         // parse again the comments to find sourcemap indications
         let beg = 0;
         for( let token of sm.src_content.match( js_tokens_matcher ) ) {
-            const sharp_sm_matcher = token.match( /^\/\/(# sourceMappingURL=)([^\n]+)/ );
+            const sharp_sm_matcher = token.match( /^\/\/(#[ \t]+sourceMappingURL=)([^\n]+)/ );
             if ( sharp_sm_matcher ) {
                 exe_data.pos_sharp_sourcemaps.push({ beg, mid: beg + sharp_sm_matcher[ 1 ].length, end: beg + sharp_sm_matcher[ 0 ].length });
                 exe_data.sourcemap = path.resolve( path.dirname( this.outputs[ 0 ] ), sharp_sm_matcher[ 2 ] );
@@ -352,6 +353,7 @@ class JsParser extends Task {
                     exe_data.need_hmr = true;
                     break;
                 case "define":
+                    pu( exe_data.define, cf( 1 ) );
                     break;
                 case "alias":
                     exe_data.aliases.push( { key: path.resolve( path.dirname( orig_name ), spl[ nspl[ 1 ] ] ), val: path.resolve( path.dirname( orig_name ), cf( 2 ) ) } );

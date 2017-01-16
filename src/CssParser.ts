@@ -1,5 +1,6 @@
 import JsLazySourceMap       from "./JsLazySourceMap"
 import SourceMap, { coords } from "./SourceMap"
+import { pu }                from "./ArrayUtil"
 import Task                  from "./Task"
 import * as path             from "path";
 import * as fs               from "fs";
@@ -22,23 +23,30 @@ interface ArgsCssParser {
     define             : Array<string>;
 }
 
+/** Pos sharp sourcemap */
+class Pss {
+    beg: number; /** ^//# ... */
+    mid: number; /** //# sourcemap=^... */
+    end: number; /** ...^ */
+}
+
 export
 class ExeDataCssParser {
     orig_name            = "";                                              /** name of the "leaf" input javascript/typescript/Coffeescript/... (i.e. the source) */
     css_content_is_new   = false;                                           /** if CssParser has modified the original js content */
     urls                 = new Array<Url>();
+    sourcemap            = "";
+    aliases              = new Array<{key:string,val:string}>();
+    pos_sharp_sourcemaps = new Array<Pss>();
+    html_content         = new Array<string>();
+    define               = new Array<string>();
 
     // needed_css           = new Array<string>();
-    // aliases              = new Array<{key:string,val:string}>();
-    // pos_sharp_sourcemaps = new Array<Pss>();
-    // sourcemap            = "";
     // error                = false;
     // // data from nsmake cmds
-    // html_content         = new Array<string>();
     // html_template        = null as string;
     // es_version           = null as string;                                  /** ecmascript version of the script */
     // need_hmr             = false;
-    // ext_libs             = new Array<string>();
 }
 
 interface Comment {
@@ -72,7 +80,7 @@ class CssParser extends Task {
         }
 
         // find `url` tokens
-        this.get_url_tokens( args, exe_data, sm, orig_name );
+        this.get_url_and_sm_tokens( args, exe_data, sm, orig_name );
 
         // save css and map files if necessary (if we had changes)
         if ( sm.has_changes ) {
@@ -87,17 +95,6 @@ class CssParser extends Task {
         } else {
             this.outputs = [ this.children[ 0 ].outputs[ 0 ] ];
         }
-
-        // // parse again the comments to find sourcemap indications
-        // let beg = 0;
-        // for( let token of sm.src_content.match( js_tokens_matcher ) ) {
-        //     const sharp_sm_matcher = token.match( /^\/\/(# sourceMappingURL=)([^\n]+)/ );
-        //     if ( sharp_sm_matcher ) {
-        //         exe_data.pos_sharp_sourcemaps.push({ beg, mid: beg + sharp_sm_matcher[ 1 ].length, end: beg + sharp_sm_matcher[ 0 ].length });
-        //         exe_data.sourcemap = path.resolve( path.dirname( this.outputs[ 0 ] ), sharp_sm_matcher[ 2 ] );
-        //     }
-        //     beg += token.length;
-        // }
     }
 
     /** read comments to find nsmake commands */
@@ -160,36 +157,18 @@ class CssParser extends Task {
                         comments.splice( m, 1 );
                     }
                     break;
-                // case "html_content":
-                //     exe_data.html_content.push( cf( 1 ) );
-                //     break;
-                // case "html_template":
-                //     exe_data.html_template = cf( 1 );
-                //     break;
-                // case "es_version":
-                //     exe_data.es_version = cf( 1 );
-                //     break;
-                // case "ext_lib":
-                //     if ( nspl.length == 4 ) {
-                //         this.register_ext_lib( spl[ nspl[ 1 ] ], spl[ nspl[ 2 ] ], spl[ nspl[ 3 ] ] );
-                //         exe_data.ext_libs.push( [ spl[ nspl[ 1 ] ], spl[ nspl[ 2 ] ], spl[ nspl[ 3 ] ] ].join( " " ) );
-                //     } else
-                //         this.error( "ext_lib expects exactly 3 arguments (name in requires, url, and name in the global/window space, e.g. '//// nsmake ext_lib react https://unpkg.com/react@15/dist/react.js React')" );
-                //     break;
-                // case "need_hmr":
-                //     exe_data.need_hmr = true;
-                //     break;
-                // case "define":
-                //     break;
-                // case "alias":
-                //     exe_data.aliases.push( { key: path.resolve( path.dirname( orig_name ), spl[ nspl[ 1 ] ] ), val: path.resolve( path.dirname( orig_name ), cf( 2 ) ) } );
-                //     break;
-                // case "trans":
-                //     trans_list.push( { prog: path.resolve( path.dirname( orig_name ), spl[ nspl[ 1 ] ] ), args: cf( 2 ) } );
-                //     break;
-                // case "css":
-                //     exe_data.needed_css.push( this.get_filtered_target_signature( path.resolve( path.dirname( orig_name ), cf( 1 ) ), path.dirname( orig_name ) ) );
-                //     break;
+                case "define":
+                    pu( exe_data.define, cf( 1 ) );
+                    break;
+                case "html_content":
+                    exe_data.html_content.push( cf( 1 ) );
+                    break;
+                case "alias":
+                    exe_data.aliases.push( { key: path.resolve( path.dirname( orig_name ), spl[ nspl[ 1 ] ] ), val: path.resolve( path.dirname( orig_name ), cf( 2 ) ) } );
+                    break;
+                case "trans":
+                    trans_list.push( { prog: path.resolve( path.dirname( orig_name ), spl[ nspl[ 1 ] ] ), args: cf( 2 ) } );
+                    break;
                 default:
                     this.error( `Unknown nsmake cmd: '${ spl[ nspl[ 0 ] ] }'` );
             }
@@ -263,12 +242,11 @@ class CssParser extends Task {
         }
     }
 
-    get_url_tokens( args: ArgsCssParser, exe_data: ExeDataCssParser, sm: JsLazySourceMap, orig_name: string ): void {
+    get_url_and_sm_tokens( args: ArgsCssParser, exe_data: ExeDataCssParser, sm: JsLazySourceMap, orig_name: string ): void {
         const tokens = sm.src_content.match( css_tokens_matcher );
         let beg = 0;
         for( let num_token = 0, pos = 0; num_token < tokens.length; ++num_token ) {
             const token = tokens[ num_token ];
-            this.note( `token: ${ JSON.stringify( token ) }` );
             pos += token.length;
             if ( token == "@import" ) {
                 const skip_beg = ( sub_tok: string ) => sub_tok == ' ' || sub_tok.startsWith( "/*" ) || sub_tok.startsWith( "//" );
@@ -349,7 +327,7 @@ class CssParser extends Task {
                     args.push( simp_arg( tl ) );
                 //
                 if ( args.length != 1 ) {
-                    this.error( `Error:${ orig_name }: url is supposed to be followed by exactly 1 argument.` );
+                    this.error( `Error:${ orig_name }: 'url' is supposed to be followed by exactly 1 argument.` );
                     continue;
                 }
                 exe_data.urls.push( {
@@ -359,6 +337,12 @@ class CssParser extends Task {
                     equ: bqu + args[ 0 ].length,      
                     ein: bqu + args[ 0 ].length + din 
                 } );
+            } else {
+                const sharp_sm_matcher = token.match( /^\/\*(#[ \t]+sourceMappingURL=)([^\n]+)/ );
+                if ( sharp_sm_matcher ) {
+                    exe_data.pos_sharp_sourcemaps.push({ beg, mid: beg + sharp_sm_matcher[ 1 ].length, end: beg + sharp_sm_matcher[ 0 ].length });
+                    exe_data.sourcemap = path.resolve( path.dirname( this.outputs[ 0 ] ), sharp_sm_matcher[ 2 ] );
+                }
             }
         }
         // this.note( `exe_data: ${ JSON.stringify( exe_data.urls.map( x => sm.src_content.substring( x.bin, x.ein ) ) ) }` );

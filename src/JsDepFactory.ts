@@ -1,14 +1,15 @@
-import { fill_sm_with_js_tokens } from "./JsLazySourceMap"
-import SourceMap, { SmItem }      from "./SourceMap"
-import { pu }                     from "./ArrayUtil"
-import { Url, ExeDataCssParser, 
-         ArgsCssParser  }         from "./CssParser"
-import { ExeDataJsParser,
-         ArgsJsParser,  
-         Require, Accept, Pss  }  from "./JsParser"
-import Task, { CnData }           from "./Task"
-import * as babel                 from 'babel-core'
-import * as path                  from 'path'
+import { fill_sm_with_js_tokens,
+         fill_sm_with_css_tokens } from "./JsLazySourceMap"
+import SourceMap, { SmItem }       from "./SourceMap"
+import { pu }                      from "./ArrayUtil"
+import { Url, ExeDataCssParser,  
+         ArgsCssParser  }          from "./CssParser"
+import { ExeDataJsParser, 
+         ArgsJsParser,   
+         Require, Accept, Pss  }   from "./JsParser"
+import Task, { CnData }            from "./Task"
+import * as babel                  from 'babel-core'
+import * as path                   from 'path'
 
 // cn content of a js parser child + additionnal stuff for JsDepFactory
 interface ResJsParser {
@@ -66,8 +67,14 @@ interface E_Accept  { type: "Accept";  pos: number; data: Accept;  }
 interface E_Pss     { type: "Pss";     pos: number; data: Pss;     }
 declare type E_stuff = E_Require | E_Accept | E_Pss;
 
+// stuff that has to be modified in csss files
+interface C_Url { type: "Url"; pos: number; data: Url; }
+interface C_Pss { type: "Pss"; pos: number; data: Pss; }
+declare type C_stuff = C_Url | C_Pss;
+
 
 /**
+ * 
  */
 export default
 class JsDepFactory extends Task {
@@ -126,7 +133,7 @@ class JsDepFactory extends Task {
             num_needed_css = needed_css.length;
 
             //
-            this._find_css_requires_for( args, to_be_parsed, res_css_parsers );
+            this._find_css_requires_for( args, needed_css, res_css_parsers );
 
             // 
             for( let num_item = 0; num_item < res_css_parsers.length; ++num_item ) {
@@ -230,7 +237,9 @@ class JsDepFactory extends Task {
         }
     }
 
-    /** set this.requires, update to_be_parsed if a new source appears */
+    /** set this.urls, update needed_css if a new source appears
+     * external ressources are copie here
+     */
     _find_css_requires_for( args: ArgsJsDepFactory, needed_css: Array<string>, css_parsers: Array<ResCssParser> ): void {
         for( const css of css_parsers ) {
             if ( css.exe_data.urls.length ) {
@@ -242,6 +251,7 @@ class JsDepFactory extends Task {
                     // if it is a .css, we need to parse it
                     if ( path.extname( cn.outputs[ 0 ] ) == ".css" ) {
                         pu( needed_css, cn.signature );
+                        this.note( `cn: ${ JSON.stringify( needed_css, null, 2 ) }` );
                     } else if ( ! this.dist_corr.has( cn.signature ) ) {
                         const ext_name = this.new_build_file( cn.outputs[ 0 ], path.extname( cn.outputs[ 0 ] ), args.dist_dir );
                         this.dist_corr.set( cn.signature, ext_name );
@@ -421,17 +431,42 @@ class JsDepFactory extends Task {
         }
     }
 
+    /** external ressources were already copied */
     _make_css( args: ArgsJsDepFactory ) {
-        // get a list of external ressources
-
+        // get the names in dist_dir
+        this.css_parsers.forEach( ( css, sgn ) => {
+            const css_name = this.new_build_file( css.outputs[ 0 ], ".css", args.dist_dir );
+            this.dist_corr.set( sgn, css_name );
+        } );
 
         // copy/update css in dist
-        for( const css of this.css_parsers.values() ) {
-            const css_name = this.new_build_file( css.outputs[ 0 ], ".css", args.dist_dir );
-            this.note( `Emission of '${ css_name }'` );
+        this.css_parsers.forEach( ( css, sgn ) => {
+            const out_name = this.dist_corr.get( sgn );
 
-            this.write_file_sync( css_name, this.read_file_sync( css.outputs[ 0 ] ) );
-        }
+            const content = this.read_file_sync( css.outputs[ 0 ] ).toString();
+            const sm = css.exe_data.sourcemap ?
+                new SourceMap( content, path.dirname( css.outputs[ 0 ] ), this.read_file_sync( css.exe_data.sourcemap ).toString() ) : 
+                this._make_sourcemap_from_css_content( content, css.outputs[ 0 ] );
+
+            // update css content
+            for( let ms of this._css_modifiable_stuff( css ) ) {
+                switch ( ms.type ) {
+                    case "Url":
+                        sm.replace( ms.data.bqu, ms.data.equ, this.rel_with_dot( path.dirname( out_name ), this.dist_corr.get( ms.data.sgn ) ) );
+                        break;
+                    case "Pss":
+                        sm.remove( ms.data.beg, ms.data.end );
+                        break;
+                }
+            }
+            const map_name = out_name + ".map";
+            sm.src_content += `\n/*# sourceMappingURL=${ this.rel_with_dot( path.dirname( out_name ), map_name ) } */`;
+
+            this.note( `Emission of '${ out_name }'` );
+            this.note( `Emission of '${ map_name }'` );
+            this.write_file_sync( out_name, sm.src_content );
+            this.write_file_sync( map_name, sm.toString( out_name ) );
+        } );
     }
 
     _make_html( args: ArgsJsDepFactory ) {
@@ -483,6 +518,13 @@ class JsDepFactory extends Task {
     _make_sourcemap_from_js_content( content: string, filename: string ): SourceMap {
         let res = new SourceMap( content, null, { sources: [ filename ] }, false );
         fill_sm_with_js_tokens( res );
+        return res;
+    }
+
+    /** */
+    _make_sourcemap_from_css_content( content: string, filename: string ): SourceMap {
+        let res = new SourceMap( content, null, { sources: [ filename ] }, false );
+        fill_sm_with_css_tokens( res );
         return res;
     }
 
@@ -587,6 +629,15 @@ class JsDepFactory extends Task {
             ...js.exe_data.requires            .map( x => ( { type: "Require", data: x, pos: x.bqu } as E_Require ) ),
             ...js.exe_data.accepts             .map( x => ( { type: "Accept" , data: x, pos: x.bqu } as E_Accept  ) ),
             ...js.exe_data.pos_sharp_sourcemaps.map( x => ( { type: "Pss"    , data: x, pos: x.beg } as E_Pss     ) ),
+        ];
+        lst.sort( ( a, b ) => b.pos - a.pos );
+        return lst;
+    }
+
+    _css_modifiable_stuff( css: ResCssParser ): Array<C_stuff> {
+        let lst = [
+            ...css.exe_data.urls                .map( x => ( { type: "Url", data: x, pos: x.bqu } as C_Url ) ),
+            ...css.exe_data.pos_sharp_sourcemaps.map( x => ( { type: "Pss", data: x, pos: x.beg } as C_Pss ) ),
         ];
         lst.sort( ( a, b ) => b.pos - a.pos );
         return lst;

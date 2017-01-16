@@ -1,11 +1,13 @@
 import SourceMap, { SmItem } from "./SourceMap"
 import * as path             from "path";
-const js_tokens_matcher = require("js-tokens");
-// js_tokens_matcher, 
+const css_tokens_matcher = require( "css-tokens" );
+const js_tokens_matcher  = require( "js-tokens" );
 
-/** fill sourcemap items with token of `content` */
+/**
+ * 
+ */
 export
-function fill_sm_with_js_tokens( sm: SourceMap, num_in_sources = 0 ) {
+function fill_sm_with_token_matcher( sm: SourceMap, num_in_sources: number, token_matcher ) {
     if ( ! sm.src_content )
         return;
     //const tokens = sm.src_content.match( js_tokens_matcher );
@@ -33,6 +35,18 @@ function fill_sm_with_js_tokens( sm: SourceMap, num_in_sources = 0 ) {
         }
     }
     sm.lines.push( items );
+}
+
+/** fill sourcemap items with token of `content` */
+export
+function fill_sm_with_js_tokens( sm: SourceMap, num_in_sources = 0 ) {
+    fill_sm_with_token_matcher( sm, num_in_sources, js_tokens_matcher );
+}
+
+/** fill sourcemap items with token of `content` */
+export
+function fill_sm_with_css_tokens( sm: SourceMap, num_in_sources = 0 ) {
+    fill_sm_with_token_matcher( sm, num_in_sources, css_tokens_matcher );
 }
 
 /**
