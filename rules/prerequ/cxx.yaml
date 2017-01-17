@@ -1,4 +1,4 @@
 - systems: [ win32 ]
-  prerequ: [ clang ]
+  prerequ: [ mingw ]
 - systems: []
   prerequ: [ g++ ]

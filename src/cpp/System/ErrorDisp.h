@@ -10,7 +10,7 @@ public:
         Provenance( const char *beg, const char *end, const char *pos, std::string provenance, std::string msg = "" );
         Provenance( int line, std::string provenance );
 
-        void _init(const char *beg, const char *end, const char *pos );
+        void _init( const char *beg, const char *end, const char *pos );
 
         std::string provenance; /// name of file
         std::string complete_line;
@@ -19,7 +19,7 @@ public:
         std::string msg;
     };
 
-    ErrorDisp( const std::string &msg );
+    ErrorDisp( const std::string &msg, bool display_escape_sequences = true );
 
     void                    write_to_stream( std::ostream &os ) const;
     ErrorDisp              &ac             ( const char *beg, const char *end, const char *pos, std::string provenance ); ///< add a caller

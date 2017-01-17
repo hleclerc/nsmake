@@ -76,7 +76,7 @@ process.on( 'message', ( data: Buffer ) => {
                         } else {
                             // asynchronous version (with a callback)
                             active_service.exec( args.args, err => {
-                                send_end( err || false, active_service._output_summary() );
+                                send_end( err || false, active_service ? active_service._output_summary() : {} );
                                 active_service = null;
                             } );
                         } 

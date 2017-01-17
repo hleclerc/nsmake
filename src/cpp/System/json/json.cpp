@@ -74,6 +74,8 @@ license you like.
 
 
 #include "json.h"
+#include <cstdio>
+#include <string.h>
 
 #ifndef JSON_IS_AMALGAMATION
 #error "Compile with -I PATH_TO_JSON_DIRECTORY"

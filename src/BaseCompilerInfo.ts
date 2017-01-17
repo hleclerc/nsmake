@@ -44,7 +44,7 @@ class BaseCompilerInfo extends Task {
             const cmp = path.basename( compiler );
             if ( cmp.startsWith( 'g++' ) || cmp.startsWith( 'gcc' ) || cmp.startsWith( 'clang' ) ) {
                 // include paths
-                let chp = child_process.spawnSync( cmp, [ `-x${ args.target == 'c' ? 'c' : 'c++' }`, '-v', '-E', '-' ], {} );
+                let chp = child_process.spawnSync( compiler, [ `-x${ args.target == 'c' ? 'c' : 'c++' }`, '-v', '-E', '-' ], {} );
                 let str = chp.stderr.toString( 'utf8' );
                 let ibd = false;
                 for( let line of str.split( '\n' ) ) {
@@ -57,7 +57,7 @@ class BaseCompilerInfo extends Task {
                 }
 
                 // base defines
-                let chd = child_process.spawnSync( cmp, [ `-x${ args.target == 'c' ? 'c' : 'c++' }`, '-dM', '-E', '-' ], {} );
+                let chd = child_process.spawnSync( compiler, [ `-x${ args.target == 'c' ? 'c' : 'c++' }`, '-dM', '-E', '-' ], {} );
                 exe_data.defines = chd.stdout.toString( 'utf8' );
             } else {
                 this.error( `TODO: get base include paths for compiler '${ compiler }'` );
@@ -112,36 +112,36 @@ class BaseCompilerInfo extends Task {
     /** */
     _cxx_list(): Array<string> {
         switch ( os.platform() ) {
-            case "win32" : return [ 'msvc', 'intelc', 'icc', 'g++', 'clang++', 'c++', 'bcc32' ];
-            case "sunos" : return [ 'sunc++', 'g++', 'clang++', 'c++'                         ];
-            case "aix"   : return [ 'aixc++', 'g++', 'clang++', 'c++'                         ];
-            case "darwin": return [ 'g++', 'clang++', 'c++'                                   ];
-            default:       return [ 'g++', 'clang++', 'msvc', 'intelc', 'icc', 'c++'          ];
+            case "win32" : return [ 'intelc', 'icc', 'g++', 'clang++', 'c++', 'bcc32', 'C:\\MinGW\\bin\\g++.exe' ]; // 'msvc', 
+            case "sunos" : return [ 'sunc++', 'g++', 'clang++', 'c++'                 ];
+            case "aix"   : return [ 'aixc++', 'g++', 'clang++', 'c++'                 ];
+            case "darwin": return [ 'g++', 'clang++', 'c++'                           ];
+            default:       return [ 'g++', 'clang++', 'msvc', 'intelc', 'icc', 'c++'  ];
         }
     }
 
     /** */
     _cc_list(): Array<string> {
         switch ( os.platform() ) {
-            case "win32" : return [ 'msvc', 'mingw', 'gcc', 'clang', 'intelc', 'icl', 'icc', 'cc', 'bcc32' ];
-            case "sunos" : return [ 'suncc', 'gcc', 'clang', 'cc'                                          ];
-            case "aix"   : return [ 'aixcc', 'gcc', 'clang', 'cc'                                          ];
-            case "darwin": return [ 'gcc', 'clang', 'cc'                                                   ];
-            default:       return [ 'gcc', 'clang', 'msvc', 'intelc', 'icc', 'cc'                          ];
+            case "win32" : return [ 'gcc', 'clang', 'intelc', 'icl', 'icc', 'cc', 'bcc32', 'C:\MinGW\bin\gcc.exe' ]; // 'msvc', 
+            case "sunos" : return [ 'suncc', 'gcc', 'clang', 'cc'                                  ];
+            case "aix"   : return [ 'aixcc', 'gcc', 'clang', 'cc'                                  ];
+            case "darwin": return [ 'gcc', 'clang', 'cc'                                           ];
+            default:       return [ 'gcc', 'clang', 'msvc', 'intelc', 'icc', 'cc'                  ];
         }
     }
 
     /** */
     _ld_list(): Array<string> {
         switch ( os.platform() ) {
-            default:       return [ 'ld' ];
+            default:       return [ 'ld', 'C:\\MinGW\\bin\\ld.exe' ];
         }
     }
 
     /** */
     _ar_list(): Array<string> {
         switch ( os.platform() ) {
-            case "win32" : return [ 'mslib', 'ar', 'llvm-ar' ];
+            case "win32" : return [ 'mslib', 'ar', 'llvm-ar', 'C:\\MinGW\\bin\\ar.exe' ];
             default:       return [ 'ar', 'llvm-ar'          ];
         }
     }

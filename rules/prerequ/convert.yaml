@@ -2,3 +2,7 @@
   check   : which convert > /dev/null
   commands: apt-get install imagemagick
   root    : true
+# - systems : [ win32 ]
+#   check   : Get-Command cmake
+#   command : 
+#   admin   : true

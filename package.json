@@ -10,7 +10,7 @@
   },
   "scripts": {
     "test": "mocha test/*.ts",
-    "postinstall": "tsc"
+    "build": "tsc"
   },
   "repository": {
     "type": "git",

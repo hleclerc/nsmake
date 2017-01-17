@@ -1,6 +1,7 @@
 - systems: [ win32 ]
-  command:  iwr "http://downloads.sourceforge.net/project/mingw/Installer/mingw-get-setup.exe?r=https%3A%2F%2Fsourceforge.net%2Fprojects%2Fmingw%2Ffiles%2F&ts=1483900627&use_mirror=freefr" -UseBasicParsing | Invoke-Item
-  # powershell -c Start-Process powershell.exe -Verb runAs -Argumentlist
-  # prerequ: [ chocolatey ]
-  # command: powershell -c Start-Process powershell.exe -Verb runAs -Argumentlist 'Invoke-WebRequest ' -Wait
-  # http://releases.llvm.org/3.9.1/LLVM-3.9.1-win64.exe
+  check   : Get-Command g++
+  commands: [ [ 'iwr', '"http://downloads.sourceforge.net/project/mingw/Installer/mingw-get-setup.exe?r=https%3A%2F%2Fsourceforge.net%2Fprojects%2Fmingw%2Ffiles%2F`&ts=1483900627`&use_mirror=freefr"', '-OutFile', 'mingw.exe', '-UseBasicParsing' ],
+              [ '-NoExit', 'Start-Process', '.\mingw.exe', '-Wait' ],
+              [ 'rm', '.\mingw.exe'] ]
+  admin   : true
+  shell   : powershell

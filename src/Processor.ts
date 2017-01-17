@@ -778,10 +778,14 @@ class Processor {
                 // command[s]
                 const exe_cmd = ( cmd: string | Array<string>, exe_cmd_cb: ( err: boolean ) => void, use_root: boolean, disp = true ) => {
                     if ( rule.shell == "powershell" ) {
-                        if ( rule.admin )
-                            cmd = [ "powershell", "-c", "Start-Process", "powershell.exe", "-Verb", "runAs", "-Argumentlist", ( typeof cmd == "string" ? cmd : cmd.map( x => '"' + x.replace( /"/g, '`"' ) + '"' ).join( "," ) ), "-Wait" ];
-                        else
+                        if ( use_root && ( rule.admin || rule.root ) ) {
+                            if ( typeof cmd == "string" )
+                                cmd = [ "powershell", "-c", "Start-Process", "powershell.exe", "-Verb", "runAs", "-Argumentlist", cmd, "-Wait" ];
+                            else
+                                cmd = [ "powershell", "-c", "Start-Process", "powershell.exe", "-Verb", "runAs", "-Argumentlist", cmd.map( x => "'" + x + "'" ).join( "," ), "-Wait" ];
+                        } else
                             cmd = [ "powershell", "-c", ...( typeof cmd == "string" ? [ cmd ] : cmd ) ];
+                        com.note( cn, JSON.stringify({ cmd, use_root }) )
                     } else if ( use_root && ( rule.admin || rule.root ) ) {
                         // TODO: admin with cmd.exe
                         // const prg = com.siTTY ? "sudo" : "pkexec";

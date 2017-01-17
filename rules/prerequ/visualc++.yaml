@@ -1,0 +1,5 @@
+# TODO: add the command to download and install...
+- systems: [ win32 ]
+  check  : which clang
+  command: 
+  # iwr "" -UseBasicParsing | Start-Process -ArgumentList "/InstallSelectableItems Common Tools for Visual C++"

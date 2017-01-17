@@ -4,10 +4,10 @@
 
 namespace {
 
-static bool term_supports_color() {
-    const char *term = getenv( "TERM" );
-    return term and strcmp( term, "dumb" );
-}
+// static bool term_supports_color() {
+//     const char *term = getenv( "TERM" );
+//     return term and strcmp( term, "dumb" );
+// }
 
 static void display_line( std::ostream &os, const char *complete_line, unsigned length_complete_line, int col, bool display_col ) {
     if ( display_col )
@@ -82,8 +82,8 @@ void ErrorDisp::Provenance::_init( const char *beg, const char *end, const char 
         line += ( *b == '\n' );
 }
 
-ErrorDisp::ErrorDisp( const std::string &msg ) : msg( msg ) {
-    display_escape_sequences = term_supports_color();
+ErrorDisp::ErrorDisp( const std::string &msg, bool display_escape_sequences ) : display_escape_sequences( display_escape_sequences ), msg( msg ) {
+    // display_escape_sequences = term_supports_color();
     display_col              = true;
     warn                     = false;
 }
