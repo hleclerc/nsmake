@@ -262,6 +262,11 @@ abstract class Task {
     }
 
     /** */
+    write_file( filename: string, content: string | Buffer, cb: ( err ) => void ): void {
+        fs.writeFile( filename, content, cb );
+    }
+
+    /** */
     read_file_sync( filename: string ): Buffer {
         return fs.readFileSync( filename );
     }

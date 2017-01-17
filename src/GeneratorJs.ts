@@ -4,6 +4,7 @@ import { TypescriptCompilerArgs }          from "./TypescriptCompiler";
 import FileDependencies                    from "./FileDependencies";
 import CompilationNode                     from "./CompilationNode";
 import ArgumentParser                      from "./ArgumentParser";
+import { SassCompilerArgs }                from "./SassCompiler";
 import { ArgsJsDepFactory }                from "./JsDepFactory";
 import Generator                           from "./Generator";
 import { pu }                              from "./ArrayUtil";
@@ -21,6 +22,7 @@ class GeneratorJs extends Generator {
     static ts_ext    = [ ".ts", ".tsx" ];
     static cs_ext    = [ ".coffee", ".csx" ];
     static react_ext = [ ".jsx", ".tsx", ".csx" ];
+    static sass_ext  = [ ".sass", ".scss" ];
 
     static js_family( ext : string ) { return GeneratorJs.js_like( ext ) || GeneratorJs.ts_like( ext ) || GeneratorJs.cs_like( ext ); }
     static js_like  ( ext : string ) { return GeneratorJs.js_ext.indexOf( ext.toLowerCase() ) >= 0; }
@@ -85,6 +87,16 @@ class GeneratorJs extends Generator {
                 return async.forEachSeries( [
                     ...GeneratorJs.ts_ext.map( ext => ({ ext, make_cn: ch => this.make_typescript_compiler  ( ch, care_about_target ? target : "" ) }) ),
                     ...GeneratorJs.cs_ext.map( ext => ({ ext, make_cn: ch => this.make_coffeescript_compiler( ch, care_about_target ? target : "" ) }) )
+                ], ( trial, cb_ext ) => {
+                    this.env.get_compilation_node( basename + trial.ext, cwd, for_found, cn => {
+                        cb_ext( cn ? trial.make_cn( cn ) : null );
+                    } );
+                }, cb );
+            } else if ( t_ext == ".css" ) {
+                // make .css from .scss or .sass
+                const basename = target.substr( 0, target.length - t_ext.length );
+                return async.forEachSeries( [
+                    ...GeneratorJs.sass_ext.map( ext => ({ ext, make_cn: ch => this.make_sass_compiler( ch, care_about_target ? target : "" ) }) ),
                 ], ( trial, cb_ext ) => {
                     this.env.get_compilation_node( basename + trial.ext, cwd, for_found, cn => {
                         cb_ext( cn ? trial.make_cn( cn ) : null );
@@ -200,6 +212,12 @@ class GeneratorJs extends Generator {
         return this.env.New( "CoffeescriptCompiler", [ ch ], {
             output,
         } as CoffeescriptCompilerArgs );
+    }
+
+    make_sass_compiler( ch: CompilationNode, output: string ): CompilationNode {
+        return this.env.New( "SassCompiler", [ ch ], {
+            output,
+        } as SassCompilerArgs );
     }
 
     /** */

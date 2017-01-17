@@ -35,7 +35,7 @@ class CoffeescriptCompiler extends Task {
         const orig_name = this.children[ 0 ].exe_data.orig_name || cs_name;
 
         // exe_data
-        let exe_data = ( this.exe_data = new ExeDataCoffeescriptParser() ) as ExeDataCoffeescriptParser;
+        let exe_data = this.exe_data = new ExeDataCoffeescriptParser();
         exe_data.orig_name = orig_name;
 
         // tokenize to get the nsmake cmds

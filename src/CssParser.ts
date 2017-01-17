@@ -243,7 +243,17 @@ class CssParser extends Task {
     }
 
     get_url_and_sm_tokens( args: ArgsCssParser, exe_data: ExeDataCssParser, sm: JsLazySourceMap, orig_name: string ): void {
+        // css_tokens_matcher handle differently url(smurf) and url("smurf")
         const tokens = sm.src_content.match( css_tokens_matcher );
+        for( let n = 0; n < tokens.length; ++n ) {
+            const token = tokens[ n ];
+            if ( token.startsWith( "url(" ) && token.endsWith( ")" ) ) {
+                const txt = token.substring( 4, token.length - 1 );
+                tokens.splice( n, 1, "url", "(", txt.trim(), ")" );
+                n += 2;
+            }
+        }
+        
         let beg = 0;
         for( let num_token = 0, pos = 0; num_token < tokens.length; ++num_token ) {
             const token = tokens[ num_token ];
@@ -266,8 +276,9 @@ class CssParser extends Task {
                         equ: pos + txt.length - 1, 
                         ein: pos + txt.length
                     } );
-                }
-                pos += txt.length;
+                    pos += txt.length;
+                } else
+                    --num_token;
             } else if ( token == "url" ) {
                 // go to first '('
                 const skip_beg = ( sub_tok: string ) => sub_tok == ' ' || sub_tok.startsWith( "/*" ) || sub_tok.startsWith( "//" );
@@ -338,10 +349,10 @@ class CssParser extends Task {
                     ein: bqu + args[ 0 ].length + din 
                 } );
             } else {
-                const sharp_sm_matcher = token.match( /^\/\*(#[ \t]+sourceMappingURL=)([^\n]+)/ );
+                const sharp_sm_matcher = token.match( /^\/\*(#[ \t]+sourceMappingURL=)([^\n]+)[ \t]+\*\// );
                 if ( sharp_sm_matcher ) {
                     exe_data.pos_sharp_sourcemaps.push({ beg, mid: beg + sharp_sm_matcher[ 1 ].length, end: beg + sharp_sm_matcher[ 0 ].length });
-                    exe_data.sourcemap = path.resolve( path.dirname( this.outputs[ 0 ] ), sharp_sm_matcher[ 2 ] );
+                    exe_data.sourcemap = path.resolve( path.dirname( this.children[ 0 ].outputs[ 0 ] ), sharp_sm_matcher[ 2 ] );
                 }
             }
         }

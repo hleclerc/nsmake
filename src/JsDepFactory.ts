@@ -126,10 +126,8 @@ class JsDepFactory extends Task {
             const lst = needed_css.slice( num_needed_css ).map( x => this.make_signature( "CssParser", [ x ], {
             } as ArgsCssParser ) );
             const res_css_parsers = this.get_cns_data( lst ) as Array<ResCssParser>;
-            if ( ! res_css_parsers ) {
-                this.error( `pb in lst: ${ JSON.stringify( lst ) }` );
+            if ( ! res_css_parsers )
                 throw "";
-            }
             num_needed_css = needed_css.length;
 
             //
@@ -244,6 +242,8 @@ class JsDepFactory extends Task {
         for( const css of css_parsers ) {
             if ( css.exe_data.urls.length ) {
                 const outs = this.get_cns_data( css.exe_data.urls.map( x => x.sgn ) );
+                if ( ! outs )
+                    throw "";
                 for( let num_out = 0; num_out < outs.length; ++num_out ) {
                     const cn = outs[ num_out ];
                     if ( ! cn )
@@ -251,9 +251,8 @@ class JsDepFactory extends Task {
                     // if it is a .css, we need to parse it
                     if ( path.extname( cn.outputs[ 0 ] ) == ".css" ) {
                         pu( needed_css, cn.signature );
-                        this.note( `cn: ${ JSON.stringify( needed_css, null, 2 ) }` );
                     } else if ( ! this.dist_corr.has( cn.signature ) ) {
-                        const ext_name = this.new_build_file( cn.outputs[ 0 ], path.extname( cn.outputs[ 0 ] ), args.dist_dir );
+                        const ext_name = this.new_build_file( cn.exe_data.orig_name || cn.outputs[ 0 ], path.extname( cn.outputs[ 0 ] ), args.dist_dir );
                         this.dist_corr.set( cn.signature, ext_name );
                         this.note( `Emission of '${ ext_name }'` );
                         this.write_file_sync( ext_name, this.read_file_sync( cn.outputs[ 0 ] ) );
@@ -435,7 +434,7 @@ class JsDepFactory extends Task {
     _make_css( args: ArgsJsDepFactory ) {
         // get the names in dist_dir
         this.css_parsers.forEach( ( css, sgn ) => {
-            const css_name = this.new_build_file( css.outputs[ 0 ], ".css", args.dist_dir );
+            const css_name = this.new_build_file( css.exe_data.orig_name || css.outputs[ 0 ], ".css", args.dist_dir );
             this.dist_corr.set( sgn, css_name );
         } );
 
