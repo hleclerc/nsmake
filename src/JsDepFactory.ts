@@ -448,15 +448,21 @@ class JsDepFactory extends Task {
                 this._make_sourcemap_from_css_content( content, css.outputs[ 0 ] );
 
             // update css content
+            this.info( `sm: ${ sm.src_content }` );
+
             for( let ms of this._css_modifiable_stuff( css ) ) {
+                this.note( `ms: ${ JSON.stringify( ms ) }` );
+                
                 switch ( ms.type ) {
                     case "Url":
                         sm.replace( ms.data.bqu, ms.data.equ, this.rel_with_dot( path.dirname( out_name ), this.dist_corr.get( ms.data.sgn ) ) );
                         break;
                     case "Pss":
+                        this.error( sm.src_content.substring( ms.data.beg, ms.data.end ) );
                         sm.remove( ms.data.beg, ms.data.end );
                         break;
                 }
+                this.announcement( `sm.src_content: ${ sm.src_content }` );
             }
             const map_name = out_name + ".map";
             sm.src_content += `\n/*# sourceMappingURL=${ this.rel_with_dot( path.dirname( out_name ), map_name ) } */`;

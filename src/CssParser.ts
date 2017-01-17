@@ -249,15 +249,22 @@ class CssParser extends Task {
             const token = tokens[ n ];
             if ( token.startsWith( "url(" ) && token.endsWith( ")" ) ) {
                 const txt = token.substring( 4, token.length - 1 );
-                tokens.splice( n, 1, "url", "(", txt.trim(), ")" );
-                n += 2;
+                const msp = txt.match( /( *)(.*)( *)/ );
+                const lst = [];
+                if ( msp[ 1 ] )
+                    lst.push( msp[ 1 ] );
+                lst.push( msp[ 2 ] );
+                if ( msp[ 3 ] )
+                    lst.push( msp[ 3 ] );
+                tokens.splice( n, 1, "url", "(", ...lst, ")" );
+                n += 1 + lst.length;
             }
         }
         
-        let beg = 0;
         for( let num_token = 0, pos = 0; num_token < tokens.length; ++num_token ) {
             const token = tokens[ num_token ];
             pos += token.length;
+
             if ( token == "@import" ) {
                 const skip_beg = ( sub_tok: string ) => sub_tok == ' ' || sub_tok.startsWith( "/*" ) || sub_tok.startsWith( "//" );
                 while ( ++num_token < tokens.length && skip_beg( tokens[ num_token ] ) )
@@ -336,6 +343,7 @@ class CssParser extends Task {
                 }
                 if ( tl.length )
                     args.push( simp_arg( tl ) );
+                    
                 //
                 if ( args.length != 1 ) {
                     this.error( `Error:${ orig_name }: 'url' is supposed to be followed by exactly 1 argument.` );
@@ -351,6 +359,7 @@ class CssParser extends Task {
             } else {
                 const sharp_sm_matcher = token.match( /^\/\*(#[ \t]+sourceMappingURL=)([^\n]+)[ \t]+\*\// );
                 if ( sharp_sm_matcher ) {
+                    const beg = pos - token.length;
                     exe_data.pos_sharp_sourcemaps.push({ beg, mid: beg + sharp_sm_matcher[ 1 ].length, end: beg + sharp_sm_matcher[ 0 ].length });
                     exe_data.sourcemap = path.resolve( path.dirname( this.children[ 0 ].outputs[ 0 ] ), sharp_sm_matcher[ 2 ] );
                 }

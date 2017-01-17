@@ -30,20 +30,32 @@ class SassCompiler extends Task {
 
         this.announcement( `sass ${ sass_name } ${ ncss }` );
 
+        // helper
+        const ret_err = err => {
+            this.error( `Error:${ orig_name }:${ err.toString() }` );
+            return done( true );
+        };
+
         // compile
         node_sass.render( {
             file     : sass_name,
             outFile  : ncss,
             sourceMap: nmap,
-        }, ( err, output ) => {
-            if ( err ) {
-                this.error( `Error:${ orig_name }:${ err.toString() }` );
-                return done( true );
+            importer : ( url, prev, importer_done ) => {
+                const target = path.resolve( path.dirname( prev ), url );
+                this.get_filtered_target( target, path.dirname( orig_name ), ( err, res ) => {
+                    this.read_file( res.name, ( err, data ) => {
+                        if ( err ) return ret_err( err );
+                        importer_done( { contents: data.toString() } );
+                    } );
+                } );
             }
+        }, ( err, output ) => {
+            if ( err ) return ret_err( err );
             this.write_file( ncss, output.css, err => {
-                if ( err ) { this.error( err.toString() ); return done( true ); }
+                if ( err ) return ret_err( err );
                 this.write_file( nmap, output.map, err => {
-                    if ( err ) { this.error( err.toString() ); return done( true ); }
+                    if ( err ) return ret_err( err );
                     done( false );
                 } )
             } );
