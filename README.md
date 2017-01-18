@@ -1,20 +1,24 @@
 # What is Nsmake ?
 
-Nsmake stands for "No Script Make". It is a *fast* and *extensible* build system, designed to dramatically *reduce redundancies, trivial and tangled information*, while  guaranteeing *correctness*, even for complex code generation schemes.
+Nsmake stands for "No Script Make". It is a *fast* and *extensible* build system, designed to dramatically *reduce redundancies, trivial and tangled information* in build configurations, while guaranteeing *correctness*, even for complex code generation schemes.
 
-Nsmake takes responsibility to *ensure the link between the tools*. In most of the cases, it enables complete removal of the need for boilerplates and configuration files, and suppression of most sources of discrepancies.
+Moreover, nsmake takes responsibility to *ensure the link between the tools*. In most cases, it allows to get rid of boilerplates, and most sources of discrepancies in build configurations.
+
+Speed comes from the use of a server and specialized micro-services.
+
+# Table of contents:
 
 <!-- TOC -->
 
 - [What is Nsmake ?](#what-is-nsmake-)
-- [Table of contents](#table-of-contents)
+- [Table of contents:](#table-of-contents)
 - [Main features](#main-features)
     - [Orthogonal, clean and clear configuration](#orthogonal-clean-and-clear-configuration)
     - [Speed, incrementality and correctness](#speed-incrementality-and-correctness)
     - [Modules, libraries and external tools](#modules-libraries-and-external-tools)
-    - [Specific features](#specific-features)
-        - [Javascript and friends](#javascript-and-friends)
-        - [For native executables (C++/...)](#for-native-executables-c)
+- [Specific features](#specific-features)
+    - [Javascript and friends](#javascript-and-friends)
+    - [For native executables (C++/...)](#for-native-executables-c)
 - [Installation](#installation)
 - [Some tutorials](#some-tutorials)
 - [More specific information](#more-specific-information)
@@ -44,9 +48,9 @@ Nsmake takes responsibility to *ensure the link between the tools*. In most of t
 * **Automatic checking and installation of all the kinds of dependencies and prerequisites**: automatic finding, testing and installation of missing modules, libraries, tools... Use of a collaborative content for rules defined by system, by rights, etc...
 * **Handling of flags and specifications** (e.g. to use a CDN instead of a local copy, for the specification of the include paths, the library flags, ...) extensive code analysis, enabling dramatic simplification of configuration for libraries.
 
-## Specific features
+# Specific features
 
-### Javascript and friends
+## Javascript and friends
 
 * Concatenation, Minification, Typescript, Coffeescript, React extensions, ... with of course plugins and support for arbitrary transformations (e.g. with babel plugins and presets, etc...).
 * Full support for **Hot Module Reload** (as e.g. in WebPack).
@@ -55,7 +59,7 @@ Nsmake takes responsibility to *ensure the link between the tools*. In most of t
 * Integrated support for **testing frameworks** (mocha, karma, ...),
 * **Integrated preprocessing** support (e.g. for handling of target execution, language environment, ...)
 
-### For native executables (C++/...)
+## For native executables (C++/...)
 
 * Fully compliant C/C++ preprocessor (proper variable substitution, extensions like `#include_next`, `##__VA_ARGS__`, etc...)
 * Rules for **inline preprocessing** code generation (launching of nsmake tasks for code inclusion and modification during code parsing).
@@ -68,7 +72,7 @@ Nsmake takes responsibility to *ensure the link between the tools*. In most of t
 npm install nsmake -g
 ```
 
-Alternatively, you can use the git repository:
+Alternatively, you can use the git repository for a more recent version (or to make pull requests, which are welcome :) ):
 
 ```
 git clone https://github.com/hleclerc/nsmake.git
@@ -79,11 +83,14 @@ sudo npm link
 
 # Some tutorials
 
+* [Compilation of a C++ application](https://github.com/hleclerc/nsmake/wiki/Tutorial:-compilation-of-a-CPP-executable)
 * [Packing/minification of a generic web application](https://github.com/hleclerc/nsmake/wiki/Tutorial:-compilation-of-a-generic-web-application)
-* [Compilation/link of a C++ application](https://github.com/hleclerc/nsmake/wiki/Tutorial:-compilation-of-a-C---executable)
 
 # More specific information
 
-* [Testing a web/nodejs application using Mocha, Chai and Karma](https://github.com/hleclerc/nsmake/wiki/Testing-your-code-with-Mocha,-Karma,-Chai...)
-* [Testing a C++ application using gtest](https://github.com/hleclerc/nsmake/wiki/Tutorial:-compilation-of-a-CPP-executable)
+* [Wiki home](wiki/Home.md)
 
+* [Testing a web/nodejs application using Mocha, Chai and Karma](https://github.com/hleclerc/nsmake/wiki/Testing-your-code-with-Mocha,-Karma,-Chai...)
+* [Testing a C++ application using gtest](https://github.com/hleclerc/nsmake/wiki/Testing-your-C---code-with-gtest-(google-test))
+* [Description of libraries and prerequisites for your projects](https://github.com/hleclerc/nsmake/wiki/Flags-and-automatic-installation-of-libraries-for-compiler-languages)
+* [Filters for code generation](https://github.com/hleclerc/nsmake/wiki/Flags-and-automatic-installation-of-libraries-for-compiler-languages.md)
