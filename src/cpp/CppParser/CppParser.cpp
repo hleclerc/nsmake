@@ -4,7 +4,7 @@
 #include <sys/stat.h>
 
 
-CppParser::CppParser( Task *task ): task( task ) {
+CppParser::CppParser( Task *task, bool soTTY ): soTTY( soTTY ), task( task ) {
     special_variables.append( "NSMAKE_CMD"          , VT_NSMAKE_CMD       );
     special_variables.append( "NSMAKE_RUN"          , VT_NSMAKE_RUN       );
     special_variables.append( "defined"             , VT_defined          );
@@ -311,7 +311,7 @@ void CppParser::_variable( unsigned variable_type, const char *b, const char *&e
 }
 
 void CppParser::c_error( const std::string &msg, const char *b, Read *read ) {
-    ErrorDisp ed( msg );
+    ErrorDisp ed( msg, soTTY );
     for( Read *r = read; r; r = r->prev )
         ed.ac( r->b, r->e, r == read ? b : r->lw, r->filename );
     ed.write_to_stream( std::cerr );

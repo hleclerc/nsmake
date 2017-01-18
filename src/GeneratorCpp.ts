@@ -158,6 +158,7 @@ class GeneratorCpp extends Generator {
             inc_paths : include_path( this.env.args ),
             cmd_flags : split_spurienc( ( for_c ? this.env.args.c_flag :  this.env.args.cpp_flag ) || [] ),
             pic       : pic( this.env.args ),
+            soTTY     : this.env.com.soTTY,
             output,
         } as ArgsCppCompiler ) );
     }

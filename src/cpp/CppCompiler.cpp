@@ -10,7 +10,7 @@ void CppCompiler::exec() {
     string orig_name = children[ 0 ].exe_data[ "orig_name" ].isString() ? children[ 0 ].exe_data[ "orig_name" ].asString() : cpp_name;
 
     // parse
-    CppParser cp( this );
+    CppParser cp( this, args[ "soTTY" ].asBool() );
     string cpp_data = read_file_sync( cpp_name );
     cp.parse( cpp_name, dirname( cpp_name ), cpp_data );
 

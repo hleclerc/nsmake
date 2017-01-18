@@ -16,6 +16,7 @@ interface ArgsCppCompiler {
     inc_paths : Array<string>;
     cmd_flags : Array<string>;
     output    : string;
+    soTTY     : boolean;
 }
 
 /** executable or items args number => num in children
