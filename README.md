@@ -85,11 +85,11 @@ sudo npm link
 
 * [Compilation of a C++ application](https://github.com/hleclerc/nsmake/wiki/Tutorial:-compilation-of-a-CPP-executable)
 * [Packing/minification of a generic web application](https://github.com/hleclerc/nsmake/wiki/Tutorial:-compilation-of-a-generic-web-application)
+* [Plugins](https://github.com/hleclerc/nsmake/wiki/Plugins)
 
 # More specific information
 
-* [Wiki home](wiki/Home.md)
-
+* [Wiki home](https://github.com/hleclerc/nsmake/wiki/Home)
 * [Testing a web/nodejs application using Mocha, Chai and Karma](https://github.com/hleclerc/nsmake/wiki/Testing-your-code-with-Mocha,-Karma,-Chai...)
 * [Testing a C++ application using gtest](https://github.com/hleclerc/nsmake/wiki/Testing-your-C---code-with-gtest-(google-test))
 * [Description of libraries and prerequisites for your projects](https://github.com/hleclerc/nsmake/wiki/Flags-and-automatic-installation-of-libraries-for-compiler-languages)
