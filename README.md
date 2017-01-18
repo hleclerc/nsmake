@@ -89,8 +89,8 @@ sudo npm link
 
 # More specific information
 
-* [Wiki home](https://github.com/hleclerc/nsmake/wiki/Home)
+* [Filters for code generation](https://github.com/hleclerc/nsmake/wiki/Flags-and-automatic-installation-of-libraries-for-compiler-languages.md)
 * [Testing a web/nodejs application using Mocha, Chai and Karma](https://github.com/hleclerc/nsmake/wiki/Testing-your-code-with-Mocha,-Karma,-Chai...)
 * [Testing a C++ application using gtest](https://github.com/hleclerc/nsmake/wiki/Testing-your-C---code-with-gtest-(google-test))
 * [Description of libraries and prerequisites for your projects](https://github.com/hleclerc/nsmake/wiki/Flags-and-automatic-installation-of-libraries-for-compiler-languages)
-* [Filters for code generation](https://github.com/hleclerc/nsmake/wiki/Flags-and-automatic-installation-of-libraries-for-compiler-languages.md)
+* [Wiki home](https://github.com/hleclerc/nsmake/wiki/Home)
