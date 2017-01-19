@@ -68,18 +68,11 @@ process.on( 'message', ( data: Buffer ) => {
                         active_task.stdin_fd  = stdin_fd;
                         active_task.children  = args.children;
                         active_task.signature = args.signature;
-                        if ( active_task.exec.length == 1 ) {
-                            // synchronous version
-                            active_task.exec( args.args );
-                            send_end( false, active_task._output_summary() );
+
+                        active_task._exec( args.args, err => {
+                            send_end( err || false, active_task ? active_task._output_summary() : {} );
                             active_task = null;
-                        } else {
-                            // asynchronous version (with a callback)
-                            active_task.exec( args.args, err => {
-                                send_end( err || false, active_task ? active_task._output_summary() : {} );
-                                active_task = null;
-                            } );
-                        } 
+                        } );
                         break;
                     case "error":
                         throw args.msg;

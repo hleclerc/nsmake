@@ -1,7 +1,7 @@
 import JsLazySourceMap       from "./JsLazySourceMap"
 import SourceMap, { coords } from "./SourceMap"
 import { pu }                from "./ArrayUtil"
-import Task                  from "./Task"
+import TaskFiber             from "./TaskFiber"
 import * as bt               from "babel-types";
 import * as babel            from "babel-core";
 import * as yaml             from "js-yaml";
@@ -189,8 +189,8 @@ function parser( js_parser: JsParser, exe_data: ExeDataJsParser, js_env: string 
 /** executable or items args number => num in children
  */
 export default
-class JsParser extends Task {
-    exec( args: ArgsJsParser ) {
+class JsParser extends TaskFiber {
+    exec( args: ArgsJsParser, done: ( err: boolean ) => void ) {
         const js_name = this.children[ 0 ].outputs[ 0 ];
         const orig_name = this.children[ 0 ].exe_data.orig_name || js_name;
 
@@ -205,7 +205,7 @@ class JsParser extends Task {
 
         // nsmake trans
         for( let trans of trans_list ) {
-            const src = this.get_filtered_target( trans.prog, path.dirname( orig_name ) ).name;
+            const src = this.get_filtered_target_sync( trans.prog, path.dirname( orig_name ) ).name;
             const ins = require( src ).default;
             ins( this, sm );
         }
@@ -249,8 +249,8 @@ class JsParser extends Task {
 
         // save js and map files if necessary (if we had changes)
         if ( sm.has_changes ) {
-            const nsm = this.new_build_file( orig_name, ".js.map" );
-            const njs = this.new_build_file( orig_name, ".js" );
+            const nsm = this.new_build_file_sync( orig_name, ".js.map" );
+            const njs = this.new_build_file_sync( orig_name, ".js" );
             
             sm.append( `\n//# sourceMappingURL=${ path.relative( path.dirname( njs ), nsm ) }` );
             this.write_file_sync( nsm, sm.toString( njs ) );
@@ -271,6 +271,8 @@ class JsParser extends Task {
             }
             beg += token.length;
         }
+
+        done( false );
     }
 
     /** read comments to find nsmake commands */
@@ -362,7 +364,7 @@ class JsParser extends Task {
                     trans_list.push( { prog: path.resolve( path.dirname( orig_name ), spl[ nspl[ 1 ] ] ), args: cf( 2 ) } );
                     break;
                 case "css":
-                    exe_data.needed_css.push( this.get_filtered_target_signature( path.resolve( path.dirname( orig_name ), cf( 1 ) ), path.dirname( orig_name ) ) );
+                    exe_data.needed_css.push( this.get_filtered_target_signature_sync( path.resolve( path.dirname( orig_name ), cf( 1 ) ), path.dirname( orig_name ) ) );
                     break;
                 default:
                     this.error( `Unknown nsmake cmd: '${ spl[ nspl[ 0 ] ] }'` );
@@ -429,8 +431,8 @@ class JsParser extends Task {
                     args.push( simp_arg( tl ) );
                 //
                 const str = token == "NSMAKE_CMD" ?
-                    this.nsmake_cmd( args, path.dirname( orig_name ), ".js", null, ".js" ) :
-                    this.nsmake_run( args, path.dirname( orig_name ), ".js" );
+                    this.nsmake_cmd_sync( args, path.dirname( orig_name ), ".js", ".js" ) :
+                    this.nsmake_run_sync( args, path.dirname( orig_name ), ".js" );
                 sm.replace( beg, pos, str );
                 pos = beg + str.length;
             }

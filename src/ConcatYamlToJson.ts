@@ -18,26 +18,44 @@ class ConcatYamlToJson extends Task {
         let res = new Array<any>();
         async.forEachSeries( args.directories, ( target, cb_dir ) => {
             this.get_filtered_target( target, target, ( err_fr: boolean, fr ) => {
-                if ( fr && ! err_fr ) {
-                    const dir = fr.name;
-                    for( let name of this.read_dir_sync( dir ) ) {
-                        if ( name.toLowerCase().endsWith( ".yaml" ) ) {
-                            const data = yaml.safeLoad( this.read_file_sync( 
-                                this.get_filtered_target( path.resolve( dir, name ), dir ).name // a way to store the dependancy
-                            ).toString() );
-                            res.push( { name: path.join( dir, name ), data } );
-                        }
-                    }
-                }
-                cb_dir( false );
+                if ( err_fr || ! fr )
+                    return cb_dir( false );
+                const dir = fr.name;
+                this.read_dir( dir, ( err, content ) => {
+                    if ( err ) return cb_dir( false );
+
+                    async.forEachSeries( content, ( name, cb_cnt ) => {
+                        // skip if not a .yam file
+                        if ( ! name.toLowerCase().endsWith( ".yaml" ) )
+                            return cb_cnt( false );
+                        // a way to store the dependancy (and potentially handle code generation)
+                        this.get_filtered_target( path.resolve( dir, name ), dir, ( err, ft ) => {
+                            if ( err )
+                                return cb_cnt( false );
+                            this.read_file( ft.name, ( err, str ) => {
+                                try {
+                                    const data = yaml.safeLoad( str.toString() );
+                                    res.push( { name: path.join( dir, name ), data } );
+                                } catch ( e ) {
+                                    this.error( `Error:${ path.join( dir, name ) }:${ e }` );
+                                }
+                                cb_cnt( false );
+                            } );
+                        } );
+                    }, err => cb_dir( false ) );
+                } );
             } );
         }, ( err: boolean ) => {
             if ( err )
                 return done( err );
-            const out = this.new_build_file( `concat-yaml`, ".json" );
-            this.write_file_sync( out, JSON.stringify( res ) );
-            this.outputs = [ out ];
-            done( false );
+            const out = this.new_build_file( `concat-yaml`, ".json", null, ( err, out ) => {
+                if ( err ) return done( true );
+                this.write_file( out, JSON.stringify( res ), ( err ) => {
+                    if ( err ) return done( true );
+                    this.outputs = [ out ];
+                    done( false );
+                } );
+            } );
         } );
     }
 }

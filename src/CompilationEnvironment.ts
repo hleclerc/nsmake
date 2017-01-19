@@ -103,7 +103,7 @@ class CompilationEnvironment {
     get_mission_node( file_dependencies: FileDependencies, cb: ( mission_node: CompilationNode ) => void ): void {
         switch ( this.args.mission ) {
             case "sleep":
-                return cb( new CompilationNode( `Sleep(${{ time: this.args.time }})`, "Sleep", [], { time: typeof this.args.time == "undefined" ? 1000 : this.args.time } ) );
+                return cb( new CompilationNode( `Sleep(${ this.args.time })`, "Sleep", [], { time: typeof this.args.time == "undefined" ? 1000 : this.args.time } ) );
             default:
                 async.forEachSeries( this.generators, ( generator, foreach_cb ) => {
                     generator.get_mission_node( file_dependencies, foreach_cb );

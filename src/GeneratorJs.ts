@@ -146,7 +146,7 @@ class GeneratorJs extends Generator {
                         outputs        : args.redirect ? [ args.redirect ] : [],
                         redirect       : args.redirect || '',
                         new_build_files: args.new_build_files || [],
-                        pure_function  : args.pure_function || false,
+                        idempotent     : args.idempotent || false,
                     } as ExecutorArgs ) );
                 } );
             }

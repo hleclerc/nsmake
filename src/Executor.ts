@@ -1,4 +1,5 @@
-import Task from "./Task"
+import Task       from "./Task"
+import * as async from "async"
 
 /** positive of null number -> reference to children. negative number => - reference to new_build_files - 1 */
 export interface ExecutorArgs {
@@ -8,7 +9,7 @@ export interface ExecutorArgs {
     redirect        ?: string | number;
     outputs         ?: Array<string | number>;                                /** outputs of the task */
     new_build_files ?: Array<{ orig?: string, ext?: string, dist?: string }>; /** build files to be created. */
-    pure_function   ?: boolean;                                               /** true by default */
+    idempotent      ?: boolean;                                               /** true by default */
 }
 
 /** executable or items args number => num in children
@@ -17,21 +18,21 @@ export default
 class Executor extends Task {
     exec( args: ExecutorArgs, done: ( err: boolean ) => void ) {
         // build files
-        let build_files = new Array<string>();
-        for( let abf of args.new_build_files || [] )
-            build_files.push( this.new_build_file( abf.orig || "", abf.ext || "", abf.dist || "" ) );
+        async.map( args.new_build_files || [], ( abf, cb_nbf ) => {
+            this.new_build_file( abf.orig || "", abf.ext || "", abf.dist || "", cb_nbf );
+        }, ( err, build_files: Array<string> ) => {
+            // helper to get arg values
+            const av = ( n: string | number ): string => {
+                if ( typeof n == 'string' ) return n;
+                return n >= 0 ? this.children[ n ].outputs[ 0 ] : build_files[ - n - 1 ];
+            };
 
-        // helper to get arg values
-        const av = ( n: string | number ): string => {
-            if ( typeof n == 'string' ) return n;
-            return n >= 0 ? this.children[ n ].outputs[ 0 ] : build_files[ - n - 1 ];
-        };
-
-        // launch
-        this.spawn( av( args.executable ), args.args.map( av ), ( err, code ) => {
-            this.pure_function = args.pure_function != undefined ? args.pure_function : true;
-            this.outputs = ( args.outputs || [] ).map( av );
-            done( Boolean( err || code ) );
-        }, args.local_execution || false, av( args.redirect || '' ) );
+            // launch
+            this.spawn( av( args.executable ), args.args.map( av ), ( err, code ) => {
+                this.idempotent = args.idempotent != undefined ? args.idempotent : true;
+                this.outputs = ( args.outputs || [] ).map( av );
+                done( Boolean( err || code ) );
+            }, args.local_execution || false, av( args.redirect || '' ) );
+        } );
     }
 }

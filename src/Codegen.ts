@@ -1,5 +1,6 @@
-import Task      from "./Task"
-import * as path from "path" 
+import Task       from "./Task"
+import * as async from "async" 
+import * as path  from "path"  
 
 interface Quoted     { type: "Quoted"    ; str : string;            }
 interface OpeningPar { type: "OpeningPar"; beg : number;            }
@@ -14,55 +15,78 @@ declare type Token = Quoted | OpeningPar | ClosingPar | JsonData | Target | SubE
  */
 export default
 class Codegen extends Task {
-    exec( args: { output: string, filename: string, cwd: string } ) {
+    exec( args: { output: string, filename: string, cwd: string }, done: ( err: boolean ) => void ) {
         // parse filename (e.g. '(foo.js "arg"){define:["..."]}.js')
         const filename = decodeURIComponent( args.filename );
         const ind = Math.max( filename.lastIndexOf( ')' ), filename.lastIndexOf( '}' ) );
         const cmd = filename.slice( 1, ind + 1 ), ext = filename.slice( ind + 1 );
         const res = this._parse_filename( cmd );
 
-        //
-        let inp_sgns = new Array<string>(), argv = new Array<string|number>();
+        // preparation for async stuff
+        let fts = new Array<string>();
+        let nbd = new Array<string>();
         for( let tok of res.tokens ) {
             switch ( tok.type ) {
                 case "Target":
-                    argv.push( inp_sgns.length );
-                    inp_sgns.push( this.get_filtered_target_signature( path.resolve( args.cwd, tok.name.startsWith( "#" ) ? path.resolve( __dirname, "..", "..", "rules", "gen", tok.name.slice( 1 ) ) : tok.name ), args.cwd ) );
-                    break;
-                case "Quoted":
-                    argv.push( tok.str );
+                    fts.push( path.resolve( args.cwd, tok.name.startsWith( "#" ) ? path.resolve( __dirname, "..", "..", "rules", "gen", tok.name.slice( 1 ) ) : tok.name ) );
                     break;
                 case "SubExpr":
-                    argv.push( inp_sgns.length );
-                    inp_sgns.push( this.make_signature( "Codegen", [], {
-                        output  : this.new_build_file(),
-                        filename: tok.expr,
-                        cwd     : args.cwd
-                    } ) );
+                    nbd.push( "Codegen" );
                     break;
-                default:
-                    throw `While analyzing ${ cmd }: a token of type ${ tok.type } is not expected after the parsing stage`;
             }
         }
 
-        if ( res.tokens.length && res.tokens[ 0 ].type == "Quoted" ) {
-            if ( res.tokens.length < 2 || res.tokens[ 1 ].type != "Quoted" )
-                throw `If the first argument is quoted (script content), the second have also to be quoted (the extension of the script)`;
-            argv.splice( 0, 2, inp_sgns.push( this.make_signature( "MakeFile", [], { ext: argv[ 1 ], content: argv[ 0 ], } ) ) - 1 );
-        }
+        async.map( fts, ( target, cb_fts ) => this.get_filtered_target_signature( target, args.cwd, cb_fts ), ( err: boolean, fts_sgns: Array<string> ) => {
+            if ( err )
+                return done( err );
+            async.map( nbd, ( build_file, cb_nbd ) => this.new_build_file( null, null, null, cb_nbd ), ( err: boolean, nbd_names: Array<string> ) => {
+                if ( err )
+                    return done( err );
+                //
+                let inp_sgns = new Array<string>(), argv = new Array<string|number>();
+                for( let tok of res.tokens ) {
+                    switch ( tok.type ) {
+                        case "Target":
+                            argv.push( inp_sgns.length );
+                            inp_sgns.push( fts_sgns.shift() );
+                            break;
+                        case "Quoted":
+                            argv.push( tok.str );
+                            break;
+                        case "SubExpr":
+                            argv.push( inp_sgns.length );
+                            inp_sgns.push( this.make_signature( "Codegen", [], {
+                                output  : nbd_names.shift(),
+                                filename: tok.expr,
+                                cwd     : args.cwd
+                            } ) );
+                            break;
+                        default:
+                            throw `While analyzing ${ cmd }: a token of type ${ tok.type } is not expected after the parsing stage`;
+                    }
+                }
 
-        this.run_mission_node( Object.assign( {}, {
-            mission        : "run",
-            redirect       : args.output,
-            cwd            : args.cwd,
-            entry_point    : argv[ 0 ],
-            arguments      : argv.slice( 1 ),
-            local_execution: false,
-            pure_function  : true,
-            run_loc        : true, // for instance, if the entry_point is a js file, we want to ensure that we're not going to execute it on a browser
-        }, res.json_data ), inp_sgns );
-        
-        this.outputs.push( args.output );
+                if ( res.tokens.length && res.tokens[ 0 ].type == "Quoted" ) {
+                    if ( res.tokens.length < 2 || res.tokens[ 1 ].type != "Quoted" )
+                        throw `If the first argument is quoted (script content), the second have also to be quoted (the extension of the script)`;
+                    argv.splice( 0, 2, inp_sgns.push( this.make_signature( "MakeFile", [], { ext: argv[ 1 ], content: argv[ 0 ], } ) ) - 1 );
+                }
+
+                this.run_mission_node( Object.assign( {}, {
+                    mission        : "run",
+                    redirect       : args.output,
+                    cwd            : args.cwd,
+                    entry_point    : argv[ 0 ],
+                    arguments      : argv.slice( 1 ),
+                    local_execution: false,
+                    idempotent     : true,
+                    run_loc        : true, // for instance, if the entry_point is a js file, we want to ensure that we're not going to execute it on a browser
+                }, res.json_data ), inp_sgns, ( err, res ) => {
+                    this.outputs.push( args.output );
+                    done( err );
+                } );
+            } );
+        } );
     }
 
     _parse_filename( d: string ): { tokens: Array<Token>, json_data: any } {

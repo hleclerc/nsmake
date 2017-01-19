@@ -40,7 +40,7 @@ class CompilationNode {
             this.generated.length           = 0;
             this.generated_mtimes.length    = 0;
             this.exe_data                   = {};
-            this.pure_function              = true;
+            this.idempotent                 = true;
             this.num_build_exec             = this.num_build_seen;
             this.start                      = process.hrtime() as [ number, number ];
             this.file_dependencies.clear();
@@ -75,6 +75,6 @@ class CompilationNode {
 
     // intermediate outputs
     additional_children = new Array<CompilationNode>();          /** children added during execution */
-    pure_function       = true;                                  /** true is different execution with the same parameters yield the same results */
+    idempotent          = true;                                  /** true is different execution with the same parameters yield the same results */
 } 
  

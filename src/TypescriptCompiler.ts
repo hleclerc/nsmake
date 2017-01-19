@@ -1,5 +1,5 @@
 import SourceMap from "./SourceMap"
-import Task      from "./Task"
+import TaskFiber from "./TaskFiber"
 //import * as ts   from "typescript";
 import * as path from "path"
 const typescript = require( "typescript" );
@@ -34,8 +34,8 @@ class ExeDataTypescriptParser {
 /** Typescript -> javascript
  */
 export default
-class TypescriptCompiler extends Task {
-    exec( args: TypescriptCompilerArgs ) {
+class TypescriptCompiler extends TaskFiber {
+    exec( args: TypescriptCompilerArgs, done: ( err: boolean ) => void ) {
         // inputs
         const ts_name = this.children[ 0 ].outputs[ 0 ], ts_data = this.read_file_sync( ts_name );
         const orig_name = this.children[ 0 ].exe_data.orig_name || ts_name;
@@ -51,13 +51,13 @@ class TypescriptCompiler extends Task {
         let compiler_host = typescript.createCompilerHost( {} );
 
         compiler_host.getSourceFile = ( fileName: string, languageVersion, onError?: ( message: string ) => void ) => {
-            const name = this.get_filtered_target( fileName, path.dirname( fileName ) ).name;
+            const name = this.get_filtered_target_sync( fileName, path.dirname( fileName ) ).name;
             return typescript.createSourceFile( fileName, this.read_file_sync( name ).toString(), languageVersion );
 
         };
 
         compiler_host.fileExists = ( fileName: string ): boolean => {
-            return Boolean( this.get_filtered_target_signature( fileName, path.dirname( fileName ) ) );
+            return Boolean( this.get_filtered_target_signature_sync( fileName, path.dirname( fileName ) ) );
         };
 
         compiler_host.readFile = ( fileName: string ): string => {
@@ -67,8 +67,8 @@ class TypescriptCompiler extends Task {
         compiler_host.resolveModuleNames = ( moduleNames: string[], containingFile: string ): any[] => {
             if ( moduleNames.length == 0 )
                 return [];
-            const res = this.get_requires( [ { cwd: path.dirname( containingFile ), requires: moduleNames } ], args.js_env, null, true );
-            const lst = this.get_cns_data( res[ 0 ] );
+            const res = this.get_requires_sync( [ { cwd: path.dirname( containingFile ), requires: moduleNames } ], args.js_env, true );
+            const lst = this.get_cns_data_sync( res[ 0 ] );
             return lst.map( ch => ch.outputs.length ? { resolvedFileName: ch.outputs[ 0 ] } : undefined );
         };
 
@@ -96,8 +96,8 @@ class TypescriptCompiler extends Task {
             }
 
             // outputs
-            const nsm = args.output ? args.output + ".map" : this.new_build_file( orig_name, ".js.map" );
-            const njs = args.output || this.new_build_file( orig_name, ".js" );
+            const nsm = args.output ? args.output + ".map" : this.new_build_file_sync( orig_name, ".js.map" );
+            const njs = args.output || this.new_build_file_sync( orig_name, ".js" );
             this.outputs = [ njs, nsm ];
 
             // remove all //# sourceMappingURL=.... TODO: something context sensitive
@@ -169,7 +169,6 @@ class TypescriptCompiler extends Task {
             }
         });
 
-        if ( er.diagnostics.length )
-            throw "";
+        done( er.diagnostics.length != 0 );
     }
 }

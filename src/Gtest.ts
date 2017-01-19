@@ -16,14 +16,17 @@ export default
 class Gtest extends Task {
     exec( args: GtestArgs, done: ( err: boolean ) => void ) {
         // we want to redo the call each time we relaunch the mission
-        this.pure_function = false;
+        this.idempotent = false;
 
         // get, register and make the input compilation nodes
         async.reduce( args.entry_points, new Array<{name:string,signature:string}>(), ( cns, entry_point, cb_reduce ) => {
             glob( entry_point, { cwd: args.launch_dir }, ( err, matches ) => {
                 if ( err ) { this.error( err.toString() ); return cb_reduce( true, null ); }
-                const lst = matches.map( x => this.get_filtered_target( path.resolve( args.launch_dir, x ), args.launch_dir ) );
-                cb_reduce( null, cns.concat( lst ) );
+                async.map( matches, ( x, cb_map ) => {
+                    this.get_filtered_target( path.resolve( args.launch_dir, x ), args.launch_dir, cb_map );
+                }, ( err, lst: Array<{name:string,signature:string}> ) => {
+                    cb_reduce( null, cns.concat( lst ) );
+                } );
             } );
         }, ( err, cns ) => {
             if ( err ) return done( true );
@@ -56,9 +59,8 @@ class Gtest extends Task {
             orig: cns.length ? path.basename( cns[ 0 ].name, path.extname( cns[ 0 ].name ) ) : "",
             ext: ".gtest.cpp",
             content,
-        } ) ] );
-
-        // done
-        done( false );
+        } ) ], ( err, res ) => {
+            done( err );
+        } );
     }
 }

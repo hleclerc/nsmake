@@ -1,5 +1,5 @@
 import { ResJsDepFactory } from "./JsDepFactory"
-import Task                from "./Task"
+import TaskFiber           from "./TaskFiber"
 import * as lodash         from "lodash"
 import * as Moc            from "mocha"
 import * as async          from "async"
@@ -19,17 +19,17 @@ export interface MochaArgs {
 }
 
 export default
-class Mocha extends Task {
+class Mocha extends TaskFiber {
     exec( args: MochaArgs, done: ( err: boolean ) => void ) {
         // we want to redo the call each time we relaunch the mission
-        this.pure_function = false;
+        this.idempotent = false;
 
         // check mocha installation
         if ( ! this.av( args.mocha ) ) {
-            try { this.stat( path.resolve( args.launch_dir, "node_modules", "@types", "mocha" ) ); }
-            catch ( e ) { this.run_install_cmd( args.launch_dir, [ "npm", "install", "@types/mocha" ], [] ); } 
-            try { this.stat( path.resolve( args.launch_dir, "node_modules", "mocha" ) ); }
-            catch ( e ) { this.run_install_cmd( args.launch_dir, [ "npm", "install", "mocha" ], [] ); }
+            try { this.stat_sync( path.resolve( args.launch_dir, "node_modules", "@types", "mocha" ) ); }
+            catch ( e ) { this.run_install_cmd_sync( args.launch_dir, [ "npm", "install", "@types/mocha" ], [] ); } 
+            try { this.stat_sync( path.resolve( args.launch_dir, "node_modules", "mocha" ) ); }
+            catch ( e ) { this.run_install_cmd_sync( args.launch_dir, [ "npm", "install", "mocha" ], [] ); }
         }
 
         // nodejs and/or browser ?
@@ -108,13 +108,13 @@ class Mocha extends Task {
             content += `  })\n`;
             content += `}\n`;
 
-            const karma_conf_name = this.new_build_file( outputs.length ? path.basename( outputs[ 0 ], path.extname( outputs[ 0 ] ) ) : "", ".karma.conf.js" );
+            const karma_conf_name = this.new_build_file_sync( outputs.length ? path.basename( outputs[ 0 ], path.extname( outputs[ 0 ] ) ) : "", ".karma.conf.js" );
             this.write_file_sync( karma_conf_name, content );
 
             // check (synchronously) karma installation
             for ( const to_test of [ "karma", "karma-mocha", "karma-mocha-reporter", ...testing_envs.map( x => `karma-${ x.toLowerCase() }-launcher` ) ] ) {
-                try { this.stat( path.resolve( args.launch_dir, "node_modules", to_test ) ); }
-                catch ( e ) { this.run_install_cmd( args.launch_dir, [ "npm", "install", to_test ], [] ); }
+                try { this.stat_sync( path.resolve( args.launch_dir, "node_modules", to_test ) ); }
+                catch ( e ) { this.run_install_cmd_sync( args.launch_dir, [ "npm", "install", to_test ], [] ); }
             }
 
             // launch

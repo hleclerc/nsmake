@@ -7,7 +7,8 @@ import { Url, ExeDataCssParser,
 import { ExeDataJsParser, 
          ArgsJsParser,   
          Require, Accept, Pss  }   from "./JsParser"
-import Task, { CnData }            from "./Task"
+import TaskFiber                   from "./TaskFiber"
+import { CnData }                  from "./Task"
 import * as babel                  from 'babel-core'
 import * as path                   from 'path'
 
@@ -77,8 +78,8 @@ declare type C_stuff = C_Url | C_Pss;
  * 
  */
 export default
-class JsDepFactory extends Task {
-    exec( args: ArgsJsDepFactory ) {
+class JsDepFactory extends TaskFiber {
+    exec( args: ArgsJsDepFactory, done: ( err: boolean ) => void ) {
         this.exe_data = new ResJsDepFactory;
 
         // find html and js name using args.output, args.mission, ... 
@@ -96,7 +97,7 @@ class JsDepFactory extends Task {
                 babel_env_arguments: args.babel_env_arguments,
                 target_browsers    : args.target_browsers,
             } as ArgsJsParser ) );
-            const res_js_parsers = this.get_cns_data( lst ) as Array<ResJsParser>;
+            const res_js_parsers = this.get_cns_data_sync( lst ) as Array<ResJsParser>;
             if ( ! res_js_parsers ) {
                 this.error( `pb in lst: ${ JSON.stringify( lst ) }` );
                 throw "";
@@ -125,7 +126,7 @@ class JsDepFactory extends Task {
             // parse required files in parallel
             const lst = needed_css.slice( num_needed_css ).map( x => this.make_signature( "CssParser", [ x ], {
             } as ArgsCssParser ) );
-            const res_css_parsers = this.get_cns_data( lst ) as Array<ResCssParser>;
+            const res_css_parsers = this.get_cns_data_sync( lst ) as Array<ResCssParser>;
             if ( ! res_css_parsers )
                 throw "";
             num_needed_css = needed_css.length;
@@ -145,6 +146,8 @@ class JsDepFactory extends Task {
         this._want_concat( args ) ?
            this._make_concat( args ) :
            this._make_sep( args );
+        
+        done( false );
     }
 
     /** try to set _js_name and _html_name */
@@ -175,7 +178,7 @@ class JsDepFactory extends Task {
             let lst_trials = new Array<{cwd:string,requires:Array<string>}>();
             for( const js_parser of js_parsers )
                 lst_trials.push({ cwd: path.dirname( js_parser.exe_data.orig_name ), requires: js_parser.exe_data.requires.map( req => req.txt ) });
-            const res = this.get_requires( lst_trials, args.js_env );
+            const res = this.get_requires_sync( lst_trials, args.js_env );
 
             // if we haven't found all the files
             if ( res.some( x => x.some( v => ! v ) ) ) {
@@ -215,7 +218,7 @@ class JsDepFactory extends Task {
             let lst_trials = new Array<{cwd:string,requires:Array<string>}>();
             for( const js_parser of js_parsers )
                 lst_trials.push({ cwd: path.dirname( js_parser.exe_data.orig_name ), requires: js_parser.exe_data.accepts.map( req => req.txt ) });
-            const res = this.get_requires( lst_trials, args.js_env );
+            const res = this.get_requires_sync( lst_trials, args.js_env );
 
             // if we haven't found all the files
             if ( res.some( x => x.some( v => ! v ) ) ) {
@@ -241,7 +244,7 @@ class JsDepFactory extends Task {
     _find_css_requires_for( args: ArgsJsDepFactory, needed_css: Array<string>, css_parsers: Array<ResCssParser> ): void {
         for( const css of css_parsers ) {
             if ( css.exe_data.urls.length ) {
-                const outs = this.get_cns_data( css.exe_data.urls.map( x => x.sgn ) );
+                const outs = this.get_cns_data_sync( css.exe_data.urls.map( x => x.sgn ) );
                 if ( ! outs )
                     throw "";
                 for( let num_out = 0; num_out < outs.length; ++num_out ) {
@@ -252,7 +255,7 @@ class JsDepFactory extends Task {
                     if ( path.extname( cn.outputs[ 0 ] ) == ".css" ) {
                         pu( needed_css, cn.signature );
                     } else if ( ! this.dist_corr.has( cn.signature ) ) {
-                        const ext_name = this.new_build_file( cn.exe_data.orig_name || cn.outputs[ 0 ], path.extname( cn.outputs[ 0 ] ), args.dist_dir );
+                        const ext_name = this.new_build_file_sync( cn.exe_data.orig_name || cn.outputs[ 0 ], path.extname( cn.outputs[ 0 ] ), args.dist_dir );
                         this.dist_corr.set( cn.signature, ext_name );
                         this.note( `Emission of '${ ext_name }'` );
                         this.write_file_sync( ext_name, this.read_file_sync( cn.outputs[ 0 ] ) );
@@ -273,7 +276,7 @@ class JsDepFactory extends Task {
     _make_concat( args: ArgsJsDepFactory ) {
         //
         if ( ! this._js_name )
-            this._js_name = this.new_build_file( this.ep_js_parser.exe_data.orig_name, ".js", args.dist_dir );
+            this._js_name = this.new_build_file_sync( this.ep_js_parser.exe_data.orig_name, ".js", args.dist_dir );
         else
             this.generated.push( this._js_name );
         this.outputs = [ this._js_name ];
@@ -293,11 +296,11 @@ class JsDepFactory extends Task {
 
             // if hot_replacement and outputs is not in dist, copy the file to have it in the expected directory
             if ( args.hot_replacement && ! path.normalize( js.outputs[ 0 ] ).startsWith( args.dist_dir ) ) {
-                js.outputs[ 0 ] = this.new_build_file( js.outputs[ 0 ], ".js", args.dist_dir );
+                js.outputs[ 0 ] = this.new_build_file_sync( js.outputs[ 0 ], ".js", args.dist_dir );
                 this.write_file_sync( js.outputs[ 0 ], js.content );
             }
 
-            js.mtime = this.stat( js.outputs[ 0 ] ).mtime.getTime();
+            js.mtime = this.stat_sync( js.outputs[ 0 ] ).mtime.getTime();
         }
 
         // how a js parser is reference in the js file
@@ -434,7 +437,7 @@ class JsDepFactory extends Task {
     _make_css( args: ArgsJsDepFactory ) {
         // get the names in dist_dir
         this.css_parsers.forEach( ( css, sgn ) => {
-            const css_name = this.new_build_file( css.exe_data.orig_name || css.outputs[ 0 ], ".css", args.dist_dir );
+            const css_name = this.new_build_file_sync( css.exe_data.orig_name || css.outputs[ 0 ], ".css", args.dist_dir );
             this.dist_corr.set( sgn, css_name );
         } );
 
@@ -476,7 +479,7 @@ class JsDepFactory extends Task {
 
     _make_html( args: ArgsJsDepFactory ) {
         if ( ! this._html_name )
-            this._html_name = this.new_build_file( this.ep_js_parser.exe_data.orig_name, ".html", args.dist_dir );
+            this._html_name = this.new_build_file_sync( this.ep_js_parser.exe_data.orig_name, ".html", args.dist_dir );
         else
             this.generated.push( this._html_name );
         this.outputs.unshift( this._html_name );
@@ -489,7 +492,7 @@ class JsDepFactory extends Task {
             const ht = js.exe_data.html_template;
             if ( ht ) {
                 const wd = path.dirname( js.exe_data.orig_name );
-                const fn = this.get_filtered_target( path.resolve( wd, ht ), wd ).name;
+                const fn = this.get_filtered_target_sync( path.resolve( wd, ht ), wd ).name;
                 html_template = this.read_file_sync( fn ).toString();
                 break;
             }
@@ -588,7 +591,7 @@ class JsDepFactory extends Task {
                         new SourceMap( js.content, path.dirname( js.exe_data.sourcemap ), this.read_file_sync( js.exe_data.sourcemap ).toString() ) : 
                         this._make_sourcemap_from_js_content( js.content, js.outputs[ 0 ] );
 
-                    const njs = js == this.ep_js_parser && this._js_name ? this._js_name : this.new_build_file( js.exe_data.orig_name, ".js" );
+                    const njs = js == this.ep_js_parser && this._js_name ? this._js_name : this.new_build_file_sync( js.exe_data.orig_name, ".js" );
                     const nsm = njs + ".map"; // this.new_build_file( js.exe_data.orig_name, ".js.map" );
                     this.generated.push( nsm );
                     js.outputs = [ njs, nsm ];
@@ -651,7 +654,7 @@ class JsDepFactory extends Task {
     _find_node_module_directory( cur_dir: string, module_name: string ): string {
         for( ; cur_dir.length > 1; cur_dir = path.dirname( cur_dir ) ) {
             let tn = path.resolve( cur_dir, 'node_modules', module_name );
-            if ( this.is_directory( tn ) )
+            if ( this.is_directory_sync( tn ) )
                 return tn;
         }
         return null;

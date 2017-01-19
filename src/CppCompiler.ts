@@ -4,8 +4,8 @@ import { ExeDataBaseCompilerInfo } from "./BaseCompilerInfo"
 import { SystemInfo,
         is_compatible_with }       from "./SystemInfo"
 import { pu }                      from "./ArrayUtil"
+import TaskFiber                   from "./TaskFiber"
 import { ExecutorArgs }            from "./Executor"
-import Task                        from "./Task"
 import * as path                   from "path";
 
 export
@@ -25,8 +25,8 @@ interface ArgsCppCompiler {
  *  child 2 => base include paths
  */
 export default
-class CppCompiler extends Task {
-    exec( args: ArgsCppCompiler ) {
+class CppCompiler extends TaskFiber {
+    exec( args: ArgsCppCompiler, done: ( err: boolean ) => void ) {
         // // store the aliases, find the new required files
         // this.register_aliases( res_cpp_parsers.reduce( ( p, x ) => p.concat( x.exe_data.aliases ), new Array< { key: string, val: string} >() ) );
         // this._find_requires_for( to_be_parsed, res_cpp_parsers );            
@@ -51,7 +51,7 @@ class CppCompiler extends Task {
 
         // nsmake trans
         for( let trans of trans_list ) {
-            const src = this.get_filtered_target( trans.prog, path.dirname( orig_name ) ).name;
+            const src = this.get_filtered_target_sync( trans.prog, path.dirname( orig_name ) ).name;
             const ins = require( src ).default;
             ins( this, content );
         }
@@ -83,6 +83,7 @@ class CppCompiler extends Task {
 
         exe_data.compiler = this.compiler;
         this.outputs = [ cpp_name ];
+        done( false );
     }
 
     /** read comments to find nsmake commands */
@@ -220,7 +221,7 @@ class CppCompiler extends Task {
                 ...this.inc_paths,
                 ...this.base_include_paths,
             ].map( x => path.resolve( x, inc_str ) );
-            return this.get_first_filtered_target_signature( trials, path.dirname( cur_name ) );
+            return this.get_first_filtered_target_signature_sync( trials, path.dirname( cur_name ) );
         }
         let sgn = try_to_find();
 
@@ -239,7 +240,7 @@ class CppCompiler extends Task {
             return;
         }
         // if ( ext ) return; // for bootstrap, we don't care about external includes
-        const name = this.get_cn_data( sgn.signature ).outputs[ 0 ];
+        const name = this.get_cn_data_sync( sgn.signature ).outputs[ 0 ];
         if ( this.loaded.has( name ) ) // ultra simplified load 
             return;
         this.loaded.add( name );

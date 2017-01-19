@@ -1,4 +1,4 @@
-import Task      from "./Task"
+import TaskFiber from "./TaskFiber"
 import * as path from "path"
 const node_sass = require( "node-sass" );
 
@@ -14,7 +14,7 @@ class ExeDataSassParser {
 /** Sass -> css
  */
 export default
-class SassCompiler extends Task {
+class SassCompiler extends TaskFiber {
     exec( args: SassCompilerArgs, done: ( boolean ) => void ) {
         // inputs
         const sass_name = this.children[ 0 ].outputs[ 0 ];
@@ -24,8 +24,8 @@ class SassCompiler extends Task {
         let exe_data = this.exe_data = new ExeDataSassParser();
         exe_data.orig_name = orig_name;
 
-        const ncss = args.output || this.new_build_file( orig_name, ".css" );
-        const nmap = args.output ? args.output + ".map" : this.new_build_file( orig_name, ".css.map" );
+        const ncss = args.output || this.new_build_file_sync( orig_name, ".css" );
+        const nmap = args.output ? args.output + ".map" : this.new_build_file_sync( orig_name, ".css.map" );
         this.outputs = [ ncss, nmap ];
 
         this.announcement( `sass ${ sass_name } ${ ncss }` );

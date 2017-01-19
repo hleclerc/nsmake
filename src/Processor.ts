@@ -172,7 +172,7 @@ class Processor {
     _done( env: CompilationEnvironment, cn: CompilationNode, err = false ): void {
         // stuff to be made, error ot not
         function merge_ch_info( ch: CompilationNode ) {
-            cn.pure_function = cn.pure_function && ch.pure_function;
+            cn.idempotent = cn.idempotent && ch.idempotent;
             cn.file_dependencies.merge( ch.file_dependencies );
         }
         cn.children           .forEach( merge_ch_info );
@@ -222,7 +222,7 @@ class Processor {
                     return this._done( env, cn, true );
 
                 // save in db (we don't have wait for a complete save)
-                if ( cn.pure_function && cn.type != "Id" ) {
+                if ( cn.idempotent && cn.type != "Id" ) {
                     this.db.put( cn.signature, JSON.stringify( {
                         outputs               : cn.outputs,
                         output_mtimes         : cn.output_mtimes,
@@ -249,7 +249,7 @@ class Processor {
             return this._exec_done_cb( env.com, cn, err );
 
         // if has to be re-executed each time, we do not have to make tests
-        if ( cn.type == "Id" || ! cn.pure_function || cn.build_error )
+        if ( cn.type == "Id" || ! cn.idempotent || cn.build_error )
             return this._launch( env, cn );
 
         // launched at least once (i.e. data is in memory) ?
@@ -421,14 +421,9 @@ class Processor {
                 return service_cb( null );
 
             let service = new Service;
-            service.send = ( data: string, use_stdin = false ) => {
-                if ( ! service.cp )
-                    return;
-                if ( use_stdin || force_stdin )
-                    service.cp.stdin.write( data );
-                else
-                    service.cp.send( data );    
-            };
+            service.send = force_stdin ?
+                ( data: string ) => { if ( service.cp ) service.cp.stdin.write( data ); } : 
+                ( data: string ) => { if ( service.cp ) service.cp.send( data ); };
             service.category = category;
             service.cp = cp;
 
@@ -480,15 +475,15 @@ class Processor {
         if ( category )
             this._make_child_process_for_category( category, com, init_cp );
         else
-            init_cp( child_process.spawn( process.argv[ 0 ], [ `--debug=${ 7000 + Processor.cpt_service++ }`, path.resolve( __dirname, "main_js_services.js" ) ], { stdio: [ 'pipe', 1, 2, 'ipc' ] } as any ), false );
+            init_cp( child_process.spawn( process.argv[ 0 ], [ `--debug=${ 7000 + Processor.cpt_debug_service++ }`, path.resolve( __dirname, "main_js_services.js" ) ], { stdio: [ 'pipe', 1, 2, 'ipc' ] } as any ), false );
         // init_cp( child_process.fork( path.resolve( __dirname, "main_js_services.js" ), [], { stdio: [ 'pipe', 1, 2, 'ipc' ] } as any ), false );
     }
-    static cpt_service = 0;
+    static cpt_debug_service = 0;
 
-    _action_from_service( service: Service, cmd: { action: string, msg_id: string, args: any, use_stdin: boolean } ): void {
+    _action_from_service( service: Service, cmd: { action: string, msg_id: string, args: any } ): void {
         // helper: answer to a service command
         const ans = ( err: boolean, res = null ) => {
-            service.send( JSON.stringify( { msg_id: cmd.msg_id, err, res } ) + "\n", cmd.use_stdin );
+            service.send( JSON.stringify( { msg_id: cmd.msg_id, err, res } ) + "\n" );
         };
 
         // helper: display an error message
@@ -528,7 +523,7 @@ class Processor {
                     pu( service.cn.generated, ...( cmd.args.output_summary.generated || [] ) );
                     service.cn.outputs       = cmd.args.output_summary.outputs || [];
                     service.cn.exe_data      = cmd.args.output_summary.exe_data || {};
-                    service.cn.pure_function = cmd.args.output_summary.pure_function || false;
+                    service.cn.idempotent    = cmd.args.output_summary.idempotent || false;
                 }
                 // the service is now idle and not linked to a specific env or cn
                 return done( cmd.args.err );

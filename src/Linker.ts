@@ -1,8 +1,8 @@
 import ExeDataGenCompiler from "./ExeDataGenCompiler"
 import { SystemInfo }     from "./SystemInfo"
 import { pu }             from "./ArrayUtil"
+import TaskFiber          from "./TaskFiber"
 import { ExecutorArgs }   from "./Executor"
-import Task               from "./Task"
 import * as path          from 'path'
 
 export
@@ -30,7 +30,7 @@ interface ResCnGenCompiler {
 /** child 0 => entry object file
  */
 export default
-class Linker extends Task {
+class Linker extends TaskFiber {
     exec( args: ArgsLinker, done: ( boolean ) => void ) {
         // this task essentially call stuff and wait for stuff to be finished...
         this.set_status( "waiting" );
@@ -49,7 +49,7 @@ class Linker extends Task {
         // look if it implies additional stuff to parse, compile or link. TODO: async version
         for( const moj of [ ...( res.exe_data.includes || [] ), ...( res.exe_data.obj_names || [] ) ] ) {
             const wo_ext = moj.slice( 0, moj.length - path.extname( moj ).length );
-            const o_maker = this.get_first_filtered_target_signature( [ wo_ext + ".o_maker" ], path.dirname( moj ), null, false );
+            const o_maker = this.get_first_filtered_target_signature_sync( [ wo_ext + ".o_maker" ], path.dirname( moj ), false );
             if ( o_maker && ! this.to_parse.has( o_maker.signature ) ) {
                 const nn = this.to_parse.size;
                 this.get_cn_data( o_maker.signature, ( err, cn_data ) => this.on_parsed( args, nn, err, cn_data as ResCnGenCompiler ) );

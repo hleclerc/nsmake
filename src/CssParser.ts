@@ -1,7 +1,7 @@
 import JsLazySourceMap       from "./JsLazySourceMap"
 import SourceMap, { coords } from "./SourceMap"
 import { pu }                from "./ArrayUtil"
-import Task                  from "./Task"
+import TaskFiber             from "./TaskFiber"
 import * as path             from "path";
 import * as fs               from "fs";
 const css_tokens_matcher = require( "css-tokens" ).default;
@@ -58,8 +58,8 @@ interface Comment {
 /** executable or items args number => num in children
  */
 export default
-class CssParser extends Task {
-    exec( args: ArgsCssParser ) {
+class CssParser extends TaskFiber {
+    exec( args: ArgsCssParser, done: ( err: boolean ) => void ) {
         const css_name = this.children[ 0 ].outputs[ 0 ];
         const orig_name = this.children[ 0 ].exe_data.orig_name || css_name;
 
@@ -74,7 +74,7 @@ class CssParser extends Task {
 
         // nsmake trans
         for( let trans of trans_list ) {
-            const src = this.get_filtered_target( trans.prog, path.dirname( orig_name ) ).name;
+            const src = this.get_filtered_target_sync( trans.prog, path.dirname( orig_name ) ).name;
             const ins = require( src ).default;
             ins( this, sm );
         }
@@ -84,8 +84,8 @@ class CssParser extends Task {
 
         // save css and map files if necessary (if we had changes)
         if ( sm.has_changes ) {
-            const nsm = this.new_build_file( orig_name, ".css.map" );
-            const njs = this.new_build_file( orig_name, ".css" );
+            const nsm = this.new_build_file_sync( orig_name, ".css.map" );
+            const njs = this.new_build_file_sync( orig_name, ".css" );
             
             sm.append( `\n//# sourceMappingURL=${ path.relative( path.dirname( njs ), nsm ) }` );
             this.write_file_sync( nsm, sm.toString( njs ) );
@@ -95,6 +95,8 @@ class CssParser extends Task {
         } else {
             this.outputs = [ this.children[ 0 ].outputs[ 0 ] ];
         }
+
+        done( false );
     }
 
     /** read comments to find nsmake commands */
@@ -234,8 +236,8 @@ class CssParser extends Task {
                     args.push( simp_arg( tl ) );
                 //
                 const str = token == "NSMAKE_CMD" ?
-                    this.nsmake_cmd( args, path.dirname( orig_name ), ".js", null, ".js" ) :
-                    this.nsmake_run( args, path.dirname( orig_name ), ".js" );
+                    this.nsmake_cmd_sync( args, path.dirname( orig_name ), ".js", ".js" ) :
+                    this.nsmake_run_sync( args, path.dirname( orig_name ), ".js" );
                 sm.replace( beg, pos, str );
                 pos = beg + str.length;
             }
@@ -277,7 +279,7 @@ class CssParser extends Task {
                 if ( `'"`.indexOf( txt[ 0 ] ) >= 0 ) {
                     const arg = txt.substring( 1, txt.length - 1 );
                     exe_data.urls.push( {
-                        sgn: this.get_filtered_target_signature( path.resolve( path.dirname( orig_name ), arg ), path.dirname( orig_name ) ),
+                        sgn: this.get_filtered_target_signature_sync( path.resolve( path.dirname( orig_name ), arg ), path.dirname( orig_name ) ),
                         bin: pos,
                         bqu: pos + 1,                     
                         equ: pos + txt.length - 1, 
@@ -350,7 +352,7 @@ class CssParser extends Task {
                     continue;
                 }
                 exe_data.urls.push( {
-                    sgn: this.get_filtered_target_signature( path.resolve( path.dirname( orig_name ), args[ 0 ] ), path.dirname( orig_name ) ),
+                    sgn: this.get_filtered_target_signature_sync( path.resolve( path.dirname( orig_name ), args[ 0 ] ), path.dirname( orig_name ) ),
                     bin,
                     bqu,                              
                     equ: bqu + args[ 0 ].length,      

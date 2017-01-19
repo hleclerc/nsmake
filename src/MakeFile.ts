@@ -11,9 +11,13 @@ export interface MakeFileArgs {
  */
 export default
 class MakeFile extends Task {
-    exec( args: MakeFileArgs ) {
-        const output = this.new_build_file( args.orig, args.ext );
-        this.write_file_sync( output, args.content );
-        this.outputs = [ output ];
+    exec( args: MakeFileArgs, done: ( err: boolean ) => void ) {
+        this.new_build_file( args.orig, args.ext, null, ( err, output ) => {
+            if ( err ) return done( err );
+            this.write_file( output, args.content, err => {
+                this.outputs = [ output ];
+                done( Boolean( err ) );
+            } );
+        } );
     }
 }
