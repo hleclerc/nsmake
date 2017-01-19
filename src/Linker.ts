@@ -1,8 +1,8 @@
 import ExeDataGenCompiler from "./ExeDataGenCompiler"
 import { SystemInfo }     from "./SystemInfo"
 import { pu }             from "./ArrayUtil"
-import TaskFiber          from "./TaskFiber"
 import { ExecutorArgs }   from "./Executor"
+import Task               from "./Task"
 import * as path          from 'path'
 
 export
@@ -30,7 +30,7 @@ interface ResCnGenCompiler {
 /** child 0 => entry object file
  */
 export default
-class Linker extends TaskFiber {
+class Linker extends Task {
     exec( args: ArgsLinker, done: ( boolean ) => void ) {
         // this task essentially call stuff and wait for stuff to be finished...
         this.set_status( "waiting" );
@@ -48,13 +48,17 @@ class Linker extends TaskFiber {
 
         // look if it implies additional stuff to parse, compile or link. TODO: async version
         for( const moj of [ ...( res.exe_data.includes || [] ), ...( res.exe_data.obj_names || [] ) ] ) {
+            ++this.nb_test_if_obj;
             const wo_ext = moj.slice( 0, moj.length - path.extname( moj ).length );
-            const o_maker = this.get_first_filtered_target_signature_sync( [ wo_ext + ".o_maker" ], path.dirname( moj ), false );
-            if ( o_maker && ! this.to_parse.has( o_maker.signature ) ) {
-                const nn = this.to_parse.size;
-                this.get_cn_data( o_maker.signature, ( err, cn_data ) => this.on_parsed( args, nn, err, cn_data as ResCnGenCompiler ) );
-                this.to_parse.add( o_maker.signature );
-            }
+            const o_maker = this.get_first_filtered_target_signature( [ wo_ext + ".o_maker" ], path.dirname( moj ), ( err, o_maker ) => {
+                --this.nb_test_if_obj;
+                if ( o_maker && ! this.to_parse.has( o_maker.signature ) ) {
+                    const nn = this.to_parse.size;
+                    this.to_parse.add( o_maker.signature );
+                    this.get_cn_data( o_maker.signature, ( err, cn_data ) => this.on_parsed( args, nn, err, cn_data as ResCnGenCompiler ) );
+                } else
+                    this.try_make_executable( args );
+            }, false );
         }
 
         // launch the compilation
@@ -65,17 +69,8 @@ class Linker extends TaskFiber {
     on_compiled( args: ArgsLinker, n: number, err: boolean, o_name: string ) {
         if ( err || ! o_name )
             return this.reg_err();
-
-        // register
         this.o_names[ n ] = o_name;
-
-        // if everything is compiled, launch `make_executable`
-        for( let i = 0; ; ++i ) {
-            if ( i == this.to_parse.size )
-                return this.make_executable( args );
-            if ( ! this.o_names[ i ] )
-                break;
-        }
+        this.try_make_executable( args );
     }
 
     reg_err() {
@@ -97,6 +92,20 @@ class Linker extends TaskFiber {
             return ".a";
         }
         return ".exe";
+    }
+
+    try_make_executable( args: ArgsLinker ) {
+        // if we tested all the possible .o_maker
+        if ( this.nb_test_if_obj )
+            return;
+
+        // if everything is compiled, launch `make_executable`
+        for( let i = 0; ; ++i ) {
+            if ( i == this.to_parse.size )
+                return this.make_executable( args );
+            if ( ! this.o_names[ i ] )
+                break;
+        }
     }
 
     make_executable( args: ArgsLinker ) {
@@ -143,9 +152,10 @@ class Linker extends TaskFiber {
         this.spawn( ld, cmd_args, ( err, code ) => this.done_cb( Boolean( err || code ) ) );
     }
 
-    has_err  = false;
-    done_cb  : ( boolean ) => void;           /** `done` arg of `exec` func */
-    to_parse = new Set<string>();             /** set of signatures of .o_maker nodes */
-    o_makers = new Array<ResCnGenCompiler>(); /** signature => res of CppParser */ 
-    o_names  = new Array<string>();           /** name of .o file */
+    has_err        = false;
+    done_cb        : ( boolean ) => void;           /** `done` arg of `exec` func */
+    to_parse       = new Set<string>();             /** set of signatures of .o_maker nodes */
+    o_makers       = new Array<ResCnGenCompiler>(); /** signature => res of CppParser */ 
+    o_names        = new Array<string>();           /** name of .o file */
+    nb_test_if_obj = 0;
 }
