@@ -231,6 +231,11 @@ abstract class Task {
     }
 
     /** */
+    mkdir( filename: string, cb: ( err: NodeJS.ErrnoException ) => void ): void {
+        fs.mkdir( filename, cb );
+    }
+
+    /** */
     is_directory( dir: string, cb: ( ans: boolean ) => void ): void {
         fs.stat( dir, ( err, stats ) => cb( ! err && stats.isDirectory() ) );
     };
@@ -259,6 +264,32 @@ abstract class Task {
             message += "..." + ( extr.length - b > nc - 3 ? extr.substr( b, nc - 6 ) + "..." : extr.substr( b ) ) + "\n";
             message += " ".repeat( dc + 3 ) + "^\n";
         }
+    }
+
+    /** */
+    find_directory_from( cwd: string, name: string, cb: ( err: boolean, tn: string ) => void, create_a_new_one = false, orig = cwd ) {
+        let tn = path.resolve( cwd, name );
+        this.stat( tn, ( err, stats ) => {
+            // found ?
+            if ( ! err && stats.isDirectory )
+                return cb( null, tn );
+            // look if there's a parent
+            const ncwd = path.dirname( cwd );
+            // no parent => create in orig
+            if ( ncwd == cwd ) {
+                if ( ! create_a_new_one ) {
+                    this.error( `Unable to find a '${ name }' dir from ${ orig }` );
+                    return cb( true, null );
+                }
+                const dir = path.resolve( orig, name );
+                return this.mkdir( dir, err => {
+                    if ( err ) return this.error( `Error: impossible to create directory '${ dir }'` ), cb( true, null );
+                    cb( null, dir );
+                } )
+            }
+            //
+            this.find_directory_from( ncwd, name, cb, create_a_new_one, orig ); 
+        } );
     }
 
     /** `if_wrong` is used only in sync mode */

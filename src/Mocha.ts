@@ -1,5 +1,5 @@
 import { ResJsDepFactory } from "./JsDepFactory"
-import TaskFiber           from "./TaskFiber"
+import Task                from "./Task"
 import * as lodash         from "lodash"
 import * as Moc            from "mocha"
 import * as async          from "async"
@@ -12,49 +12,69 @@ export interface MochaArgs {
     target_testing_env: Array<string>;
     entry_points      : Array<string>;
     args              : any;
-    mocha             : string | number;
     mocha_reporter    : string | number;
     launch_dir        : string,
     color             : boolean,
 }
 
 export default
-class Mocha extends TaskFiber {
+class Mocha extends Task {
     exec( args: MochaArgs, done: ( err: boolean ) => void ) {
         // we want to redo the call each time we relaunch the mission
         this.idempotent = false;
 
-        // check mocha installation
-        if ( ! this.av( args.mocha ) ) {
-            try { this.stat_sync( path.resolve( args.launch_dir, "node_modules", "@types", "mocha" ) ); }
-            catch ( e ) { this.run_install_cmd_sync( args.launch_dir, [ "npm", "install", "@types/mocha" ], [] ); } 
-            try { this.stat_sync( path.resolve( args.launch_dir, "node_modules", "mocha" ) ); }
-            catch ( e ) { this.run_install_cmd_sync( args.launch_dir, [ "npm", "install", "mocha" ], [] ); }
-        }
-
         // nodejs and/or browser ?
-        let testing_envs = lodash.uniq( args.target_testing_env ), js_envs = [];
+        let needed_modules = [ [ "mocha" ], [ "@types", "mocha" ] ], js_envs = [];
+        let testing_envs = lodash.uniq( args.target_testing_env );
         const ind_nodejs = testing_envs.findIndex( x => x.toLowerCase() == "nodejs" );
         if ( ind_nodejs >= 0 ) {
             testing_envs.splice( ind_nodejs, 1 );
             js_envs.push( "nodejs" );
         }
-        if ( testing_envs.length )
+        if ( testing_envs.length ) {
+            needed_modules.push( [ "karma" ], [ "karma-mocha" ], [ "karma-mocha-reporter" ], ...testing_envs.map( x => [ `karma-${ x.toLowerCase() }-launcher` ] ) );
             js_envs.push( "browser" );
+        }
 
-        // get, register and make the input compilation nodes
-        async.reduce( args.entry_points, new Array<string>(), ( entry_points, entry_point, cb_reduce ) => {
-            glob( entry_point, { cwd: args.launch_dir }, ( err, matches ) => {
-                if ( err ) { this.error( err.toString() ); return cb_reduce( true, null ); }
-                cb_reduce( null, entry_points.concat( matches ) );
-            } );
-        }, ( err, entry_points ) => {
+        // check installation
+        this.check_js_mod_installation( args, needed_modules, err => {
             if ( err ) return done( true );
-            // launch for each js_env
-            async.forEachSeries( js_envs, ( js_env, cb ) => {
-                this.launch( args, cb, js_env, entry_points, testing_envs );
-            }, done );
+
+            // get, register and make the input compilation nodes
+            async.reduce( args.entry_points, new Array<string>(), ( entry_points, entry_point, cb_reduce ) => {
+                glob( entry_point, { cwd: args.launch_dir }, ( err, matches ) => {
+                    if ( err ) { this.error( err.toString() ); return cb_reduce( true, null ); }
+                    cb_reduce( null, entry_points.concat( matches ) );
+                } );
+            }, ( err, entry_points ) => {
+                if ( err ) return done( true );
+                // launch for each js_env
+                async.forEachSeries( js_envs, ( js_env, cb ) => {
+                    this.launch( args, cb, js_env, entry_points, testing_envs );
+                }, done );
+            } );
         } );
+
+    }
+
+    /** look for a  node_modules directory and check if modules in needed_modules are present. Install them if not the case */
+    check_js_mod_installation( args: MochaArgs, needed_modules: Array<Array<string>>, cb_check: ( err: boolean ) => void ) {
+        this.find_directory_from( args.launch_dir, "node_modules", ( err, tn ) => {
+            if ( err )
+                return cb_check( true );
+            this.node_modules = tn;
+
+            async.map( needed_modules, ( dir, cb_map ) => {
+                this.is_directory( path.resolve( tn, ...dir ), ( ans ) => cb_map( null, ans ? null : dir.join( '/' ) ) );
+            }, ( err, _missing: Array<string> ) => {
+                const missing = _missing.filter( x => x != null );
+                if ( missing.length == 0 ) 
+                    return cb_check( false );
+                this.run_install_cmd( args.launch_dir, [ "npm", "install", ...missing ], [], ( err, fail ) => {
+                    cb_check( err || fail );
+                } );
+            } );
+        }, true );
     }
 
     /** maunch mocha. @argument entry_points: list of js-like files to test */
@@ -81,7 +101,7 @@ class Mocha extends TaskFiber {
                 let cmd_args = [ '-c', ...outputs ];
                 if ( this.av( args.mocha_reporter ) )
                     cmd_args.unshift( '--reporter', this.av( args.mocha_reporter ) );
-                return this.spawn( this.av( args.mocha ) || path.resolve( args.launch_dir, "node_modules", ".bin", "mocha" ), cmd_args, ( err, code ) => {
+                return this.spawn( path.resolve( this.node_modules, ".bin", "mocha" ), cmd_args, ( err, code ) => {
                     done( Boolean( err || code ) );
                 }, true /* local execution*/ );
             }
@@ -108,19 +128,19 @@ class Mocha extends TaskFiber {
             content += `  })\n`;
             content += `}\n`;
 
-            const karma_conf_name = this.new_build_file_sync( outputs.length ? path.basename( outputs[ 0 ], path.extname( outputs[ 0 ] ) ) : "", ".karma.conf.js" );
-            this.write_file_sync( karma_conf_name, content );
+            this.new_build_file( outputs.length ? path.basename( outputs[ 0 ], path.extname( outputs[ 0 ] ) ) : "", ".karma.conf.js", null, ( err, karma_conf_name ) => {
+                if ( err ) return done( true );
+                this.write_file( karma_conf_name, content, err => {
+                    if ( err ) return this.error( err.toString() ), done( true );
+                    // launch
+                    this.spawn( path.resolve( this.node_modules, "karma", "bin", "karma" ), [ "start", karma_conf_name ], ( err, code ) => {
+                        done( Boolean( err || code ) );
+                    }, true );
+                } );
+            } );
 
-            // check (synchronously) karma installation
-            for ( const to_test of [ "karma", "karma-mocha", "karma-mocha-reporter", ...testing_envs.map( x => `karma-${ x.toLowerCase() }-launcher` ) ] ) {
-                try { this.stat_sync( path.resolve( args.launch_dir, "node_modules", to_test ) ); }
-                catch ( e ) { this.run_install_cmd_sync( args.launch_dir, [ "npm", "install", to_test ], [] ); }
-            }
-
-            // launch
-            this.spawn( path.resolve( args.launch_dir, "node_modules", "karma", "bin", "karma" ), [ "start", karma_conf_name ], ( err, code ) => {
-                done( Boolean( err || code ) );
-            }, true );
         } );
     }
+
+    node_modules = "";
 }

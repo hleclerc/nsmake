@@ -72,7 +72,7 @@ class GeneratorJs extends Generator {
 
         // mocha specifics
         p.add_positional_argument( [ 'mocha' ], 'entry_points'     , 'Entry points. Glob patterns are accepted', 'string*' );
-        p.add_argument( [ 'mocha' ], [ 'js' ], 'mocha'             , 'Set mocha executable (excepted for the "reporter" arg, option are passer via //// nsmake ... cmds).' );
+        // p.add_argument( [ 'mocha' ], [ 'js' ], 'mocha'             , 'Set mocha executable (excepted for the "reporter" arg, option are passer via //// nsmake ... cmds).' );
         p.add_argument( [ 'mocha' ], [ 'js' ], 'mocha-reporter'    , 'Set the mocha reporter', 'string*' );
         p.add_argument( [ 'mocha' ], [ 'js' ], 'target-testing-env', 'where to launch the test, list of strings separated by commas. Can be NodeJS or any ' +
                                                                      'target supported by karma launcher (e.g. Chrome, Firefox, PhantomJS, ...)'      , "string*" );
@@ -119,7 +119,7 @@ class GeneratorJs extends Generator {
             return cb( this.env.com.proc.pool.New( "Mocha", [], {
                 target_testing_env: [].concat( ...this.env.arg_rec( "target_testing_env", [ "nodejs" ] ).map( x => x.split( "," ) ) ),
                 entry_points      : args.entry_points || [],
-                mocha             : ga( this.env.arg_rec( "mocha" ) ),
+                // mocha          : ga( this.env.arg_rec( "mocha" ) ),
                 mocha_reporter    : ga( this.env.arg_rec( "mocha_reporter" ) ),
                 args              : args, // hum...
                 launch_dir        : this.env.cwd,
@@ -316,18 +316,33 @@ class GeneratorJs extends Generator {
             if ( ( str.length >= 2 && str.substr( 0, 2 ) == "./" ) || ( str.length >= 3 && str.substr( 0, 3 ) == "../" ) || ( str.length >= 1 && str[ 0 ] == '/' ) )
                 test_from( cwd, false );
             else
-                GeneratorJs._find_node_modules_directory( cn, cwd, typescript, ( tn: string ) => tn ? test_from( tn, true ) : try_installation( true, "" ) );
+                GeneratorJs._find_node_modules_directory( cn, cwd, ( tn: string ) => tn ? test_from( typescript ? path.resolve( tn, "@types" ) : tn, true ) : try_installation( true, "" ) );
         }, cb_find_require );
     }
 
-    static _find_node_modules_directory( cn: CompilationNode, cwd: string, typescript: boolean, cb: ( tn: string ) => void ) {
+    /** TODO: remove typescript arg, place err at the beginning */
+    static _find_node_modules_directory( cn: CompilationNode, cwd: string, cb: ( tn: string, err: string ) => void, create_a_new_one = false, orig = cwd ) {
         let tn = path.resolve( cwd, "node_modules" );
         fs.stat( tn, ( err, stats ) => {
+            // found ?
             if ( ! err && stats.isDirectory )
-                return cb( typescript ? path.resolve( tn, "@types" ) : tn );
+                return cb( tn, null );
+            // look if there's a parent
             const ncwd = path.dirname( cwd );
-            cn.file_dependencies.failed.add( cwd );
-            ncwd != cwd ? GeneratorJs._find_node_modules_directory( cn, ncwd, typescript, cb ) : cb( "" ); 
+            if ( cn )
+                cn.file_dependencies.failed.add( cwd );
+            // no parent => create in orig
+            if ( ncwd == cwd ) {
+                if ( ! create_a_new_one )
+                    return cb( null, `Unable to find 'node_modules' dir from ${ orig }` );
+                const dir = path.resolve( orig, "node_modules" );
+                return fs.mkdir( dir, err => {
+                    if ( err ) return cb( null, `Error: impossible to create directory '${ dir }'` );
+                    cb( dir, null );
+                } )
+            }
+            //
+            GeneratorJs._find_node_modules_directory( cn, ncwd, cb, create_a_new_one, orig ); 
         } );
     }
 
