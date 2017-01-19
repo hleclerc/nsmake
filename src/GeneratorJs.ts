@@ -274,9 +274,9 @@ class GeneratorJs extends Generator {
                 }
                 // we want the signature of the first coming ncn 
                 async.forEachSeries( trials, ( trial, cb_trial ) => {
-                    env.get_compilation_node( trial.name, dir, cn.file_dependencies, ncn =>
-                        cb_trial( ncn ? ( trial.type ? env.com.proc.pool.New( "MainJsFromPackageJson", [ ncn ], { js_env, typescript } ) : ncn ) : null )
-                    );
+                    env.get_compilation_node( trial.name, dir, cn.file_dependencies, ncn => {
+                        cb_trial( ncn ? ( trial.type ? env.com.proc.pool.New( "MainJsFromPackageJson", [ ncn ], { js_env, typescript } ) : ncn ) : null );
+                    } );
                 }, ( ncn: CompilationNode ) => {
                     ncn ? require_cb( null, ncn.signature ) : try_installation( install_allowed, dir );
                 } )
@@ -307,7 +307,9 @@ class GeneratorJs extends Generator {
                 }
                 //
                 const inds = str.indexOf( "/" ), base = inds >= 0 ? str.slice( 0, inds ) : str;
-                env.com.proc.install_cmd( env.com, cn, path.dirname( node_modules_dir ), [ "npm", 'install', typescript ? `@types/` + base : base ], [], err => err ? require_cb( null, '' ) : test_from( node_modules_dir, false ) );
+                env.com.proc.install_cmd( env.com, cn, path.dirname( node_modules_dir ), [ "npm", 'install', typescript ? `@types/` + base : base ], [], err => {
+                    err ? require_cb( null, '' ) : test_from( node_modules_dir, false ); 
+                } );
             };
 
             // local, or look for a 'node_modules' directory, starting from cwd

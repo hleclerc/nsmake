@@ -720,8 +720,6 @@ class Processor {
         this.waiting_spw.set( id, { com, cb: ( code: number ) => {
             this.waiting_spw.delete( id );
             cb( code );
-            if ( this.waiting_spw.size )
-                throw "TODO !! (_spawn_local)";
         }, cwd } );
     }
 
@@ -730,8 +728,6 @@ class Processor {
         com.exec_local( id, cmd, redirect, cwd );
         this.waiting_spw.set( id, { com, cb: ( code: number ) => {
             this.waiting_spw.delete( id );
-            if ( this.waiting_spw.size )
-                throw "TODO !! (_spawn_local)";
             cb( code );
         }, cwd } );
     }

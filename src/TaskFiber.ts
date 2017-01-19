@@ -96,7 +96,7 @@ abstract class TaskFiber extends Task {
 
     /** */
     is_directory_sync( dir: string ): boolean {
-        try { return fs.statSync( dir ).isDirectory() } catch ( e ) { return false; }
+        try { return fs.statSync( dir ).isDirectory(); } catch ( e ) { return false; }
     };
 
     /** */
