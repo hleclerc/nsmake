@@ -100,6 +100,7 @@ class Processor {
         // kill and restart
         for( let i = 0; i < this.services.length; ++i ) {
             if ( this.services[ i ].env && this.services[ i ].env.com == com ) {
+//                try { ( this.services[ i ].cp.stdin as any ).pause(); } catch ( e ) {}
                 this.services[ i ].cp.kill();
                 this.services[ i ].cp = null;
                 this.services.splice( i--, 1 );
@@ -128,6 +129,7 @@ class Processor {
         // kill and do not restart
         for( let i = 0; i < this.services.length; ++i ) {
             if ( this.services[ i ].cp ) {
+                try { ( this.services[ i ].cp.stdin as any ).pause(); } catch ( e ) {}
                 this.services[ i ].cp.kill(); // won't be restarted
                 this.services[ i ].cp = null;
                 this.services.splice( i--, 1 );
@@ -445,6 +447,7 @@ class Processor {
                             if ( service.env )
                                 service.env.com.error( service.cn, `Error: while parsing '${ line }' for '${ service.cn.pretty }': ${ e.toString() }. => Service is going to be killed (see server.log for full stack)` );
                             if ( service.cp ) {
+                                try { ( service.cp.stdin as any ).pause(); } catch ( e ) {}
                                 service.cp.kill();
                                 service.cp = null;
                             }
@@ -477,9 +480,10 @@ class Processor {
         if ( category )
             this._make_child_process_for_category( category, com, init_cp );
         else
-            init_cp( child_process.spawn( process.argv[ 0 ], [ path.resolve( __dirname, "main_js_services.js" ) ], { stdio: [ 'pipe', 1, 2, 'ipc' ] } as any ), false );
+            init_cp( child_process.spawn( process.argv[ 0 ], [ `--debug=${ 7000 + Processor.cpt_service++ }`, path.resolve( __dirname, "main_js_services.js" ) ], { stdio: [ 'pipe', 1, 2, 'ipc' ] } as any ), false );
         // init_cp( child_process.fork( path.resolve( __dirname, "main_js_services.js" ), [], { stdio: [ 'pipe', 1, 2, 'ipc' ] } as any ), false );
     }
+    static cpt_service = 0;
 
     _action_from_service( service: Service, cmd: { action: string, msg_id: string, args: any, use_stdin: boolean } ): void {
         // helper: answer to a service command
@@ -708,6 +712,7 @@ class Processor {
                     if ( g.constructor.name == spl_act[ 0 ] )
                         return g.msg_from_service( service, spl_act[ 1 ], cmd.args, ans, msg );
                 msg( `Unknown service command '${ cmd.action }'. => service is going to be killed` );
+                try { ( service.cp.stdin as any ).pause(); } catch ( e ) {}
                 service.cp.kill();
                 service.cp = null;
         }
@@ -720,7 +725,7 @@ class Processor {
             this.waiting_spw.delete( id );
             cb( code );
             if ( this.waiting_spw.size )
-                throw "TODO !!";
+                throw "TODO !! (_spawn_local)";
         }, cwd } );
     }
 
@@ -730,7 +735,7 @@ class Processor {
         this.waiting_spw.set( id, { com, cb: ( code: number ) => {
             this.waiting_spw.delete( id );
             if ( this.waiting_spw.size )
-                throw "TODO !!";
+                throw "TODO !! (_spawn_local)";
             cb( code );
         }, cwd } );
     }

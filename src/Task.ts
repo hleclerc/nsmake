@@ -215,16 +215,13 @@ abstract class Task {
 
             // execution inside the service, asynchronously
             const cp = child_process.spawn( executable, args );
-            cp.on( 'error', err => { if ( redirect ) fs.closeSync( fd ); cb( true, -1 ); } );
-            cp.on( 'close', ( code, signal ) => { if ( redirect ) fs.closeSync( fd ); cb( Boolean( signal ), signal ? -1 : code ); } );
+            this._active_spawns.add( cp );
+            cp.on( 'error',       err        => { if ( redirect ) fs.closeSync( fd ); this._active_spawns.delete( cp ); cb( true, -1 ); } );
+            cp.on( 'close', ( code, signal ) => { if ( redirect ) fs.closeSync( fd ); this._active_spawns.delete( cp ); cb( Boolean( signal ), signal ? -1 : code ); } );
 
             // outputs        
-            cp.stdout.on( 'data', data => {
-                redirect ? fs.writeSync( fd, data ) : this.info( data.toString() );
-            } );
-            // cp.stdout.on( 'data', data => redirect ? fs.writeSync( fd, data ) : this.info( data.toString() ) );
+            cp.stdout.on( 'data', data => redirect ? fs.writeSync( fd, data ) : this.info( data.toString() ) );
             cp.stderr.on( 'data', data => this.error( data.toString() ) );
-
             return null;
         }
 
@@ -317,9 +314,11 @@ abstract class Task {
         // synchronous version (using stdin)
         if ( ! cb ) {
             let buf_size = 1024, buf = new Buffer( buf_size ), line = "";
-            while ( true ) {
+            while ( ! this._killed ) {
                 try {
                     let size = fs.readSync( this.stdin_fd, buf, 0, buf_size, null );
+                    console.log( "size:", new Date, size, buf.slice( 0, size ).toString() );
+                    
                     line += buf.slice( 0, size ).toString();
                     if ( buf.indexOf( "\n" ) >= 0 ) {
                         let args = JSON.parse( line );
@@ -328,6 +327,8 @@ abstract class Task {
                         return args.err ? null : args.res;
                     }
                 } catch ( e ) {
+                    console.log( e.code );
+                    console.log( e );
                     if ( e.code == "EAGAIN" )
                         continue;
                     throw `Error while reading stdin for an answer: ${ e }`;
@@ -366,5 +367,7 @@ abstract class Task {
 
     _waiting_cbs        = new Map<number,( err: boolean, res: any )=>void>();
     _cur_id_waiting_cbs = 0;
+    _active_spawns      = new Set<child_process.ChildProcess>();
+    _killed             = false;
 }
 export default Task;

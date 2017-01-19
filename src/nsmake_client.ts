@@ -75,7 +75,7 @@ function spawn_local( client: net.Socket, id: string, redirect: string, cwd: str
     if ( redirect )
         throw new Error( "TODO" );
     const cp = child_process.spawn( executable, args, { env: process.env, stdio: [ 0, 1, 2 ], cwd } );
-    cp.on( 'close', code => client.write( `spawn_done ${ SpRepr.encode( id ) } ${ code.toString() }\n` ) );
+    cp.on( 'close', code => client.write( `spawn_done ${ SpRepr.encode( id ) } ${ code ? code.toString() : "-1" }\n` ) );
 }
 
 /** */
@@ -102,31 +102,43 @@ function send_query( pager: Pager, nsmake_dir: string, type: string, cur_dir: st
                 process.exit( 0 );
             } );
         } catch ( e ) {
-            console.log( `It seems that the server was alreay stopped: ${ e }` );
+            console.log( `It seems that the server was alreay stopped (${ e })` );
             process.exit( 0 );
         }
 
     }
     
-    // send the message
+    // communication channel
     const fifo_file = os.platform() == "win32" ? '\\\\.\\pipe\\nsmake_server' : path.resolve( nsmake_dir, 'server.fifo' );
+
+    // send the message
     const client = net.createConnection( fifo_file, () => {
         client.write( [ type, cur_dir, nb_columns.toString(), ( process.stdin.isTTY || false ).toString(), ( process.stdout.isTTY || false ).toString(), ...args ].map( x => SpRepr.encode( x ) ).join( " " ) + "\n" );
+        active_client = client;
     } );
 
     // no connection ? Try to spawn a new server.
     client.on( 'error', ( err: any ) => {
-        if ( err.code != 'ECONNREFUSED' && err.code != 'ENOENT' ) {
-            console.error( 'Error while trying to connect:', err );
-            process.exit( 1 );
+        switch ( err.code ) {
+            case 'ECONNREFUSED':
+            case 'ENOENT':
+                // start a new server instance
+                require( 'rimraf' )( fifo_file, err => {
+                    if ( err )
+                        console.log( "Error while trying to rm fifo file:", err );
+                    start_server( nsmake_dir, fifo_file, () => {
+                        send_query( pager, nsmake_dir, type, cur_dir, nb_columns, args, false );
+                    } );
+                } );
+                break;
+            case 'ECONNRESET':
+                // end of connection before a 'X' cmd (which closes the connection from the client)
+                console.error( 'Error: the nsmake server has been stopped.' );
+                process.exit( 10 );
+            default:
+                console.error( 'Error: no connection to the nsmake server:', err );
+                process.exit( 11 );
         }
-        require( 'rimraf' )( fifo_file, err => {
-            if ( err )
-                console.log( "Error while trying to rm fifo file:", err );
-            start_server( nsmake_dir, fifo_file, () => {
-                send_query( pager, nsmake_dir, type, cur_dir, nb_columns, args, false );
-            } );
-        } );
     });
 
     // data from the server
@@ -142,7 +154,7 @@ function send_query( pager: Pager, nsmake_dir: string, type: string, cur_dir: st
                 case "N": pager.write( args[ 1 ], args[ 2 ], 1 );                                             break; // note on a given channel
                 case "I": pager.write( args[ 1 ], args[ 2 ], 2 );                                             break; // information on a given channel
                 case "E": pager.write( args[ 1 ], args[ 2 ], 3 );                                             break; // error on a given channel
-                case "C": pager.close( args[ 1 ] );                                                           break;  // close channel
+                case "C": pager.close( args[ 1 ] );                                                           break; // close channel
                 case "X": process.exitCode = Number( args[ 1 ] ); pager.close_all(); client.end();            break; // end with code
                 case "s": spawn_local( client, args[ 1 ], args[ 2 ], args[ 3 ], args[ 4 ], args.slice( 5 ) ); break; // execute something locally 
                 case "e": exec_local ( client, args[ 1 ], args[ 2 ], args[ 3 ], args[ 4 ] );                  break; // execute something locally 
@@ -157,6 +169,12 @@ function send_query( pager: Pager, nsmake_dir: string, type: string, cur_dir: st
 // parse arguments needed by nsmake_client
 let argv = [ ...process.argv ];
 const nsmake_dir = arg_val( '--nsmake-dir', () => path.resolve( homedir(), ".nsmake" ), argv );
+
+// handling of interruption
+const on_sig = () => { if ( active_client ) active_client.write( "kill_client\n" ); else process.exit( 1 ); }
+let active_client = null as net.Socket;
+process.on( 'SIGINT' , on_sig );
+process.on( 'SIGTERM', on_sig );
 
 // launch
 const pager = new Pager;

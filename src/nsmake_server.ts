@@ -18,9 +18,6 @@ const getos = require( 'getos' );
 function on_new_connection( c: net.Socket, proc: Processor ) {
     let parse_and_build = new ParseArgvAndBuildMission( c, proc );
 
-    // if interruption of the client
-    c.on( 'end', () => parse_and_build.interrupt() );
-
     // if data coming from the client
     let lines = "";
     c.on( 'data', ( data ) => {
@@ -32,16 +29,21 @@ function on_new_connection( c: net.Socket, proc: Processor ) {
                 switch ( args[ 0 ] ) {
                 case "build":
                     try {
-                        const cur_dir = args[ 1 ], nb_columns = Number( args[ 2 ] ) - ( os.platform() == 'win32' ? 1 : 0 ), stdin_isTTY = args[ 3 ] == 'true', stdout_isTTY = args[ 4 ] == 'true';
+                        const cur_dir      = args[ 1 ];
+                        const nb_columns   = Number( args[ 2 ] ) - ( os.platform() == 'win32' ? 1 : 0 );
+                        const stdin_isTTY  = args[ 3 ] == 'true';
+                        const stdout_isTTY = args[ 4 ] == 'true';
                         parse_and_build.start_a_new_build( cur_dir, nb_columns, stdin_isTTY, stdout_isTTY, args.slice( 5 ) );
                     } catch ( e ) {
-                        try {
-                            parse_and_build.send_end( `Message from the nsmake server: ${ e.stack }\n` );
-                        } catch ( e ) {}
+                        // for debug purpose
+                        parse_and_build.send_end( `Error from the nsmake server: ${ e.stack }\n` );
                     }
                     break;
                 case "spawn_done":
                     proc._spawn_is_done( args[ 1 ], Number( args[ 2 ] ) );
+                    break;
+                case "kill_client":
+                    parse_and_build.kill();
                     break;
                 case "exit":
                     process.exit( 0 );
@@ -53,6 +55,13 @@ function on_new_connection( c: net.Socket, proc: Processor ) {
             lines = lines.slice( index_lf + 1 );
         }
     } );
+
+    // if interruption of the client
+    c.on( 'end', () => {
+        parse_and_build.env.com.active = false;
+        if ( ! parse_and_build.killed )
+            parse_and_build.kill();
+    } );
 }
 
 // arguments
@@ -60,7 +69,7 @@ const nsmake_dir = process.argv[ 2 ];
 const fifo_file  = process.argv[ 3 ];
 const info_file  = process.argv[ 4 ];
 
-// get os information, wait for clients
+// get os information, wait for new connections
 getos( ( err, si ) => {
     if ( err )
         return console.error( `Error while trying to get os information: ${ err }` );
@@ -97,7 +106,7 @@ getos( ( err, si ) => {
         } );
     });
 
-    server.on( 'error', ( err ) => {
+    server.on( 'error', err => {
         throw err;
     } );
 } );

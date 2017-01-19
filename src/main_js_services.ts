@@ -3,8 +3,8 @@ import Task    from "./Task"
 import * as fs from "fs"
 
 // register task names
-function adt( name: string ) { tasks.set( name, require( "./" + name ).default ); }
-let tasks = new Map<string,typeof Task>();
+function adt( name: string ) { task_types.set( name, require( "./" + name ).default ); }
+let task_types = new Map<string,typeof Task>();
 adt( "MainJsFromPackageJson" );
 adt( "CoffeescriptCompiler"  );
 adt( "TypescriptCompiler"    );
@@ -27,7 +27,7 @@ adt( "Sleep"                 );
 
 // helpers for communication
 function send_err( msg: string ) {
-    process.send( JSON.stringify( { action: "error", args:{ msg } } ) + "\n" );
+    process.send( JSON.stringify( { action: "error", args: { msg } } ) + "\n" );
 }
 
 function send_end( err: string | boolean, output_summary = {} ) {
@@ -46,7 +46,7 @@ if ( typeof stdin_fd != "number" )
     stdin_fd = fs.openSync( '/dev/stdin', 'rs' );
 
 // read data
-let lines = "", active_service = null as Task;
+let lines = "", active_task = null as Task;
 process.on( 'message', ( data: Buffer ) => {
     lines += data.toString();
     const index_lf = lines.lastIndexOf( "\n" );
@@ -58,39 +58,51 @@ process.on( 'message', ( data: Buffer ) => {
                 const args = JSON.parse( line );
                 switch ( args.action ) {
                     case "task":
-                        if ( active_service )
+                        if ( active_task )
                             throw "Internal error: there's already an active task in this slot...";
-                        const task = tasks.get( args.type ) as any;
-                        if ( ! task )
+                        const task_type = task_types.get( args.type ) as any;
+                        if ( ! task_type )
                             return send_end( `Error: ${ args.type } is not a registered task type.` );
                         // execution
-                        active_service = new task;
-                        active_service.stdin_fd  = stdin_fd;
-                        active_service.children  = args.children;
-                        active_service.signature = args.signature;
-                        if ( active_service.exec.length == 1 ) {
+                        active_task           = new task_type;
+                        active_task.stdin_fd  = stdin_fd;
+                        active_task.children  = args.children;
+                        active_task.signature = args.signature;
+                        if ( active_task.exec.length == 1 ) {
                             // synchronous version
-                            active_service.exec( args.args );
-                            send_end( false, active_service._output_summary() );
-                            active_service = null;
+                            active_task.exec( args.args );
+                            send_end( false, active_task._output_summary() );
+                            active_task = null;
                         } else {
                             // asynchronous version (with a callback)
-                            active_service.exec( args.args, err => {
-                                send_end( err || false, active_service ? active_service._output_summary() : {} );
-                                active_service = null;
+                            active_task.exec( args.args, err => {
+                                send_end( err || false, active_task ? active_task._output_summary() : {} );
+                                active_task = null;
                             } );
                         } 
                         break;
                     case "error":
                         throw args.msg;
                     default:
-                        if ( active_service )
-                            active_service._msg( args );
+                        if ( active_task )
+                            active_task._msg( args );
                 }
             } catch ( e ) {
-                send_end( typeof e == 'string' ? e : `Error: ${ e.stack }`, active_service ? active_service._output_summary() : {} );
-                active_service = null;
+                send_end( typeof e == 'string' ? e : `Error: ${ e.stack }`, active_task ? active_task._output_summary() : {} );
+                active_task = null;
             }
         }
     }
+} );
+
+process.once( 'SIGTERM', () => {
+    if ( active_task ) {
+        for( const cp of active_task._active_spawns ) {
+            send_err( `Yup ${ active_task.signature }` );
+            try { ( cp.stdin as any ).pause(); } catch ( e ) {}
+            cp.kill();
+        }
+        active_task._killed = true;
+    }
+    process.exit( 1 );
 } );

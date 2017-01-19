@@ -31,6 +31,15 @@ class ParseArgvAndBuildMission {
         this._launch();
     }
 
+    /** function to be called if interruption (ex: ctrl-c) */
+    kill() {
+        this.killed = true;
+        this.env.com.info( null, "Killing processes" );
+        for( const watcher of this.to_be_watched.values() )
+            watcher.close();
+        this.proc.stop_tasks_from( this.env.com );
+    }
+
     /** send a message to the client */
     send_out( msg : string ): void {
         this.c.write( `I  ${ SpRepr.encode( msg + "\n" ) }\n` );
@@ -136,14 +145,6 @@ class ParseArgvAndBuildMission {
         } );
     }
 
-    /** function to be called if interruption (ex: ctrl-c) */
-    interrupt() {
-        for( const watcher of this.to_be_watched.values() )
-            watcher.close();
-        this.env.com.active = false;
-        this.proc.stop_tasks_from( this.env.com );
-    }
-
     /** */
     _end_comp( err: boolean, file_dependencies: FileDependencies, cns: Array<CompilationNode> ) {
         // no connection with the client => we can stop here
@@ -192,15 +193,15 @@ class ParseArgvAndBuildMission {
         } );
     }
 
-    c             : net.Socket;
+    c             : net.Socket;                     /** connection to the client */
     proc          : Processor;
-    cwd           : string;
-    nb_columns    : number;
+    cwd           : string;                         /** current working directory */
+    nb_columns    : number;                         /** in the output terminal */
     siTTY         : boolean;                        /** stdin is a TTY */
     soTTY         : boolean;                        /** stdout is a TTY */
     argv          : Array<string>;
     env           = null as CompilationEnvironment;
-    firt_time     = false;
+    killed        = false;
     to_be_watched = new Map<string,fs.FSWatcher>();
     in_a_rel_test = false;                          /** in a relaunch test */
 }
