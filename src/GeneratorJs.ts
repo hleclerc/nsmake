@@ -202,7 +202,6 @@ class GeneratorJs extends Generator {
         return this.env.New( "TypescriptCompiler", [ ch ], {
             no_implicit_any: this.env.args.no_implicit_any || false,
             js_env         : js_env( this.env.args ),
-            nb_columns     : this.env.com.nb_columns || 120,
             launch_dir     : this.env.cwd,
             output,
         } as TypescriptCompilerArgs );

@@ -246,6 +246,21 @@ abstract class Task {
         return typeof n == 'string' ? n : this.children[ n ].outputs[ 0 ];
     }
 
+    /** diplay a (truncated if necessary) line with a ^ char behind a given column */
+    src_err_msg( file: string, line: number, column: number ) {
+        // we start with character at the center of the screen.
+        let nc = this.nb_columns, dc = nc >> 1, extr = fs.readFileSync( file ).toString( "utf8" ).split( "\n" )[ line ];
+        let b = column - dc, message = "";
+
+        if ( b <= 0 ) {
+            message += ( extr.length > nc ? extr.substr( 0, nc - 3 ) + "..." : extr ) + "\n";
+            message += " ".repeat( column ) + "^\n";
+        } else {
+            message += "..." + ( extr.length - b > nc - 3 ? extr.substr( b, nc - 6 ) + "..." : extr.substr( b ) ) + "\n";
+            message += " ".repeat( dc + 3 ) + "^\n";
+        }
+    }
+
     /** `if_wrong` is used only in sync mode */
     _send_and_wait( action, args: { [ key: string ]: any }, cb: ( err: boolean, res: any ) => void ): any {
         const msg_id = ++this._cur_id_waiting_cbs;
@@ -279,6 +294,7 @@ abstract class Task {
     children            : Array<CnData>;
     signature           : string;
     stdin_fd            : number;
+    nb_columns          : number;
 
     // output
     outputs             = new Array<string>();

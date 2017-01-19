@@ -113,9 +113,8 @@ abstract class TaskFiber extends Task {
             const fn = fibers( () => this.exec( args, done ) );
             fn.run();
         } catch ( err ) {
-            this.error( "throw !" );
             if ( err )
-                this.error( err as string );
+                this.error( "Throwed error:" + err.toString() );
             done( true );
         }
     }

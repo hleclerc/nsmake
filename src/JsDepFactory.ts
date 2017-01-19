@@ -98,16 +98,15 @@ class JsDepFactory extends TaskFiber {
                 target_browsers    : args.target_browsers,
             } as ArgsJsParser ) );
             const res_js_parsers = this.get_cns_data_sync( lst ) as Array<ResJsParser>;
-            if ( ! res_js_parsers ) {
-                this.error( `pb in lst: ${ JSON.stringify( lst ) }` );
-                throw "";
-            }
+            if ( ! res_js_parsers )
+                return done( true );
             num_to_be_parsed = to_be_parsed.length;
             
             // store the aliases, find the new required files
-            this._register_aliases( res_js_parsers.reduce( ( p, x ) => p.concat( x.exe_data.aliases ), new Array< { key: string, val: string} >() ) );
-            this._find_requires_for( args, to_be_parsed, res_js_parsers );            
-            this._find_accepts_for( args, res_js_parsers );            
+            if ( this._register_aliases( res_js_parsers.reduce( ( p, x ) => p.concat( x.exe_data.aliases ), new Array< { key: string, val: string} >() ) ) ||
+                 this._find_requires_for( args, to_be_parsed, res_js_parsers ) ||
+                 this._find_accepts_for( args, res_js_parsers ) )
+                 return done( true );
 
             // store the parsing result
             for( let num_item = 0; num_item < res_js_parsers.length; ++num_item ) {
@@ -128,7 +127,7 @@ class JsDepFactory extends TaskFiber {
             } as ArgsCssParser ) );
             const res_css_parsers = this.get_cns_data_sync( lst ) as Array<ResCssParser>;
             if ( ! res_css_parsers )
-                throw "";
+                return done( false );
             num_needed_css = needed_css.length;
 
             //
@@ -143,11 +142,7 @@ class JsDepFactory extends TaskFiber {
         }
 
         //
-        this._want_concat( args ) ?
-           this._make_concat( args ) :
-           this._make_sep( args );
-        
-        done( false );
+        done( this._want_concat( args ) ? this._make_concat( args ) : this._make_sep( args ) );
     }
 
     /** try to set _js_name and _html_name */
@@ -172,7 +167,7 @@ class JsDepFactory extends TaskFiber {
     }
 
     /** set this.requires, update to_be_parsed if a new source appears */
-    _find_requires_for( args: ArgsJsDepFactory, to_be_parsed: Array<string>, js_parsers: Array<ResJsParser> ): void {
+    _find_requires_for( args: ArgsJsDepFactory, to_be_parsed: Array<string>, js_parsers: Array<ResJsParser> ): boolean {
         // if we have some requires
         if ( js_parsers.some( jp => jp.exe_data.requires.length != 0 ) ) { 
             let lst_trials = new Array<{cwd:string,requires:Array<string>}>();
@@ -197,7 +192,7 @@ class JsDepFactory extends TaskFiber {
                     }
                 }
                 if ( error )
-                    throw '';
+                    return true;
             }
 
             for( let num_js_parser = 0; num_js_parser < res.length; ++num_js_parser ) {
@@ -209,10 +204,12 @@ class JsDepFactory extends TaskFiber {
                 }
             }
         }
+
+        return false;
     }
 
     /** set this.requires, update to_be_parsed if a new source appears */
-    _find_accepts_for( args: ArgsJsDepFactory, js_parsers: Array<ResJsParser> ): void {
+    _find_accepts_for( args: ArgsJsDepFactory, js_parsers: Array<ResJsParser> ): boolean {
         // if we have some accepts to find
         if ( js_parsers.some( jp => jp.exe_data.accepts.length != 0 ) ) { 
             let lst_trials = new Array<{cwd:string,requires:Array<string>}>();
@@ -226,7 +223,7 @@ class JsDepFactory extends TaskFiber {
                     for( let num_accept = 0; num_accept < js_parsers[ num_js_parser ].exe_data.accepts.length; ++num_accept )
                         if ( ! res[ num_js_parser ][ num_accept ] )
                             this.error( `Error:${ js_parsers[ num_js_parser ].exe_data.orig_name }: cannot find module '${ js_parsers[ num_js_parser ].exe_data.accepts[ num_accept ].txt }'` );
-                throw '';
+                return true;
             }
 
             for( let num_js_parser = 0; num_js_parser < res.length; ++num_js_parser ) {
@@ -236,21 +233,23 @@ class JsDepFactory extends TaskFiber {
                 }
             }
         }
+
+        return false;
     }
 
     /** set this.urls, update needed_css if a new source appears
      * external ressources are copie here
      */
-    _find_css_requires_for( args: ArgsJsDepFactory, needed_css: Array<string>, css_parsers: Array<ResCssParser> ): void {
+    _find_css_requires_for( args: ArgsJsDepFactory, needed_css: Array<string>, css_parsers: Array<ResCssParser> ): boolean {
         for( const css of css_parsers ) {
             if ( css.exe_data.urls.length ) {
                 const outs = this.get_cns_data_sync( css.exe_data.urls.map( x => x.sgn ) );
                 if ( ! outs )
-                    throw "";
+                    return true;
                 for( let num_out = 0; num_out < outs.length; ++num_out ) {
                     const cn = outs[ num_out ];
                     if ( ! cn )
-                        throw "";
+                        return true;
                     // if it is a .css, we need to parse it
                     if ( path.extname( cn.outputs[ 0 ] ) == ".css" ) {
                         pu( needed_css, cn.signature );
@@ -265,6 +264,8 @@ class JsDepFactory extends TaskFiber {
                 }
             }
         }
+
+        return false;
     }
 
     /** return true if input and required files should be concatened */
@@ -327,8 +328,10 @@ class JsDepFactory extends TaskFiber {
         };
 
         // read and substitution of variables in js_header
-        if ( args.pos_js_header < 0 )
-            throw `Nsmake internal error: we were expecting a js_header child`;
+        if ( args.pos_js_header < 0 ) {
+            this.error( `Nsmake internal error: we were expecting a js_header child` );
+            return true;
+        }
         let hr_js_parser = this.js_parsers.get( this.children[ args.pos_js_header ].signature ), sm = hr_js_parser.sourcemap;
         hr_js_parser.exe_data.pos_sharp_sourcemaps.reverse().forEach( pos => sm.replace( pos.beg, pos.end, "" ) );
         repl_sm( sm, /'SOURCE-MAP-SUPPORT'.*\n/m, args.js_env.startsWith( "nodejs" ) ? this._sm_line( args, path.dirname( this._js_name ), path.dirname( this.ep_js_parser.exe_data.orig_name ) ) + "\n" : "" );
@@ -431,6 +434,7 @@ class JsDepFactory extends TaskFiber {
             this._make_css( args );
             this._make_html( args );
         }
+        return false;
     }
 
     /** external ressources were already copied */
@@ -537,7 +541,7 @@ class JsDepFactory extends TaskFiber {
     }
 
     /** */
-    _make_sep( args: ArgsJsDepFactory ) {
+    _make_sep( args: ArgsJsDepFactory ): boolean {
         // set up parents (needed to set up need_rewrite)
         for( let jp of this.js_parsers.values() )
             jp.parents = new Array<ResJsParser>();
@@ -630,6 +634,7 @@ class JsDepFactory extends TaskFiber {
 
         // if no need for rewrite, we can use the original file
         this.outputs = [ this.ep_js_parser.outputs[ 0 ] ];
+        return false;
     }
 
     _modifiable_stuff( js: ResJsParser ): Array<E_stuff> {

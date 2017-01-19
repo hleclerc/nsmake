@@ -8,7 +8,6 @@ export interface TypescriptCompilerArgs {
     no_implicit_any: boolean;
     js_env         : string;
     launch_dir     : string;
-    nb_columns     : number;
     output         : string;
 }
 
@@ -148,20 +147,7 @@ class TypescriptCompiler extends TaskFiber {
                         message += ` error TS${ d.code }: ${ d.messageText }\n`;
                     message += end_bold;
                 }
-
-                let nc = args.nb_columns, dc = nc >> 1, extr = this.read_file_sync( file ).toString( "utf8" ).split( "\n" )[ line ];
-
-                // we start with character at the center of the screen.
-                let b = character - dc;
-
-                // but we don't want free space at the beginning
-                if ( b <= 0 ) {
-                    message += ( extr.length > nc ? extr.substr( 0, nc - 3 ) + "..." : extr ) + "\n";
-                    message += " ".repeat( character ) + "^\n";
-                } else {
-                    message += "..." + ( extr.length - b > nc - 3 ? extr.substr( b, nc - 6 ) + "..." : extr.substr( b ) ) + "\n";
-                    message += " ".repeat( dc + 3 ) + "^\n";
-                }
+                message += this.src_err_msg( file, line, character );
 
                 this.error( message )
             } else {

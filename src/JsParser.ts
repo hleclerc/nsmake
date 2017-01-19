@@ -228,24 +228,35 @@ class JsParser extends TaskFiber {
             presets.push( "react" );
 
         if ( presets.length ) {
-            var nout = babel.transform( sm.src_content, {
-                ast       : false,
-                code      : true,
-                sourceMaps: true,
-                presets,
-            } );
+            try {
+                var nout = babel.transform( sm.src_content, {
+                    ast       : false,
+                    code      : true,
+                    sourceMaps: true,
+                    presets,
+                } );
 
-            let nsm = new SourceMap( nout.code, '', JSON.stringify( nout.map ) );
-            sm.apply( nsm );
+                let nsm = new SourceMap( nout.code, '', JSON.stringify( nout.map ) );
+                sm.apply( nsm );
+            } catch ( e ) {
+                // message += this.src_err_msg( file, line, character );
+                this.error( `Error:Babel:${ js_name }:${ e }\n${ e.codeFrame }` );
+                return done( true );
+            }
         }
         
         // get requires, accept, ...
-        babel.transform( sm.src_content, {
-            plugins   : [ parser( this, exe_data, args.js_env ) ],
-            ast       : false,
-            code      : false,
-            sourceMaps: false,
-        } );
+        try {
+            babel.transform( sm.src_content, {
+                plugins   : [ parser( this, exe_data, args.js_env ) ],
+                ast       : false,
+                code      : false,
+                sourceMaps: false,
+            } );
+        } catch ( e ) {
+            this.error( `Error:Babel:${ js_name }:${ e }\n${ e.codeFrame }` );
+            return done( true );
+        }
 
         // save js and map files if necessary (if we had changes)
         if ( sm.has_changes ) {

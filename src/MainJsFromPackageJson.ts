@@ -22,11 +22,11 @@ class MainJsFromPackageJson extends Task {
 
                 // look for target `aout`, or `aout`.[js|ts]
                 this.get_filtered_target( aout, cwd, ( err, res ) => {
-                    if ( err ) {
+                    if ( err || ! res ) {
                         if ( path.extname( aout ) == bext )
                             return this.error( `Impossible to find target '${ aout }' (mentionned in '${ name }' file)` ), done( true );
                         return this.get_filtered_target( aout + bext, cwd, ( err, res ) => {
-                            if ( err )
+                            if ( err || ! res )
                                 return this.error( `Impossible to find target '${ aout }' (mentionned in '${ name }' file)` ), done( true );
                             this.outputs = [ res.name ];
                             done( false );

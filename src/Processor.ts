@@ -391,11 +391,12 @@ class Processor {
                 service.cn     = cn;
 
                 service.send( JSON.stringify( {
-                    action   : "task",
-                    type     : ind_at >= 0 ? cn.type.slice( 0, ind_at ) : cn.type,
-                    signature: cn.signature,
-                    children : cn.children.map( ch => ( { signature: ch.signature, outputs: ch.outputs, exe_data: ch.exe_data } ) ),
-                    args     : cn.args
+                    action    : "task",
+                    type      : ind_at >= 0 ? cn.type.slice( 0, ind_at ) : cn.type,
+                    signature : cn.signature,
+                    nb_columns: env.com.nb_columns || 120,
+                    children  : cn.children.map( ch => ( { signature: ch.signature, outputs: ch.outputs, exe_data: ch.exe_data } ) ),
+                    args      : cn.args
                 } ) + `\n` );
             };
 
