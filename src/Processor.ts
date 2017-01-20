@@ -178,6 +178,7 @@ class Processor {
         }
         cn.children           .forEach( merge_ch_info );
         cn.additional_children.forEach( merge_ch_info );
+        cn.file_dependencies.clean();
 
         // if error => cleansing
         if ( err ) {

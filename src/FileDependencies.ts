@@ -66,6 +66,13 @@ class FileDependencies {
         } );
     }
 
+    /** */
+    clean() {
+        this.found.forEach( ( val, name ) => {
+            this.failed.delete( name );
+        } );
+    }
+
     found  = new Map<string, number>(); /** file => mtime */
     failed = new Set<string>();         /** */
 } 

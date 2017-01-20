@@ -220,7 +220,7 @@ public:
     //         outputs            : this.outputs,
     //         generated          : this.generated,
     //         exe_data           : this.exe_data,
-    //         pure_function      : this.pure_function,
+    //            idempotent      : this.idempotent,
     //     };
     // }
     //
@@ -235,6 +235,6 @@ public:
     bool                     err;
     std::vector<std::string> outputs;
     std::vector<std::string> generated;
-    bool                     pure_function;
+    bool                     idempotent;
     Json::Value              exe_data;
 };

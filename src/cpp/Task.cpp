@@ -23,8 +23,8 @@ Json::Value _unzip( const Args& ...args ) {
 #define SEND( ACTION, ... ) _send( ACTION, _unzip( __VA_ARGS__ ) )
 
 Task::Task( const Json::Value &root ) : exe_data( Json::objectValue ) {
-    pure_function = true;
-    err           = false;
+    idempotent = true;
+    err        = false;
 
     // read data from root
     args      = root[ "args" ];
@@ -211,10 +211,10 @@ bool Task::system_is_in( const std::vector<std::string> &systems, const Json::Va
 void Task::send_done( Task *task ) {
     Json::Value output_summary( Json::objectValue );
     if ( task ) {
-        output_summary[ "generated"     ] = to_json( task->generated );
-        output_summary[ "outputs"       ] = to_json( task->outputs );
-        output_summary[ "pure_function" ] = task->pure_function;
-        output_summary[ "exe_data"      ] = task->exe_data;
+        output_summary[ "generated"  ] = to_json( task->generated );
+        output_summary[ "outputs"    ] = to_json( task->outputs );
+        output_summary[ "idempotent" ] = task->idempotent;
+        output_summary[ "exe_data"   ] = task->exe_data;
 
     }
 
@@ -254,7 +254,7 @@ std::string Task::nsmake_cmd( const std::vector<std::string> &args, const std::s
     mission_args[ "mission"         ] = "run";
     mission_args[ "cwd"             ] = cwd;
     mission_args[ "arguments"       ] = to_json( args.size() > 2 ? std::vector<std::string>{ args.begin() + 2, args.end() } : std::vector<std::string>{} );
-    mission_args[ "pure_function"   ] = true;
+    mission_args[ "idempotent"      ] = true;
     mission_args[ "local_execution" ] = false;
     mission_args[ "new_build_files" ].append( new_build_file );
 
@@ -279,7 +279,7 @@ std::string Task::nsmake_run( const std::vector<std::string> &args, const std::s
     mission_args[ "mission"         ] = "run";
     mission_args[ "cwd"             ] = cwd;
     mission_args[ "arguments"       ] = to_json( std::vector<std::string>{ args.begin() + 1, args.end() } );
-    mission_args[ "pure_function"   ] = true;
+    mission_args[ "idempotent"      ] = true;
     mission_args[ "local_execution" ] = false;
     mission_args[ "new_build_files" ].append( new_build_file );
 
