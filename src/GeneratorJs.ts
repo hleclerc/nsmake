@@ -300,15 +300,15 @@ class GeneratorJs extends Generator {
                         }
                         try_installation( install_allowed, new_node_modules_dir );
                     } );
-                    // }
-                    // //
                     // env.com.error( cn, `Error while trying to load module '${ str }': there's no 'node_modules' directory from '${ cwd }' and the later is not in the launch dir ('${ env.cwd }'). Nsmake is not willing to create a 'node_modules' by itself... Please add a new one in '${ cwd }' or in a parent dir if you want nsmake to install the module (or... directly install the module, it would be another good solution :) )` );
                     // return require_cb( null, '' );
                 }
                 //
                 const inds = str.indexOf( "/" ), base = inds >= 0 ? str.slice( 0, inds ) : str;
                 env.com.proc.install_cmd( env.com, cn, path.dirname( node_modules_dir ), [ "npm", 'install', typescript ? `@types/` + base : base ], [], err => {
-                    err ? require_cb( null, '' ) : test_from( node_modules_dir, false ); 
+                    if ( err )
+                        return env.com.error( cn, `Error: installation of '${ base }' failed.` ), require_cb( null, '' );
+                    test_from( node_modules_dir, false ); 
                 } );
             };
 
