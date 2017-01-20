@@ -184,6 +184,7 @@ abstract class Task {
         // launch locally
         const launch = ( fd: number ) => {
             const cp = child_process.spawn( executable, args );
+            ( cp as any ).smurf = { executable, args };
             this._active_spawns.add( cp );
 
             cp.on( 'close', ( code, signal ) => { if ( fd >= 0 ) fs.closeSync( fd ); this._active_spawns.delete( cp ); cb( Boolean( signal ), signal ? -1 : code ); } );

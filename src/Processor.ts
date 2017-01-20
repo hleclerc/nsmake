@@ -20,6 +20,7 @@ import * as async               from 'async'
 import * as path                from 'path'
 import * as os                  from 'os' // cpus()
 import * as fs                  from 'fs'
+const tree_kill = require( 'tree-kill' );
 
 interface DataInDb {
     outputs            : Array<string>;
@@ -100,8 +101,8 @@ class Processor {
         // kill and restart
         for( let i = 0; i < this.services.length; ++i ) {
             if ( this.services[ i ].env && this.services[ i ].env.com == com ) {
-//                try { ( this.services[ i ].cp.stdin as any ).pause(); } catch ( e ) {}
-                this.services[ i ].cp.kill();
+                tree_kill( this.services[ i ].cp.pid, 'SIGTERM', () => {} );
+                // this.services[ i ].cp.kill();
                 this.services[ i ].cp = null;
                 this.services.splice( i--, 1 );
            }
@@ -476,7 +477,7 @@ class Processor {
         if ( category )
             this._make_child_process_for_category( category, com, init_cp );
         else
-            init_cp( child_process.spawn( process.argv[ 0 ], [ `--debug=${ 7000 + Processor.cpt_debug_service++ }`, path.resolve( __dirname, "main_js_services.js" ) ], { stdio: [ 'pipe', 1, 2, 'ipc' ] } as any ), false );
+            init_cp( child_process.spawn( process.argv[ 0 ], [ `--debug=${ 7000 + Processor.cpt_debug_service++ }`, path.resolve( __dirname, "main_js_services.js" ) ], { stdio: [ 'ignore', 1, 2, 'ipc' ] } as any ), false );
         // init_cp( child_process.fork( path.resolve( __dirname, "main_js_services.js" ), [], { stdio: [ 'pipe', 1, 2, 'ipc' ] } as any ), false );
     }
     static cpt_debug_service = 0;

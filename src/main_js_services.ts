@@ -89,14 +89,16 @@ process.on( 'message', ( data: Buffer ) => {
     }
 } );
 
-process.once( 'SIGTERM', () => {
-    if ( active_task ) {
-        for( const cp of active_task._active_spawns ) {
-            send_err( `Yup ${ active_task.signature }` );
-            try { ( cp.stdin as any ).pause(); } catch ( e ) {}
-            cp.kill();
-        }
-        active_task._killed = true;
-    }
-    process.exit( 1 );
-} );
+// process.once( 'SIGTERM', () => {
+//     if ( active_task ) {
+//         for( const cp of active_task._active_spawns ) {
+//             active_task.note( `: ${ JSON.stringify( ( cp as any ).smurf ) }` );
+//             // try { ( cp.stdin  as any ).pause(); } catch ( e ) {}
+//             // try { ( cp.stdout as any ).pause(); } catch ( e ) {}
+//             // try { ( cp.stderr as any ).pause(); } catch ( e ) {}
+//             cp.kill( 'SIGTERM' );
+//         }
+//         active_task._killed = true;
+//     }
+//     process.exit( 1 );
+// } );
