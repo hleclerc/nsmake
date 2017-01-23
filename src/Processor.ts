@@ -82,6 +82,9 @@ class Processor {
 
         // if already seen but not done, it means that cn is going to be processed. We will then call done_cb.
         if ( cn.num_build_seen == this.num_build ) {
+            const visited = new Set<CompilationNode>(), line = new Array<CompilationNode>();
+            if ( cn.some_rec( ch => cn == ch, visited, line, true ) )
+                return env.com.error( cn, `Error: there's a cycle in the dependency graph:${ line.map( x => "\n  " + x.pretty ).join("") }` ), this._done( env, cn, true );
             cn.done_cbs.push( done_cb );
             return;
         }
@@ -534,13 +537,13 @@ class Processor {
             case "get_filtered_target":
                 return service.env.get_compilation_node( cmd.args.target, cmd.args.cwd, service.cn.file_dependencies, ncn => {
                     if ( ncn ) {
+                        if ( service.cn )
+                            service.cn.additional_children.push( ncn );
                         service.status = "waiting";
                         this.make( service.env, ncn, err => {
                             service.status = "active";
                             if ( err )
                                 return ans( true );
-                            if ( service.cn )
-                                service.cn.additional_children.push( ncn );
                             ans( false, { name: ncn.outputs[ 0 ], signature: ncn.signature } );
                         } );
                     } else {
@@ -580,13 +583,11 @@ class Processor {
 
             case "get_cn_data": {
                 let ncn = service.env.com.proc.pool.factory( cmd.args.signature );
+                if ( service.cn )
+                    service.cn.additional_children.push( ncn );
                 service.status = "waiting";
                 return this.make( service.env, ncn, err => {
                     service.status = "active";
-                    if ( err )
-                        return ans( true );
-                    if ( service.cn )
-                        service.cn.additional_children.push( ncn );
                     ans( err, err ? null : { signature: ncn.signature, outputs: ncn.outputs, exe_data: ncn.exe_data } );
                 } );
             }
@@ -598,9 +599,9 @@ class Processor {
                         return cb( true, null );
                     if ( sgn ) {
                         const ncn = service.env.com.proc.pool.factory( sgn );
+                        if ( service.cn )
+                            service.cn.additional_children.push( ncn );
                         this.make( service.env, ncn, err => {
-                            if ( service.cn )
-                                service.cn.additional_children.push( ncn );
                             cb( err, ncn );
                         } );
                     } else
@@ -624,9 +625,9 @@ class Processor {
                     if ( ! service.env )
                         return cb( true, null );
                     const ncn = this.pool.factory( signature ); 
+                    if ( service.cn )
+                        service.cn.additional_children.push( ncn );
                     this.make( service.env, ncn, err => {
-                        if ( service.cn )
-                            service.cn.additional_children.push( ncn );
                         cb( err, ncn );
                     } );
                 }, ( err, inp_cns: Array<CompilationNode> ) => {
@@ -637,13 +638,13 @@ class Processor {
                     nce.get_mission_node( service.cn ? service.cn.file_dependencies : new FileDependencies, ncn => {
                         if ( ! ncn )
                             return ans( true );
+                        if ( service.cn )
+                            service.cn.additional_children.push( ncn );
                         service.status = "waiting";
                         this.make( nce, ncn, err => {
                             service.status = "active";
                             if ( err )
                                 return ans( true ); 
-                            if ( service.cn )
-                                service.cn.additional_children.push( ncn );
                             ans( false, { outputs: ncn.outputs, signature: ncn.signature, exe_data: ncn.exe_data } );
                         } );
                     } );

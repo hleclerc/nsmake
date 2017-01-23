@@ -21,6 +21,7 @@ Speed comes from the use of a server and specialized micro-services.
     - [For native executables (C++/...)](#for-native-executables-c)
 - [Installation](#installation)
 - [Some tutorials](#some-tutorials)
+- [FAQ](#faq)
 - [More specific information](#more-specific-information)
 
 <!-- /TOC -->
@@ -39,22 +40,22 @@ Speed comes from the use of a server and specialized micro-services.
 
 * The task runner works as a **server**, dramatically reducing start-up time, and enabling consistency for parallel builds.
 * Tasks run in micro-services that can interact with the task runner to dynamically instantiate **sub-tasks in parallel**, enabling additional level of parallelism.
-* Deep in-memory and database caching: all the results of the idempotent tasks are **condensed and cached** (from the parsing results to the dependency analysis).
-* Deep dependency analysis for dramatically **improved correctness**: Test on files that does *not* exist, on configuration information, on external tool evolutions, ...
+* Deep in-memory and database caching: all the results of the idempotent tasks are **condensed and cached** (from the parsing results to the dependency analysis...).
+* Deep dependency analysis for dramatically **improved correctness**: tests on files that does *not* exist, tests on external tool evolutions, etc...
 * **Watch mode** for all the kinds of targets.
 
 ## Modules, libraries and external tools
 
 * **Automatic checking and installation of all the kinds of dependencies and prerequisites**: automatic finding, testing and installation of missing modules, libraries, tools... Use of a collaborative content for rules defined by system, by rights, etc...
-* **Handling of flags and specifications** (e.g. to use a CDN instead of a local copy, for the specification of the include paths, the library flags, ...) extensive code analysis, enabling dramatic simplification of configuration for libraries.
+* **Handling of flags and specifications** (e.g. to use a CDN instead of a local copy, for the specification of the include paths, the library flags, ...), using extensive code analysis to enable dramatic simplification of configuration for libraries.
 
 # Specific features
 
 ## Javascript and friends
 
-* Concatenation, Minification, Typescript, Coffeescript, React extensions, ... with of course plugins and support for arbitrary transformations (e.g. with babel plugins and presets, etc...).
+* Concatenation, Minification, Typescript, Coffeescript, React extensions, Sass, etc... with of course plugins and support for arbitrary transformations (e.g. with babel plugins and presets, etc...).
 * Full support for **Hot Module Reload** (as e.g. in WebPack).
-* Rules for **Nodejs *and* Web** targets (where policies for concatenation, CDN, etc... are not the same),
+* Rules for **Nodejs *and* Web** targets (where policies for concatenation, CDN, and so on... are not the same),
 * **Generation of the surrounding of `.js`-like entry points**: from the complete needed `.html` files (handling of script inclusion, templates, ...), to the sourcemaps.
 * Integrated support for **testing frameworks** (mocha, karma, ...),
 * **Integrated preprocessing** support (e.g. for handling of target execution, language environment, ...)
@@ -86,6 +87,10 @@ sudo npm link
 * [Compilation of a C++ application](https://github.com/hleclerc/nsmake/wiki/Tutorial:-compilation-of-a-CPP-executable)
 * [Packing/minification of a generic web application](https://github.com/hleclerc/nsmake/wiki/Tutorial:-compilation-of-a-generic-web-application)
 * [Plugins](https://github.com/hleclerc/nsmake/wiki/Plugins)
+
+# FAQ
+
+Here is a [list of potentially frequently asked questions](https://github.com/hleclerc/nsmake/wiki/Potentially-Frequently-Asked-Questions).
 
 # More specific information
 

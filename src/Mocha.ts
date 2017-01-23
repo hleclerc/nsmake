@@ -94,6 +94,7 @@ class Mocha extends Task {
             } );
 
         }, ( err: boolean, output_arrays: Array<Array<string>> ) => {
+            if ( err ) return done( true );
             const outputs = lodash.uniq( output_arrays.reduce( ( p, c ) => p.concat( c ), [] ) );
 
             // if nodejs is a target, call mocha directly

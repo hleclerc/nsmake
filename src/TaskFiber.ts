@@ -35,8 +35,11 @@ abstract class TaskFiber extends Task {
     }
 
     /** get outputs/exe_data parallely for a set of Compilation Nodes. lst = array of signatures */
-    get_cns_data_sync( lst: Array<string> ): Array<CnData> {
-        return this._call( this.get_cns_data, [], lst );
+    get_cns_data_sync( lst: Array<string>, throw_if_error = false ): Array<CnData> {
+        const res = this._call( this.get_cns_data, [], lst );
+        if ( throw_if_error && ! res )
+            throw "";
+        return res;
     }
 
     /** result = array of signatures */

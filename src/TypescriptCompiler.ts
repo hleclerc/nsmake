@@ -39,6 +39,8 @@ class TypescriptCompiler extends TaskFiber {
         const ts_name = this.children[ 0 ].outputs[ 0 ], ts_data = this.read_file_sync( ts_name );
         const orig_name = this.children[ 0 ].exe_data.orig_name || ts_name;
 
+        this.announcement( `tsc ${ ts_name}` );
+
         // exe_data
         let exe_data = ( this.exe_data = new ExeDataTypescriptParser() ) as ExeDataTypescriptParser;
         exe_data.orig_name = orig_name;
@@ -50,9 +52,8 @@ class TypescriptCompiler extends TaskFiber {
         let compiler_host = typescript.createCompilerHost( {} );
 
         compiler_host.getSourceFile = ( fileName: string, languageVersion, onError?: ( message: string ) => void ) => {
-            const name = this.get_filtered_target_sync( fileName, path.dirname( fileName ) ).name;
-            return typescript.createSourceFile( fileName, this.read_file_sync( name ).toString(), languageVersion );
-
+            const cn = this.get_filtered_target_sync( fileName, path.dirname( fileName ) );
+            return cn ? typescript.createSourceFile( fileName, this.read_file_sync( cn.name ).toString(), languageVersion ) : undefined;
         };
 
         compiler_host.fileExists = ( fileName: string ): boolean => {
@@ -67,7 +68,7 @@ class TypescriptCompiler extends TaskFiber {
             if ( moduleNames.length == 0 )
                 return [];
             const res = this.get_requires_sync( [ { cwd: path.dirname( containingFile ), requires: moduleNames } ], args.js_env, true );
-            const lst = this.get_cns_data_sync( res[ 0 ] );
+            const lst = this.get_cns_data_sync( res[ 0 ], true );
             return lst.map( ch => ch.outputs.length ? { resolvedFileName: ch.outputs[ 0 ] } : undefined );
         };
 

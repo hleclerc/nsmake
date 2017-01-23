@@ -17,8 +17,24 @@ class CompilationNode {
     }
 
     /** return this if this or one of its child rec checks the `cond` */
-    some_rec( cond: ( cn: CompilationNode ) => boolean ): boolean {
-        return cond( this ) || this.children.some( ch => ch.some_rec( cond ) );
+    some_rec( cond: ( cn: CompilationNode ) => boolean, visited = null as Set<CompilationNode>, line = null as Array<CompilationNode>, in_children_only = false, _line = [ this ] ): boolean {
+        if ( in_children_only ) 
+            return this.children           .some( ch => ch.some_rec( cond, visited, line, false, _line ) ) ||
+                   this.additional_children.some( ch => ch.some_rec( cond, visited, line, false, _line ) );
+
+        if ( visited ) {
+            if ( visited.has( this ) )
+                return false;
+            visited.add( this );
+        }
+
+        if ( cond( this ) ) {
+            if ( line )
+                line.push( ..._line, this );
+            return true;
+        }
+        return this.children           .some( ch => ch.some_rec( cond, visited, line, false, line ? [ ..._line, this ] : _line ) ) ||
+               this.additional_children.some( ch => ch.some_rec( cond, visited, line, false, line ? [ ..._line, this ] : _line ) );
     }
 
     _init_for_build( init_cb: ( err: string ) => void ) {
