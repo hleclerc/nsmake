@@ -83,7 +83,6 @@ class Codegen extends Task {
                     run_loc        : true, // for instance, if the entry_point is a js file, we want to ensure that we're not going to execute it on a browser
                 }, res.json_data ), inp_sgns, ( err, res ) => {
                     this.outputs.push( args.output );
-                    this.note( `done.err: ${ JSON.stringify( err ) }` );
                     done( err );
                 } );
             } );

@@ -64,9 +64,8 @@ class TypescriptCompiler extends TaskFiber {
             if ( ! cn ) {
                 const spl = fileName.split( path.sep ), ind = spl.indexOf( "node_modules" );
                 if ( ind >= 0 ) {
-                    this.note( `spl, ind: ${ spl.slice( 0, ind ).join( path.sep ) }` );
                     if ( spl[ ind + 1 ] == "@types" && ind + 2 < spl.length ) {
-                        if ( this.run_install_cmd_sync( path.join( ...spl.slice( 0, ind ) ), [ "echo", "install", "@types/" + spl[ ind + 2 ] ], [] ) ) {
+                        if ( this.run_install_cmd_sync( spl.slice( 0, ind ).join( path.sep ), [ "npm", "install", "@types/" + spl[ ind + 2 ] ], [] ) ) {
                             this.error( `Error: file '${ fileName }' not found, and installation procedure failed` );
                             return done( true );
                         }
@@ -76,7 +75,7 @@ class TypescriptCompiler extends TaskFiber {
                     }
                 }
             }
-            return cn ? typescript.createSourceFile( fileName, this.preprocessing( args, cn.name ), languageVersion ) : undefined;
+            return cn ? typescript.createSourceFile( fileName, this.preprocessing( args, cn.name, orig_name ), languageVersion ) : undefined;
         };
 
         compiler_host.fileExists = ( fileName: string ): boolean => {
@@ -184,7 +183,7 @@ class TypescriptCompiler extends TaskFiber {
 
     /** simplified preprocessing: typescript has to be valid also for IDEs... which only have non modified versions of the file.
      *  So, we focus on stuff that could change the requires */
-    preprocessing( args: TypescriptCompilerArgs, fileName: string ) : string {
+    preprocessing( args: TypescriptCompilerArgs, fileName: string, orig_name: string ) : string {
         let src_content = this.read_file_sync( fileName ).toString();
 
         // parse
@@ -235,10 +234,11 @@ class TypescriptCompiler extends TaskFiber {
                     continue;
                 }
             }
-                
-            switch ( spl[ nspl[ 0 ] ] ) {
+
+            const cmd = spl[ nspl[ 0 ] ];
+            switch ( cmd ) {
                 case "ifndef":
-                case "ifdef":
+                case "ifdef": {
                     // find the corresponding endif
                     let m = find_endif( n );
                     if ( m < 0 )
@@ -252,11 +252,44 @@ class TypescriptCompiler extends TaskFiber {
                         comments.splice( m, 1 );
                     }
                     break;
+                }
+                case "uncomment_ifndef":
+                case "uncomment_ifdef": {
+                    // find the corresponding endif
+                    let m = find_endif( n );
+                    if ( m < 0 )
+                        break; // we exit silently: the same error will occur during js parsing
+                    //
+                    const ind = args.define.indexOf( spl[ nspl[ 1 ] ] );
+                    if ( cmd == "uncomment_ifdef" ? ind >= 0 : ind < 0 ) {
+                        let d = comments[ m ], str = src_content.substring( c.end, d.beg );
+                        const mc = str.match( /^([ \n\r\t]*)\/\*(.*)\*\//m );
+                        if ( mc )
+                            str = mc[ 1 ] + "  " + mc[ 2 ] + "  ";
+                        else
+                            str = str.split( "\n" ).map( x => x.replace( /^([ \t]*)\/\//, "$1  " ) ).join( "\n" );
+                        src_content = src_content.substring( 0, c.beg ) + 
+                                      src_content.substring( c.beg, c.end ).replace( /[^\n\r]/g, " " ) + 
+                                      str + 
+                                      src_content.substring( d.beg, d.end ).replace( /[^\n\r]/g, " " ) +
+                                      src_content.substring( d.end );
+                        comments.splice( n + 1, m - n ); // TODO: something more accurate !!
+                    } else {
+                        comments.splice( m, 1 );
+                    }
+                    break;
+                }
                 case "ext_lib":
                     if ( nspl.length != 4 )
                         this.error( "ext_lib expects exactly 3 arguments (name in requires, url, and name in the global/window space, e.g. '//// nsmake ext_lib react https://unpkg.com/react@15/dist/react.js React')" );
                     else
                         this.register_ext_lib( spl[ nspl[ 1 ] ], spl[ nspl[ 2 ] ], spl[ nspl[ 3 ] ] );
+                    break;
+                case "alias":
+                    this.register_aliases( [ {
+                        key: path.resolve( path.dirname( orig_name ), spl[ nspl[ 1 ] ] ),
+                        val: path.resolve( path.dirname( orig_name ), cf( 2 ) )
+                    } ] );
                     break;
                 case "define":
                     if ( global ) {

@@ -714,13 +714,15 @@ class Processor {
 
             // default
             default:
-                for( const g of service.env.generators )
-                    if ( g.constructor.name == spl_act[ 0 ] )
-                        return g.msg_from_service( service, spl_act[ 1 ], cmd.args, ans, msg );
-                msg( `Unknown service command '${ cmd.action }'. => service is going to be killed` );
-                try { ( service.cp.stdin as any ).pause(); } catch ( e ) {}
-                service.cp.kill();
-                service.cp = null;
+                if ( service.env ) {
+                    for( const g of service.env.generators )
+                        if ( g.constructor.name == spl_act[ 0 ] )
+                            return g.msg_from_service( service, spl_act[ 1 ], cmd.args, ans, msg );
+                    msg( `Unknown service command '${ cmd.action }'. => service is going to be killed` );
+                    try { ( service.cp.stdin as any ).pause(); } catch ( e ) {}
+                    service.cp.kill();
+                    service.cp = null;
+                }
         }
     }
 

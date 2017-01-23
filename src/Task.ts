@@ -158,7 +158,7 @@ abstract class Task {
     }
 
     /** */
-    _register_aliases( lst: Array< { key: string, val: string} > ): void  {
+    register_aliases( lst: Array< { key: string, val: string} > ): void  {
         process.send( JSON.stringify( { action: "register_aliases", args: { lst } } ) + "\n" );
     }
 
@@ -253,7 +253,7 @@ abstract class Task {
     }
 
     /** diplay a (truncated if necessary) line with a ^ char behind a given column */
-    src_err_msg( file: string, line: number, column: number ) {
+    src_err_msg( file: string, line: number, column: number ): string {
         // we start with character at the center of the screen.
         let nc = this.nb_columns, dc = nc >> 1, extr = fs.readFileSync( file ).toString( "utf8" ).split( "\n" )[ line ];
         let b = column - dc, message = "";
@@ -265,6 +265,8 @@ abstract class Task {
             message += "..." + ( extr.length - b > nc - 3 ? extr.substr( b, nc - 6 ) + "..." : extr.substr( b ) ) + "\n";
             message += " ".repeat( dc + 3 ) + "^\n";
         }
+
+        return message;
     }
 
     /** */

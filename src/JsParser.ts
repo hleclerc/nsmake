@@ -336,8 +336,9 @@ class JsParser extends TaskFiber {
                     continue;
                 }
             }
-                
-            switch ( spl[ nspl[ 0 ] ] ) {
+
+            const cmd = spl[ nspl[ 0 ] ];
+            switch ( cmd ) {
                 case "ifndef":
                 case "ifdef":
                     // find the corresponding endif
@@ -355,6 +356,30 @@ class JsParser extends TaskFiber {
                         comments.splice( m, 1 );
                     }
                     break;
+                case "uncomment_ifndef":
+                case "uncomment_ifdef": {
+                    // find the corresponding endif
+                    let m = find_endif( n );
+                    if ( m < 0 )
+                        break; // we exit silently: the same error will occur during js parsing
+                    //
+                    const ind = args.define.indexOf( spl[ nspl[ 1 ] ] );
+                    if ( cmd == "uncomment_ifdef" ? ind >= 0 : ind < 0 ) {
+                        let d = comments[ m ], str = sm.src_content.substring( c.end, d.beg );
+                        const mc = str.match( /^([ \n\r\t]*)\/\*(.*)\*\//m );
+                        if ( mc )
+                            str = mc[ 1 ] + "  " + mc[ 2 ] + "  ";
+                        else
+                            str = str.split( "\n" ).map( x => x.replace( /^([ \t]*)\/\//, "$1  " ) ).join( "\n" );
+                        sm.replace( c.beg, c.end, sm.src_content.substring( c.beg, c.end ).replace( /[^\n\r]/g, " " ) );
+                        sm.replace( c.end, d.beg, str );
+                        sm.replace( d.beg, d.end, sm.src_content.substring( d.beg, d.end ).replace( /[^\n\r]/g, " " ) );
+                        comments.splice( n + 1, m - n ); // TODO: something more accurate !!
+                    } else {
+                        comments.splice( m, 1 );
+                    }
+                    break;
+                }
                 case "html_content":
                     exe_data.html_content.push( cf( 1 ) );
                     break;
@@ -393,8 +418,10 @@ class JsParser extends TaskFiber {
                 case "css":
                     exe_data.needed_css.push( this.get_filtered_target_signature_sync( path.resolve( path.dirname( orig_name ), cf( 1 ) ), path.dirname( orig_name ) ) );
                     break;
-                default:
-                    this.error( `Unknown nsmake cmd: '${ spl[ nspl[ 0 ] ] }'` );
+                default: {
+                    const co = coords( sm.src_content, c.beg );
+                    this.error( `Error:${ orig_name }:${ co.l + 1 }:${ co.c + 1 }: unknown nsmake cmd '${ spl[ nspl[ 0 ] ] }'` ); // \n${ this.src_err_msg( orig_name, item.ol, item.oc ) }
+                }
             }
         }
 
