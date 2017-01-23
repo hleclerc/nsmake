@@ -2,11 +2,11 @@ import JsLazySourceMap       from "./JsLazySourceMap"
 import SourceMap, { coords } from "./SourceMap"
 import { pu }                from "./ArrayUtil"
 import TaskFiber             from "./TaskFiber"
-import * as bt               from "babel-types";
-import * as babel            from "babel-core";
-import * as yaml             from "js-yaml";
-import * as path             from "path";
-import * as fs               from "fs";
+import * as bt               from "babel-types"
+import * as babel            from "babel-core"
+import * as yaml             from "js-yaml"
+import * as path             from "path"
+import * as fs               from "fs"
 const js_tokens_matcher = require( "js-tokens" );
 
 export
@@ -327,10 +327,19 @@ class JsParser extends TaskFiber {
         for( let n = 0; n < comments.length; ++n ) {
             const c = comments[ n ], spl = c.content.split( " " ), nspl = [ ...spl.keys() ].filter( x => spl[ x ].length );
             function cf( n: number ): string { return n < nspl.length ? spl.slice( nspl[ n ], nspl[ nspl.length - 1 ] + 1 ).join( " " ) : ""; }
-            switch ( spl[ 0 ] ) {
+            let global = false;
+            if ( spl[ 0 ] == "global" ) {
+                global = true;
+                nspl.shift();
+                if ( nspl.length == 0 ) {
+                    this.error( `Error: 'nsmake global' without an additionnal keyword is not valid` );
+                    continue;
+                }
+            }
+                
+            switch ( spl[ nspl[ 0 ] ] ) {
                 case "ifndef":
                 case "ifdef":
-                    this.note( `spl: ${ JSON.stringify( spl ) }` );
                     // find the corresponding endif
                     let m = find_endif( n );
                     if ( m < 0 ) {
@@ -366,6 +375,13 @@ class JsParser extends TaskFiber {
                     exe_data.need_hmr = true;
                     break;
                 case "define":
+                    if ( global ) {
+                        if ( nspl.length == 1 ) {
+                            this.error( `Error: 'define' requires at least one argument` );
+                            break;
+                        }
+                        this.push_unique_in_global_arg_sync( "define", spl[ nspl[ 1 ] ] );
+                    }
                     pu( exe_data.define, cf( 1 ) );
                     break;
                 case "alias":

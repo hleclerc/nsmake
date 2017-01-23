@@ -201,6 +201,7 @@ class GeneratorJs extends Generator {
     make_typescript_compiler( ch: CompilationNode, output: string ): CompilationNode {
         return this.env.New( "TypescriptCompiler", [ ch ], {
             no_implicit_any: this.env.args.no_implicit_any || false,
+            define         : this.env.args.define || [],
             js_env         : js_env( this.env.args ),
             launch_dir     : this.env.cwd,
             output,
@@ -209,12 +210,14 @@ class GeneratorJs extends Generator {
 
     make_coffeescript_compiler( ch: CompilationNode, output: string ): CompilationNode {
         return this.env.New( "CoffeescriptCompiler", [ ch ], {
+            define: this.env.args.define || [],
             output,
         } as CoffeescriptCompilerArgs );
     }
 
     make_sass_compiler( ch: CompilationNode, output: string ): CompilationNode {
         return this.env.New( "SassCompiler", [ ch ], {
+            define: this.env.args.define || [],
             output,
         } as SassCompilerArgs );
     }

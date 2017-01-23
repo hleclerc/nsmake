@@ -690,6 +690,13 @@ class Processor {
                     service.status = cmd.args.status;
                 return;
 
+            case "push_unique_in_global_arg":
+                if ( ! service.env.args[ cmd.args.arg ] )
+                    service.env.args[ cmd.args.arg ] = [];
+                pu( service.env.args[ cmd.args.arg ], cmd.args.val );
+                ans( false );
+                return;
+
             case "run_yaml_install_cmd":
                 return this.yaml_install_cmd( service.env.com, service.cn, cmd.args.cwd, cmd.args.rules, cmd.args.system_info || this.system_info, ( err, msg ) => {
                     ans( false, { err, msg } );

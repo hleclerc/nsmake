@@ -293,8 +293,13 @@ abstract class Task {
         } );
     }
 
+    /** modify a global env argument */
+    push_unique_in_global_arg( arg: string, val: any, cb: ( err: boolean ) => void ): void {
+        this._send_and_wait( "push_unique_in_global_arg", { arg, val }, cb );
+    }
+
     /** `if_wrong` is used only in sync mode */
-    _send_and_wait( action, args: { [ key: string ]: any }, cb: ( err: boolean, res: any ) => void ): any {
+    _send_and_wait( action, args: { [ key: string ]: any }, cb: ( err: boolean, res: any ) => void ): void {
         const msg_id = ++this._cur_id_waiting_cbs;
         process.send( JSON.stringify( { action, msg_id, args } ) + "\n" );
         this._waiting_cbs.set( msg_id, cb );

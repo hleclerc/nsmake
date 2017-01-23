@@ -102,6 +102,11 @@ abstract class TaskFiber extends Task {
         try { return fs.statSync( dir ).isDirectory(); } catch ( e ) { return false; }
     };
 
+    /** modify a global env argument */
+    push_unique_in_global_arg_sync( arg: string, val: any ): void {
+        return this._call( this.push_unique_in_global_arg, [], arg, val );
+    }
+
     /** */
     _call( method, add_args, ...args ): any {
         let fiber = fibers.current, out = null;
