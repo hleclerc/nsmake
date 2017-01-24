@@ -376,7 +376,6 @@ class JsDepFactory extends TaskFiber {
 
         // minification
         if ( args.min ) {
-            this.note( `sm.src_content: ${ sm.src_content }` );
             var nout = babel.transform( sm.src_content, {
                 ast       : false,
                 code      : true,

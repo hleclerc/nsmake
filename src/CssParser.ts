@@ -143,7 +143,6 @@ class CssParser extends TaskFiber {
             switch ( spl[ 0 ] ) {
                 case "ifndef":
                 case "ifdef":
-                    this.note( `spl: ${ JSON.stringify( spl ) }` );
                     // find the corresponding endif
                     let m = find_endif( n );
                     if ( m < 0 ) {

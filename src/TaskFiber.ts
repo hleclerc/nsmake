@@ -10,7 +10,7 @@ abstract class TaskFiber extends Task {
     abstract exec( args, done: ( err: boolean ) => void );
 
     /** get null or signature + result (output filename) of generator for `target` */
-    get_filtered_target_sync( target: string, cwd: string ): { name: string, signature: string } {
+    get_filtered_target_sync( target: string, cwd: string ): { name: string, signature: string, exe_data: any } {
         return this._call( this.get_filtered_target, [], target, cwd );
     }
 

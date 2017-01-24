@@ -64,7 +64,7 @@ Speed comes from the use of a server and specialized micro-services.
 
 * Fully compliant C/C++ preprocessor (proper variable substitution, extensions like `#include_next`, `##__VA_ARGS__`, etc...)
 * Rules for **inline preprocessing** code generation (launching of nsmake tasks for code inclusion and modification during code parsing).
-* Automatic handling of **flags and downloads** for external libraries (`#include <libxml/tree.h>` probably that `libxml` is needed).
+* Automatic handling of **flags and downloads** for external libraries using community based rules (that can be surdefined) and information in sources (inclusions, ...).
 * Integrated support for **testing frameworks** (gtest, ...),
 
 # Installation

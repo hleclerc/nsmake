@@ -193,7 +193,7 @@ class Processor {
         }
 
         // timing
-        if ( env.verbose >= 2 && cn.type != "Id" ) {
+        if ( env.args.display_timings && cn.type != "Id" ) {
             let t = process.hrtime( cn.start );
             env.com.note( cn, `Execution of ${ cn.pretty }: ${ t[ 0 ] + t[ 1 ] / 1e9 }` );
         }
@@ -350,6 +350,8 @@ class Processor {
         if ( cn.type == "Id" ) {
             return fs.stat( cn.args.target, ( err, stats ) => {
                 if ( err ) { env.com.error( cn, err.toString() ); return this._done( env, cn, true ); }
+if ( cn.args.target == "/home/hugo/AgencyDB/src/String/OtWrapperStringOperations.ts" ) env.com.note( cn, `stating ID !!` );
+                
                 cn.file_dependencies.found.set( cn.args.target, stats.mtime.getTime() );
                 cn.output_mtimes = [ stats.mtime.getTime() ];
                 cn.outputs = [ cn.args.target ];
@@ -480,9 +482,11 @@ class Processor {
 
         if ( category )
             this._make_child_process_for_category( category, com, init_cp );
-        else
-            init_cp( child_process.spawn( process.argv[ 0 ], [ `--debug=${ 7000 + Processor.cpt_debug_service++ }`, path.resolve( __dirname, "main_js_services.js" ) ], { stdio: [ 'ignore', 1, 2, 'ipc' ] } as any ), false );
-        // init_cp( child_process.fork( path.resolve( __dirname, "main_js_services.js" ), [], { stdio: [ 'pipe', 1, 2, 'ipc' ] } as any ), false );
+        else {
+            // `--debug=${ 7000 + Processor.cpt_debug_service++ }`, 
+            init_cp( child_process.spawn( process.argv[ 0 ], [ path.resolve( __dirname, "main_js_services.js" ) ], { stdio: [ 'ignore', 1, 2, 'ipc' ] } as any ), false );
+            // init_cp( child_process.fork( path.resolve( __dirname, "main_js_services.js" ), [], { stdio: [ 'pipe', 1, 2, 'ipc' ] } as any ), false );
+        }
     }
     static cpt_debug_service = 0;
 
@@ -544,7 +548,7 @@ class Processor {
                             service.status = "active";
                             if ( err )
                                 return ans( true );
-                            ans( false, { name: ncn.outputs[ 0 ], signature: ncn.signature } );
+                            ans( false, { name: ncn.outputs[ 0 ], signature: ncn.signature, exe_data: ncn.exe_data } );
                         } );
                     } else {
                         ans( false, null );

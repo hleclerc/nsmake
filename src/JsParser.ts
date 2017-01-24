@@ -410,7 +410,10 @@ class JsParser extends TaskFiber {
                     pu( exe_data.define, cf( 1 ) );
                     break;
                 case "alias":
-                    exe_data.aliases.push( { key: path.resolve( path.dirname( orig_name ), spl[ nspl[ 1 ] ] ), val: path.resolve( path.dirname( orig_name ), cf( 2 ) ) } );
+                    exe_data.aliases.push( {
+                        key: path.resolve( path.dirname( orig_name ), spl[ nspl[ 1 ] ] ),
+                        val: path.resolve( path.dirname( orig_name ), cf( 2 ) )
+                    } );
                     break;
                 case "trans":
                     trans_list.push( { prog: path.resolve( path.dirname( orig_name ), spl[ nspl[ 1 ] ] ), args: cf( 2 ) } );

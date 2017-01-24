@@ -112,7 +112,7 @@ class CompilationEnvironment {
     }
 
     /** */
-    register_aliases( cn: CompilationNode, lst: Array< { key: string, val: string} > ) {
+    register_aliases( cn: CompilationNode, lst: Array< { key: string, val: string} > ) {        
         for( const { key, val } of lst ) {
             const ney = path.normalize( key );
             const old = this.aliases.get( ney );

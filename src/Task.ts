@@ -40,7 +40,7 @@ abstract class Task {
     }
 
     /** get null or signature + result (output filename) of generator for `target` */
-    get_filtered_target( target: string, cwd: string, cb: ( err: boolean, res: { name: string, signature: string } ) => void ): void {
+    get_filtered_target( target: string, cwd: string, cb: ( err: boolean, res: { name: string, signature: string, exe_data: any } ) => void ): void {
         this._send_and_wait( "get_filtered_target", { target, cwd }, cb );
     }
 
@@ -159,7 +159,8 @@ abstract class Task {
 
     /** */
     register_aliases( lst: Array< { key: string, val: string} > ): void  {
-        process.send( JSON.stringify( { action: "register_aliases", args: { lst } } ) + "\n" );
+        if ( lst.length )
+            process.send( JSON.stringify( { action: "register_aliases", args: { lst } } ) + "\n" );
     }
 
     /** */

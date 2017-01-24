@@ -330,10 +330,11 @@ class GeneratorJs extends Generator {
             // found ?
             if ( ! err && stats.isDirectory )
                 return cb( tn, null );
+            // register the failure
+            if ( cn )
+                cn.file_dependencies.failed.add( tn );
             // look if there's a parent
             const ncwd = path.dirname( cwd );
-            if ( cn )
-                cn.file_dependencies.failed.add( cwd );
             // no parent => create in orig
             if ( ncwd == cwd ) {
                 if ( ! create_a_new_one )

@@ -75,7 +75,7 @@ class TypescriptCompiler extends TaskFiber {
                     }
                 }
             }
-            return cn ? typescript.createSourceFile( fileName, this.preprocessing( args, cn.name, orig_name ), languageVersion ) : undefined;
+            return cn ? typescript.createSourceFile( fileName, this.preprocessing( args, cn.name, cn.exe_data.orig_name || fileName ), languageVersion ) : undefined;
         };
 
         compiler_host.fileExists = ( fileName: string ): boolean => {

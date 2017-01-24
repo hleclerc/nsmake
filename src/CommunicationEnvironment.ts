@@ -18,9 +18,10 @@ class CommunicationEnvironment {
     }
 
     decl_additional_options( p : ArgumentParser ) {
-        p.add_argument( [], [], 'silent'      , 'Give no information on what is being built'         , "boolean" );
-        p.add_argument( [], [], 'verbose'     , 'Give more information about what is being built'    , "boolean" );
-        p.add_argument( [], [], 'very-verbose', 'Give a lot of information about what is being built', "boolean" );
+        p.add_argument( [], [], 'silent'         , 'Give no information on what is being built'         , "boolean" );
+        p.add_argument( [], [], 'verbose'        , 'Give more information about what is being built'    , "boolean" );
+        p.add_argument( [], [], 'very-verbose'   , 'Give a lot of information about what is being built', "boolean" );
+        p.add_argument( [], [], 'display-timings', 'Display task timings'                               , "boolean" );
     }
 
     init() {
