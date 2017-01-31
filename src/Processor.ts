@@ -23,13 +23,14 @@ import * as fs                  from 'fs'
 const tree_kill = require( 'tree-kill' );
 
 interface DataInDb {
-    outputs            : Array<string>;
-    output_mtimes      : Array<number>;
-    exe_data           : any;
-    generated          : Array<string>;
-    generated_mtimes   : Array<number>;
-    failed             : Array<string>;
-    found              : Array<[string,number]>;
+    outputs                  : Array<string>;
+    output_mtimes            : Array<number>;
+    exe_data                 : any;
+    generated                : Array<string>;
+    generated_mtimes         : Array<number>;
+    failed                   : Array<string>;
+    found                    : Array<[string,number]>;
+    push_unique_in_global_arg: Array<{ arg: string, val: string }>;
 }
 
 export default
@@ -229,13 +230,14 @@ class Processor {
                 // save in db (we don't have wait for a complete save)
                 if ( cn.idempotent && cn.type != "Id" ) {
                     this.db.put( cn.signature, JSON.stringify( {
-                        outputs               : cn.outputs,
-                        output_mtimes         : cn.output_mtimes,
-                        exe_data              : cn.exe_data,
-                        generated             : cn.generated,
-                        generated_mtimes      : cn.generated_mtimes,
-                        failed                : [ ...cn.file_dependencies.failed ],
-                        found                 : [ ...cn.file_dependencies.found.keys() ].map( name => [ name, cn.file_dependencies.found.get( name ) ] ),
+                        outputs                  : cn.outputs,
+                        output_mtimes            : cn.output_mtimes,
+                        exe_data                 : cn.exe_data,
+                        generated                : cn.generated,
+                        generated_mtimes         : cn.generated_mtimes,
+                        push_unique_in_global_arg: cn.push_unique_in_global_arg,
+                        failed                   : [ ...cn.file_dependencies.failed ],
+                        found                    : [ ...cn.file_dependencies.found.keys() ].map( name => [ name, cn.file_dependencies.found.get( name ) ] ),
                     } as DataInDb ), err => {
                         console.assert( ! err, "TODO: db put error" );
                     } );
@@ -325,12 +327,20 @@ class Processor {
                         return _ko( err );
 
                     // everything seems to be ok :)
+                    this._launch_stuff_to_be_re_executed( env, cn );
                     this._exec_done_cb( env.com, cn, false );
                 } );
 
             } );
 
         } );
+    }
+
+    _launch_stuff_to_be_re_executed( env: CompilationEnvironment, cn: CompilationNode ) {
+        for( const item of cn.push_unique_in_global_arg ) {
+            if ( ! env.args[ item.arg ] ) env.args[ item.arg ] = [];
+            pu( env.args[ item.arg ], item.val );
+        }
     }
 
     _exec_done_cb( com: CommunicationEnvironment, cn: CompilationNode, err: boolean ): void {
@@ -350,8 +360,6 @@ class Processor {
         if ( cn.type == "Id" ) {
             return fs.stat( cn.args.target, ( err, stats ) => {
                 if ( err ) { env.com.error( cn, err.toString() ); return this._done( env, cn, true ); }
-if ( cn.args.target == "/home/hugo/AgencyDB/src/String/OtWrapperStringOperations.ts" ) env.com.note( cn, `stating ID !!` );
-                
                 cn.file_dependencies.found.set( cn.args.target, stats.mtime.getTime() );
                 cn.output_mtimes = [ stats.mtime.getTime() ];
                 cn.outputs = [ cn.args.target ];
@@ -695,8 +703,8 @@ if ( cn.args.target == "/home/hugo/AgencyDB/src/String/OtWrapperStringOperations
                 return;
 
             case "push_unique_in_global_arg":
-                if ( ! service.env.args[ cmd.args.arg ] )
-                    service.env.args[ cmd.args.arg ] = [];
+                service.cn.push_unique_in_global_arg.push({ arg: cmd.args.arg, val: cmd.args.val });
+                if ( ! service.env.args[ cmd.args.arg ] ) service.env.args[ cmd.args.arg ] = [];
                 pu( service.env.args[ cmd.args.arg ], cmd.args.val );
                 ans( false );
                 return;

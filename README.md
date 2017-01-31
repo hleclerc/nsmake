@@ -1,10 +1,10 @@
 # What is Nsmake ?
 
-Nsmake stands for "No Script Make". It is a *fast* and *extensible* build system, designed to dramatically *reduce redundancies, trivial and tangled information* in build configurations, while guaranteeing *correctness*, even for complex code generation schemes.
+Nsmake stands for "No Script Make". It is a *fast* and *extensible* build system, designed to dramatically *reduce redundancies, trivial and tangled information* in build configurations, while guaranteeing far better *correctness*, even for complex code generation schemes.
 
-Moreover, nsmake takes responsibility to *ensure the link between the tools*. In most cases, it allows to get rid of boilerplates, and most sources of discrepancies in build configurations.
+Nsmake takes responsibility to *ensure the link between the tools*. In most cases, it allows to get rid of the usual large number of configuration files (and thus boilerplates...), and most sources of discrepancies in build configurations.
 
-Speed comes from the use of a server and specialized micro-services.
+Speed comes from the use of a server, with micro-services that can be written in any language.
 
 # Table of contents:
 
@@ -30,7 +30,7 @@ Speed comes from the use of a server and specialized micro-services.
 
 ## Orthogonal, clean and clear configuration
 
-* Extensive analysis of trees and content for all the source languages. **Nsmake will never ask you to specify information that can be found directly or indirectly from the sources**.
+* Extensive analysis of trees and content for all the source languages. **Nsmake will never ask you to specify information that can be found or easily infered from the sources**.
 * No global intricate configuration(s) file(s). **Information is specified where it is relevant** and use of global variables are a choice of the user, not of the build system.
 * No Domain Specific Language: most of the source languages already have conditionals, pre-processors, ... Nsmake let's you be consistent with the programming languages you're already using, **avoiding the need to cope with new conventions and new tools**.
 * Overall Significant **reduction of number of configuration files**, and need for boilerplates: Nsmake takes the responsibility to fill the gap, allowing cleansing, and cooperation for tools (compilation, testing, etc...) that need the same kinds of information.
