@@ -49,6 +49,10 @@ class Processor {
         // launch a first set of idle services
         // for( let i = 0; i < this.jobs; ++i )
         //     this._make_new_service( i );
+
+        // setInterval( () => {
+        //     console.log( "l:", this.waiting_cns.length, this.services.map( s => s.status ), this.jobs );
+        // }, 4000 );
     }
 
     /** call cb when ready for a new build sequence */
@@ -424,7 +428,7 @@ class Processor {
     }
 
     _launch_waiting_cn_if_possible() {
-        if ( this.waiting_cns.length && this.services.filter( s => s.status == "active" ).length < this.jobs ) {
+        while ( this.waiting_cns.length && this.services.filter( s => s.status == "active" ).length < this.jobs ) {
             let item = this.waiting_cns.shift();
             this._launch( item.env, item.cn );
         }
@@ -552,6 +556,7 @@ class Processor {
                         if ( service.cn )
                             service.cn.additional_children.push( ncn );
                         service.status = "waiting";
+                        this._launch_waiting_cn_if_possible();
                         this.make( service.env, ncn, err => {
                             service.status = "active";
                             if ( err )
@@ -598,6 +603,7 @@ class Processor {
                 if ( service.cn )
                     service.cn.additional_children.push( ncn );
                 service.status = "waiting";
+                this._launch_waiting_cn_if_possible();
                 return this.make( service.env, ncn, err => {
                     service.status = "active";
                     ans( err, err ? null : { signature: ncn.signature, outputs: ncn.outputs, exe_data: ncn.exe_data } );
@@ -606,6 +612,7 @@ class Processor {
 
             case "get_cns_data":
                 service.status = "waiting";
+                this._launch_waiting_cn_if_possible();
                 return async.map( cmd.args.lst, ( sgn: string, cb: ( err: boolean, cn: CompilationNode ) => void ) => {
                     if ( ! service.env )
                         return cb( true, null );
@@ -633,6 +640,7 @@ class Processor {
 
             case "run_mission_node":
                 service.status = "waiting";
+                this._launch_waiting_cn_if_possible();
                 return async.map( cmd.args.signatures, ( signature: string, cb ) => {
                     if ( ! service.env )
                         return cb( true, null );
@@ -653,6 +661,7 @@ class Processor {
                         if ( service.cn )
                             service.cn.additional_children.push( ncn );
                         service.status = "waiting";
+                        this._launch_waiting_cn_if_possible();
                         this.make( nce, ncn, err => {
                             service.status = "active";
                             if ( err )
