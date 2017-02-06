@@ -285,7 +285,7 @@ class JsDepFactory extends TaskFiber {
         const map_name = this.new_build_file_sync( this._js_name, ".js.map", args.dist_dir );
         this.generated.push( map_name );
 
-        const manifest_name = this._js_name + ".manifest";
+        const manifest_name = this.new_build_file_sync( this._js_name, ".js.manifest", args.dist_dir );
         this.generated.push( manifest_name );
 
         // load the content (sources and sourcemaps), set sourcemap, update change directory of output if necessary, store mtime
@@ -470,7 +470,7 @@ class JsDepFactory extends TaskFiber {
                 }
                 this.announcement( `sm.src_content: ${ sm.src_content }` );
             }
-            const map_name = this.new_build_file_sync( out_name, ".js.map", args.dist_dir );
+            const map_name = this.new_build_file_sync( out_name, ".css.map", args.dist_dir );
             sm.src_content += `\n/*# sourceMappingURL=${ this.rel_with_dot( path.dirname( out_name ), map_name ) } */`;
 
             this.note( `Emission of '${ out_name }'` );
@@ -595,7 +595,7 @@ class JsDepFactory extends TaskFiber {
                         this._make_sourcemap_from_js_content( js.content, js.outputs[ 0 ] );
 
                     const njs = js == this.ep_js_parser && this._js_name ? this._js_name : this.new_build_file_sync( js.exe_data.orig_name, ".js" );
-                    const nsm = this.new_build_file_sync( njs, ".js.map", args.dist_dir );
+                    const nsm = this.new_build_file_sync( njs, ".js.map" );
                     this.generated.push( nsm );
                     js.outputs = [ njs, nsm ];
                 }
