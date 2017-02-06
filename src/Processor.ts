@@ -156,6 +156,7 @@ class Processor {
         this.db.remove( ( key: string, val: string ): boolean => {
             if ( val.indexOf( dir ) >= 0 ) {
                 try {
+                    this.pool.m.delete( key );
                     lst.push( ...JSON.parse( val ).generated );
                 } catch ( e ) {
                     console.error( e );
@@ -219,7 +220,7 @@ class Processor {
             async.forEachOf( cn.generated, ( output: string, num_output: number, callback ) => {
                 fs.stat( output, ( err, stat ) => {
                     if ( err ) {
-                        env.com.error( cn, `Generated (should be) ${ output } does not exist (after execution of ${ cn.pretty }).` );
+                        env.com.error( cn, `Generated (should be) file '${ output }' does not exist (after execution of ${ cn.pretty }).` );
                         return callback( true );
                     }
                     cn.generated_mtimes[ num_output ] = stat.mtime.getTime();
