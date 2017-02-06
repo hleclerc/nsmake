@@ -67,7 +67,7 @@ class FileDependencies {
     }
 
     /** */
-    clean() {
+    untangle() {
         this.found.forEach( ( val, name ) => {
             this.failed.delete( name );
         } );

@@ -164,7 +164,9 @@ class Processor {
             }
             return false;
         }, err => {
-            async.forEach( lst, rimraf, cb );
+            async.forEach( lst, ( name, cb_fe ) => {
+                rimraf( name, err => cb_fe( null) );
+            }, cb );
         } );
 
         // //
@@ -180,13 +182,9 @@ class Processor {
 
     _done( env: CompilationEnvironment, cn: CompilationNode, err = false ): void {
         // stuff to be made, error ot not
-        function merge_ch_info( ch: CompilationNode ) {
-            cn.idempotent = cn.idempotent && ch.idempotent;
-            cn.file_dependencies.merge( ch.file_dependencies );
-        }
-        cn.children           .forEach( merge_ch_info );
-        cn.additional_children.forEach( merge_ch_info );
-        cn.file_dependencies.clean();
+        cn.children           .forEach( ch => cn.merge_res_from( ch ) );
+        cn.additional_children.forEach( ch => cn.merge_res_from( ch ) );
+        cn.file_dependencies.untangle();
 
         // if error => cleansing
         if ( err ) {

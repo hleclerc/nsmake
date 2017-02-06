@@ -84,6 +84,7 @@
 // }
 
 // levelup version
+import * as path from "path";
 var leveldown = require( "leveldown" );
 var levelup   = require( "levelup" );
 
@@ -106,12 +107,12 @@ class Db {
 
     //
     clean( done ) {
-        leveldown.destroy( `${ this.dir }/commands`, done );
+        leveldown.destroy( path.resolve( this.dir, "commands" ), done );
         this.init();
     }
 
     init() {
-        this.inst = levelup( `${ this.dir }/commands` );
+        this.inst = levelup( path.resolve( this.dir, "commands" ) );
     }
 
     remove( cond: ( key: string, val: string ) => boolean, end_cb: ( err: Error ) => void ) {
@@ -120,12 +121,12 @@ class Db {
         this.inst.createReadStream().on( 'data', data => {
             if ( cond( data.key.toString(), data.value.toString() ) )
                 to_del.push( data.key );
-        }).on('close', () => {
+        } ).on( 'close', () => {
             // delete items in the list
             let b = this.inst.batch();
             to_del.forEach( key => b.del( key ) );
             b.write( end_cb );
-        });
+        } );
     }
 
     dir : string;

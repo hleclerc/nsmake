@@ -37,6 +37,14 @@ class CompilationNode {
                this.additional_children.some( ch => ch.some_rec( cond, visited, line, false, line ? [ ..._line, this ] : _line ) );
     }
 
+    merge_res_from( ch: CompilationNode ): void {
+        this.idempotent = this.idempotent && ch.idempotent;
+        this.file_dependencies.merge( ch.file_dependencies );
+        for( const puga of ch.push_unique_in_global_arg )
+            if ( ! this.push_unique_in_global_arg.find( x => x.arg == puga.arg && x.val == puga.val ) )
+                this.push_unique_in_global_arg.push( puga );
+    }
+
     _init_for_build( init_cb: ( err: string ) => void ) {
         // cleansing of generated output files
         async.forEachOf( this.generated, ( name, index, cb ) => {
