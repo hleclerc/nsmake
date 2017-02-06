@@ -84,8 +84,8 @@ class CssParser extends TaskFiber {
 
         // save css and map files if necessary (if we had changes)
         if ( sm.has_changes ) {
-            const nsm = this.new_build_file_sync( orig_name, ".css.map" );
             const njs = this.new_build_file_sync( orig_name, ".css" );
+            const nsm = this.new_build_file_sync( njs, ".css.map" );
             
             sm.append( `\n//# sourceMappingURL=${ path.relative( path.dirname( njs ), nsm ) }` );
             this.write_file_sync( nsm, sm.toString( njs ) );

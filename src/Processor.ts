@@ -926,8 +926,11 @@ class Processor {
         const corr = path.normalize( orig.slice( 0, orig.length - path.extname( orig ).length ) || "tmp" );
         const suff = ext || path.extname( orig );
         // orig = /shmurtz/smurf/orig, dist = /shmurtz/dist -> dst = /shmurtz/dist/smurf/orig
-        const prop = dist ? path.resolve( dist, orig ? path.relative( cwd, corr ) : corr ) : 
-                            path.resolve( this.build_dir, path.basename( corr ) );
+        const prop = dist ? (
+            orig.startsWith( dist ) && orig ? 
+                path.resolve( path.dirname( orig ), path.basename( corr ) ) :
+                path.resolve( dist, orig ? path.relative( cwd, corr ) : corr )
+            ) : path.resolve( this.build_dir, path.basename( corr ) );
 
         let mp = new RandNameSuffix;
         async.retry( 1000, cb => {

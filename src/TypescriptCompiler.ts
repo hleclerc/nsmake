@@ -118,8 +118,8 @@ class TypescriptCompiler extends TaskFiber {
             }
 
             // outputs
-            const nsm = args.output ? args.output + ".map" : this.new_build_file_sync( orig_name, ".js.map" );
             const njs = args.output || this.new_build_file_sync( orig_name, ".js" );
+            const nsm = this.new_build_file_sync( njs, ".js.map" );
             this.outputs = [ njs, nsm ];
 
             // remove all //# sourceMappingURL=.... TODO: something context sensitive

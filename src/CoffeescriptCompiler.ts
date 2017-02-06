@@ -69,9 +69,9 @@ class CoffeescriptCompiler extends Task {
             }
 
             // save content
-            this.new_build_file( orig_name, ".js.map", null, ( err, nsm ) => {
+            this.new_build_file( orig_name, ".js", null, ( err, njs ) => {
                 if ( err ) return done( err );
-                this.new_build_file( orig_name, ".js", null, ( err, njs ) => {
+                this.new_build_file( njs, ".js.map", null, ( err, nsm ) => {
                     if ( err ) return done( err );
                     cmp.js += `\n//# sourceMappingURL=${ path.relative( path.dirname( njs ), nsm ) }`;
                     
@@ -84,7 +84,7 @@ class CoffeescriptCompiler extends Task {
                         } );
                     } );
                 }, args.output );
-            }, args.output ? args.output + ".map" : null );
+            } );
         } );
     }
 }

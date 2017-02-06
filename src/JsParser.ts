@@ -260,8 +260,8 @@ class JsParser extends TaskFiber {
 
         // save js and map files if necessary (if we had changes)
         if ( sm.has_changes ) {
-            const nsm = this.new_build_file_sync( orig_name, ".js.map" );
             const njs = this.new_build_file_sync( orig_name, ".js" );
+            const nsm = this.new_build_file_sync( njs, ".js.map" );
             
             sm.append( `\n//# sourceMappingURL=${ path.relative( path.dirname( njs ), nsm ) }` );
             this.write_file_sync( nsm, sm.toString( njs ) );
