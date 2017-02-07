@@ -750,7 +750,7 @@ void CppParser::_include( const char *b, const char *e, Read *read, const char *
                     c_error( "Error while trying to download lib: there is no 'load_set' attribute in file '" + iter->second[ "yaml_name" ].asString() + "'", b, read );
                     throw "";
                 }
-                auto ri = task->run_yaml_install_cmd( from_json( task->args[ "launch_dir" ] ), rules, task->args[ "system" ] );
+                auto ri = task->run_yaml_install_cmd( from_json( task->args[ "launch_dir" ] ), rules, task->args[ "system" ], true );
                 if ( ri.first ) {
                     c_error( "Error while trying to download lib: " + ri.second, b, read );
                     throw "";

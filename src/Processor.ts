@@ -718,7 +718,7 @@ class Processor {
                 return;
 
             case "run_yaml_install_cmd":
-                return this.yaml_install_cmd( service.env.com, service.cn, cmd.args.cwd, cmd.args.rules, cmd.args.system_info || this.system_info, ( err, msg ) => {
+                return this.yaml_install_cmd( service.env.com, service.cn, cmd.args.cwd, cmd.args.rules, cmd.args.system_info || this.system_info, cmd.args.assume_has_not, ( err, msg ) => {
                     ans( false, { err, msg } );
                 } );
 
@@ -790,7 +790,7 @@ class Processor {
     }
 
     /**  */
-    yaml_install_cmd( com: CommunicationEnvironment, cn: CompilationNode, cwd: string, rules: Array<any>, system_info: SystemInfo, cb: ( err: boolean, msg: string ) => void ) {
+    yaml_install_cmd( com: CommunicationEnvironment, cn: CompilationNode, cwd: string, rules: Array<any>, system_info: SystemInfo, assume_has_not: boolean, cb: ( err: boolean, msg: string ) => void ) {
         let tried = false;
         async.forEachSeries( rules, ( rule, cb_rule_trial: ( ok: boolean ) => void ) => {
             if ( ! is_compatible_with( system_info, rule.systems ) || ( com.no_root && ( rule.root || rule.admin ) ) )
@@ -827,6 +827,8 @@ class Processor {
                     this.__install_cmd( com, cn, cwd, cmd, exe_cmd_cb, disp );
                 };
                 const pre_check = ( check_cmd: string | Array<string>, pre_check_cb: ( has: boolean ) => void ) => {
+                    if ( assume_has_not )
+                        return pre_check_cb( false );
                     if ( ! check_cmd )
                         return pre_check_cb( true );
                     exe_cmd( check_cmd, err => pre_check_cb( ! err ), false, false );
@@ -906,7 +908,7 @@ class Processor {
                 return cb( true );
             }
             try {
-                this.yaml_install_cmd( com, cn, com.cwd, yaml.load( res.data ), this.system_info, ( err: boolean, msg: string ) => {
+                this.yaml_install_cmd( com, cn, com.cwd, yaml.load( res.data ), this.system_info, false, ( err: boolean, msg: string ) => {
                     if ( err ) com.error( cn, `Error in prerequisite file '${ req }': ${ msg }` );
                     cb( err );
                 } );

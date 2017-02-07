@@ -38,7 +38,7 @@ public:
     std::string        new_build_file                     ( std::string orig_name, std::string ext = "", std::string dist = "" );              ///<
     int                spawn_sync                         ( std::string cwd, std::string cmd, std::vector<std::string> args );                 ///<
     bool               run_install_cmd                    ( std::string cwd, std::string cmd, std::vector<std::string> prerequ = {} );         ///< return true if error
-    Pbs                run_yaml_install_cmd               ( std::string cwd, Json::Value cmd, Json::Value system_info );                       ///< return true if error
+    Pbs                run_yaml_install_cmd               ( std::string cwd, Json::Value cmd, Json::Value system_info, bool assume_has_not );  ///< return true if error
     void               register_aliases                   ( const std::vector<std::pair<std::string,std::string>> &aliases, std::string cur_dir ); ///<
     std::string        nsmake_cmd                         ( const std::vector<std::string> &args, const std::string &cwd );                    ///<
     std::string        nsmake_run                         ( const std::vector<std::string> &args, const std::string &cwd );                    ///<

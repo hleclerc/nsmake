@@ -130,8 +130,8 @@ bool Task::run_install_cmd( std::string cwd, std::string cmd, std::vector<std::s
     return from_json( res );
 }
 
-Task::Pbs Task::run_yaml_install_cmd( std::string cwd, Json::Value rules, Json::Value system_info ) {
-    Json::Value res = SAWA( "run_yaml_install_cmd", "cwd", cwd, "rules", rules, "system_info", system_info );
+Task::Pbs Task::run_yaml_install_cmd( std::string cwd, Json::Value rules, Json::Value system_info, bool assume_has_not ) {
+    Json::Value res = SAWA( "run_yaml_install_cmd", "cwd", cwd, "rules", rules, "system_info", system_info, "assume_has_not", assume_has_not );
     return { res[ "err" ].asBool(), res[ "msg" ].asString() };
 }
 
