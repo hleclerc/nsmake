@@ -1,7 +1,7 @@
 - systems : [ "Ubuntu Linux", Debian ]
   check   : which convert > /dev/null
   commands: apt-get install imagemagick
-  root    : true
+  as_root : true
 # - systems : [ win32 ]
 #   check   : Get-Command cmake
 #   command : 

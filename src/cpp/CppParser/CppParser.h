@@ -19,7 +19,7 @@
 ///
 struct CppParser {
     enum { VT_none, VT_NSMAKE_CMD, VT_NSMAKE_RUN, VT_defined, VT_has_include, VT_has_include_next, /*must be the last*/ VT_end_base };
-    using MapSPS             = std::unordered_map<std::string,std::tuple<std::string,std::string,int>>; //
+    using MapSPS             = std::unordered_map<std::string,std::tuple<std::string,std::string,int,bool>>; //
     using MapSJV             = std::unordered_map<std::string,Json::Value>; //
     using LineMakersToInsert = std::vector<std::pair<size_t,std::string>>;
     using Defines            = std::unordered_map<unsigned,Define>; // variable num (in trie) => Define
@@ -30,11 +30,12 @@ struct CppParser {
     using St                 = std::string;
 
     struct Read {
-        Read( unsigned len_block_beg ) : num_inst( 0 ), len_block_beg( len_block_beg ), num_inst_endif( std::numeric_limits<unsigned>::max() ) {}
+        Read( unsigned len_block_beg ) : no_comp( false ), num_inst( 0 ), len_block_beg( len_block_beg ), num_inst_endif( std::numeric_limits<unsigned>::max() ) {}
 
         int         num_path; // num in include paths that was used to get this
         unsigned    num_read;
         std::string filename;
+        bool        no_comp;
         Read       *prev;     // prev in stack
         std::string dir;      // orig dir
         const char *lw;       // end of already written data
@@ -51,8 +52,8 @@ struct CppParser {
 
     CppParser( Task *task, bool soTTY );
 
-    void                 parse              ( const std::string &filename, const std::string &dir, const char *b, const char *e, Read *old_read = 0, bool save = true, int num_path = -1 );
-    void                 parse              ( const std::string &filename, const std::string &dir, const std::string &str, Read *old_read = 0, bool save = true, int num_path = -1 );
+    void                 parse              ( const std::string &filename, const std::string &dir, const char *b, const char *e, Read *old_read = 0, bool save = true, int num_path = -1, bool no_comp = false );
+    void                 parse              ( const std::string &filename, const std::string &dir, const std::string &str, Read *old_read = 0, bool save = true, int num_path = -1, bool no_comp = false );
     void                 _nsmake            ( const char *b, const char *e, Read *read );
     void                 _preprocessor      ( const char *b, const char *e, Read *read );
     void                 _variable          ( unsigned variable_type, const char *b, const char *&e, const char *end, Read *read );
@@ -66,7 +67,7 @@ struct CppParser {
     bool                 is_in              ( std::string file, const std::string &dir ) const;
     void                 read_rules         ();
     void                 read_base_info     ();
-    StringVec            include_try_list   ( std::string cur_dir, std::string launch_dir, std::string basename, unsigned min_num_path );
+    StringVec            include_try_list   ( std::string cur_dir, std::string launch_dir, std::string basename, unsigned min_num_path, bool *no_comp = 0 );
 
 
     void                 _define            ( const char *b, const char *e, Read *read, const char *od );
@@ -106,6 +107,7 @@ struct CppParser {
     std::string          cxx_name;    ///< from nsmake cmd
     std::string          ld_name;     ///< from nsmake cmd
     std::string          ar_name;     ///< from nsmake cmd
+    StringSet            no_comps;    ///< header for which a look in a .cc, .cpp, ... files is not necessary
     StringSet            includes;
     Defines              defines;
     std::stack<Block>    blocks;
@@ -118,6 +120,7 @@ struct CppParser {
     StringVec            c_flags  ;
     StringVec            lib_paths;
     StringVec            lib_names;
+    StringVec            lib_flags;
     StringVec            obj_names;
 };
 

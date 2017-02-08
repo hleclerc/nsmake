@@ -5,4 +5,4 @@ flag_sets:
 load_sets:
   - systems: [ "Ubuntu Linux", Debian ]
     command: apt-get install libboost-dev
-    root:    true
+    as_root: true

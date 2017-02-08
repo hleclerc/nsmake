@@ -793,7 +793,7 @@ class Processor {
     yaml_install_cmd( com: CommunicationEnvironment, cn: CompilationNode, cwd: string, rules: Array<any>, system_info: SystemInfo, assume_has_not: boolean, cb: ( err: boolean, msg: string ) => void ) {
         let tried = false;
         async.forEachSeries( rules, ( rule, cb_rule_trial: ( ok: boolean ) => void ) => {
-            if ( ! is_compatible_with( system_info, rule.systems ) || ( com.no_root && ( rule.root || rule.admin ) ) )
+            if ( ! is_compatible_with( system_info, rule.systems ) || ( com.no_root && ( rule.as_root || rule.admin ) ) )
                 return cb_rule_trial( false );
             tried = true;
 
@@ -807,7 +807,7 @@ class Processor {
                 // command[s]
                 const exe_cmd = ( cmd: string | Array<string>, exe_cmd_cb: ( err: boolean ) => void, use_root: boolean, disp = true ) => {
                     if ( rule.shell == "powershell" ) {
-                        if ( use_root && ( rule.admin || rule.root ) ) {
+                        if ( use_root && ( rule.admin || rule.as_root ) ) {
                             if ( typeof cmd == "string" )
                                 cmd = [ "powershell", "-c", "Start-Process", "powershell.exe", "-Verb", "runAs", "-Argumentlist", cmd, "-Wait" ];
                             else
@@ -815,7 +815,7 @@ class Processor {
                         } else
                             cmd = [ "powershell", "-c", ...( typeof cmd == "string" ? [ cmd ] : cmd ) ];
                         com.note( cn, JSON.stringify({ cmd, use_root }) )
-                    } else if ( use_root && ( rule.admin || rule.root ) ) {
+                    } else if ( use_root && ( rule.admin || rule.as_root ) ) {
                         // TODO: admin with cmd.exe
                         // const prg = com.siTTY ? "sudo" : "pkexec";
                         const prg = "pkexec";
@@ -837,12 +837,12 @@ class Processor {
                     if ( ! has ) {
                         if ( rule.commands ) {
                             return async.forEachSeries( rule.commands as Array<string | Array<string>>, ( command: string | Array<string>, 
-                                cb_fe: ( err: boolean ) => void ) => exe_cmd( command, cb_fe, rule.admin || rule.root ),
+                                cb_fe: ( err: boolean ) => void ) => exe_cmd( command, cb_fe, rule.admin || rule.as_root ),
                                 err => cb_rule_trial( ! err )
                             );
                         }
                         if ( rule.command )
-                            return exe_cmd( rule.command, err => cb_rule_trial( ! err,  ), rule.admin || rule.root );
+                            return exe_cmd( rule.command, err => cb_rule_trial( ! err,  ), rule.admin || rule.as_root );
                     }
                     return cb_rule_trial( true );
                 } );

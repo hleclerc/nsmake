@@ -7,7 +7,7 @@ flag_sets:
 load_sets:
   - systems: [ "Ubuntu Linux", Debian ]
     command: apt-get install libxml2
-    root:    true
+    as_root: true
   - systems: []
     command: "wget ftp://xmlsoft.org/libxml2/libxml2-2.9.4.tar.gz &&
               tar xzf libxml2-2.9.4.tar.gz &&

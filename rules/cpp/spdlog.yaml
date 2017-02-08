@@ -1,5 +1,8 @@
 includes: [ spdlog/spdlog.h ]
+flag_sets:
+  - systems: []
+    no_comp: true
 load_sets:
   - systems: [ "Ubuntu Linux", Debian ]
     command: apt-get install libspdlog-dev
-    root   : true
+    as_root: true

@@ -29,12 +29,13 @@ CppParser::CppParser( Task *task, bool soTTY ): soTTY( soTTY ), task( task ) {
     read_rules();
 }
 
-void CppParser::parse( const std::string &filename, const std::string &dir, const char *b, const char *e, Read *old_read, bool save, int num_path ) {
+void CppParser::parse( const std::string &filename, const std::string &dir, const char *b, const char *e, Read *old_read, bool save, int num_path, bool no_comp ) {
     Read read( blocks.size() );
     read.num_read = old_read ? old_read->num_read + 1 : 0;
     read.num_path = num_path;
     read.filename = filename;
     read.prev     = old_read;
+    read.no_comp  = no_comp;
     read.dir      = dir;
     read.lw       = b;
     read.b        = b;
@@ -187,8 +188,8 @@ void CppParser::parse( const std::string &filename, const std::string &dir, cons
     }
 }
 
-void CppParser::parse( const std::string &filename, const std::string &dir, const std::string &str, Read *old_read, bool save, int num_path ) {
-    parse( filename, dir, str.data(), str.data() + str.size(), old_read, save, num_path );
+void CppParser::parse( const std::string &filename, const std::string &dir, const std::string &str, Read *old_read, bool save, int num_path, bool no_comp ) {
+    parse( filename, dir, str.data(), str.data() + str.size(), old_read, save, num_path, no_comp );
 }
 
 void CppParser::_nsmake( const char *b, const char *e, Read *read ) {
@@ -250,6 +251,11 @@ void CppParser::_nsmake( const char *b, const char *e, Read *read ) {
     if ( spl[ 0 ] == "lib_name" ) {
         if ( nspl.size() < 2 ) throw "'//// nsmake lib_name' is supposed to be followed by 1 argument";
         lib_names.push_back( cf( 1 ) );
+        return;
+    }
+    if ( spl[ 0 ] == "lib_flag" ) {
+        if ( nspl.size() < 2 ) throw "'//// nsmake lib_flag' is supposed to be followed by 1 argument";
+        lib_flags.push_back( cf( 1 ) );
         return;
     }
     if ( spl[ 0 ] == "obj_name" ) {
@@ -725,6 +731,7 @@ void CppParser::_include( const char *b, const char *e, Read *read, const char *
     //        }
 
     // ask for the complete filename, parse the content
+    bool no_comp = read->no_comp;
     int num_path, min_num_path = next ? get_num_path( read ) + 1 : 0;
     std::string filename, dir, key = std::string( b, e ) + "\n" + read->dir + "\n" + std::to_string( min_num_path );
     auto iter_cache = include_cache.find( key );
@@ -733,13 +740,14 @@ void CppParser::_include( const char *b, const char *e, Read *read, const char *
         filename = std::get<0>( iter_cache->second );
         dir      = std::get<1>( iter_cache->second );
         num_path = std::get<2>( iter_cache->second );
+        no_comp |= std::get<3>( iter_cache->second );
     } else {
         // list of possibilities
         std::string inc_str{ b + 1, e - 1 };
         include_strs.insert( inc_str );
 
         // get signature
-        std::vector<std::string> to_try = include_try_list( *b == '"' ? read->dir : "", task->args[ "launch_dir" ].asString(), inc_str, min_num_path );
+        std::vector<std::string> to_try = include_try_list( *b == '"' ? read->dir : "", task->args[ "launch_dir" ].asString(), inc_str, min_num_path, &no_comp );
         Task::NumAndSignature nas = task->get_first_filtered_target_signature( to_try, read->dir );
         if ( nas.signature.empty() ) {
             // try to load the library
@@ -786,7 +794,9 @@ void CppParser::_include( const char *b, const char *e, Read *read, const char *
         num_path  = nas.num + min_num_path;
 
         // store the result in the cache
-        include_cache.insert( iter_cache, std::make_pair( key, std::make_tuple( filename, dir, num_path ) ) );
+        if ( no_comp )
+            no_comps.insert( filename );
+        include_cache.insert( iter_cache, std::make_pair( key, std::make_tuple( filename, dir, num_path, no_comp ) ) );
         includes.insert( filename );
     }
 
@@ -802,10 +812,10 @@ void CppParser::_include( const char *b, const char *e, Read *read, const char *
         return;
 
     //
-    parse( filename, dir, content_of( filename ), read, true, num_path );
+    parse( filename, dir, content_of( filename ), read, true, num_path, no_comp );
 }
 
-std::vector<std::string> CppParser::include_try_list( std::string cur_dir, std::string launch_dir, std::string basename, unsigned min_num_path ) {
+std::vector<std::string> CppParser::include_try_list( std::string cur_dir, std::string launch_dir, std::string basename, unsigned min_num_path, bool *no_comp ) {
     // absolute name
     std::vector<std::string> to_try;
     if ( is_absolute( basename ) ) {
@@ -817,11 +827,10 @@ std::vector<std::string> CppParser::include_try_list( std::string cur_dir, std::
     if ( cur_dir.size() )
         to_try.push_back( cur_dir + "/" + basename );
 
-
     // there's a rule for this include ?
     auto iter = inc_rules.find( basename );
     if ( iter != inc_rules.end() ) {
-        for( Json::Value set: iter->second[ "flag_sets" ] ) {
+        for( Json::Value set : iter->second[ "flag_sets" ] ) {
             if ( task->system_is_in( from_json( set[ "systems" ] ), task->args[ "system" ] ) ) {
                 for( Json::Value inc_path : set[ "inc_paths" ] )
                     emplace_back_unique( inc_paths, resolve( launch_dir, inc_path.asString() ) );
@@ -831,6 +840,8 @@ std::vector<std::string> CppParser::include_try_list( std::string cur_dir, std::
                     emplace_back_unique( lib_names, lib_name.asString() );
                 for( Json::Value cpp_flag : set[ "cpp_flags" ] )
                     emplace_back_unique( cpp_flags, cpp_flag.asString() );
+                if ( no_comp && set[ "no_comp" ].asBool() )
+                    *no_comp = true;
                 break;
             }
         }

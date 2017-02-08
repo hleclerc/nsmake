@@ -1,8 +1,8 @@
 includes: [ boost/filesystem/operations.hpp, boost/filesystem/path.hpp ]
 flag_sets:
-  - systems:   []
+  - systems  : []
     lib_names: [ boost_system, boost_filesystem, pthread ]
 load_sets:
   - systems: [ "Ubuntu Linux", Debian ]
     command: apt-get install libboost-dev
-    root:    true
+    as_root: true

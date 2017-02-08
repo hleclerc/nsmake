@@ -1,7 +1,7 @@
 - systems : [ "Ubuntu Linux", Debian ]
   check   : which cmake > /dev/null
   command : apt-get install cmake
-  root    : true
+  as_root : true
 # - systems : [ win32 ]
 #   check   : Get-Command cmake
 #   command : 

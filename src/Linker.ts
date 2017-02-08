@@ -46,12 +46,20 @@ class Linker extends Task {
             return this.reg_err();
         this.o_makers[ n ] = res;
 
+        // update no comps
+        for( const inc of res.exe_data.no_comps || [] )
+            this.no_comps.add( inc );
+
         // look if it implies additional stuff to parse, compile or link. TODO: async version
         for( const moj of [ ...( res.exe_data.includes || [] ), ...( res.exe_data.obj_names || [] ) ] ) {
+            if ( this.no_comps.has( moj ) )
+                continue;
+
             ++this.nb_test_if_obj;
             const wo_ext = moj.slice( 0, moj.length - path.extname( moj ).length );
             const o_maker = this.get_first_filtered_target_signature( [ wo_ext + ".o_maker" ], path.dirname( moj ), ( err, o_maker ) => {
                 --this.nb_test_if_obj;
+                // look if we have an associated .cc/.ccp/... file
                 if ( o_maker && ! this.to_parse.has( o_maker.signature ) ) {
                     const nn = this.to_parse.size;
                     this.to_parse.add( o_maker.signature );
@@ -146,6 +154,7 @@ class Linker extends Task {
         for( const cp of this.o_makers ) {
             pu( cmd_args, ...( cp.exe_data.lib_names || [] ).map( n => "-l" + n ) );
             pu( cmd_args, ...( cp.exe_data.lib_paths || [] ).map( n => "-L" + n ) );
+            pu( cmd_args, ...( cp.exe_data.lib_flags || [] ) );
         }
 
         // go (call the linker directly in the task: that's the only remaining thing to do)
@@ -155,6 +164,7 @@ class Linker extends Task {
     has_err        = false;
     done_cb        : ( boolean ) => void;           /** `done` arg of `exec` func */
     to_parse       = new Set<string>();             /** set of signatures of .o_maker nodes */
+    no_comps       = new Set<string>();             /**  */
     o_makers       = new Array<ResCnGenCompiler>(); /** signature => res of CppParser */ 
     o_names        = new Array<string>();           /** name of .o file */
     nb_test_if_obj = 0;

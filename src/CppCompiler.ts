@@ -43,6 +43,7 @@ class CppCompiler extends TaskFiber {
         // new exe_data, with first trivial arguments
         let exe_data = this.exe_data = new ExeDataGenCompiler();
         exe_data.orig_name = orig_name;
+        exe_data.lib_flags.push( "-g3" );
 
         // read file and sourcemap content for preprocessing. If sourcemap does not exist, we have to create one only if there are changes
         const content = this.read_file_sync( cpp_name ).toString();

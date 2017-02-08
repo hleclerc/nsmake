@@ -1,7 +1,7 @@
 - systems : [ "Ubuntu Linux", Debian ]
   check   : which clang > /dev/null
   command : apt-get install clang++
-  root    : true
+  as_root : true
 - systems : [ win32 ]
   check   : Get-Command clang
   commands: [ 'iwr "http://releases.llvm.org/3.9.1/LLVM-3.9.1-win64.exe" -OutFile llvm.exe -UseBasicParsing', 'Start-Process .\llvm.exe -Wait', 'rm .\llvm.exe' ] # TODO: use a temp file

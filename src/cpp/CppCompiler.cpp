@@ -57,9 +57,11 @@ void CppCompiler::exec() {
     // update of exe_data
     exe_data[ "orig_name" ] = orig_name;
     for( const auto &inc : cp.includes     ) exe_data[ "includes"     ].append( inc );
+    for( const auto &inc : cp.no_comps     ) exe_data[ "no_comps"     ].append( inc );
     for( const auto &inc : cp.include_strs ) exe_data[ "include_strs" ].append( inc );
     for( const auto &inc : cp.lib_paths    ) exe_data[ "lib_paths"    ].append( inc );
     for( const auto &inc : cp.lib_names    ) exe_data[ "lib_names"    ].append( inc );
+    for( const auto &inc : cp.lib_flags    ) exe_data[ "lib_flags"    ].append( inc );
     for( const auto &inc : cp.obj_names    ) exe_data[ "obj_names"    ].append( inc );
 
     // output cmd

@@ -6,7 +6,7 @@ flag_sets:
 load_sets:
   - systems : [ "Ubuntu Linux", Debian ]
     command : apt-get install libjsoncpp-dev
-    root    : true
+    as_root : true
   - systems : [ win32 ]
     prerequ : [ cmake ]
     commands: [ 'mkdir -p ext/json-cpp',

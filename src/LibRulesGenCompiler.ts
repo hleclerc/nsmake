@@ -8,10 +8,11 @@ class LibRulesGenCompiler {
         lib_names?: Array<string>,
         lib_paths?: Array<string>,
         inc_paths?: Array<string>,
+        no_comp  ?: boolean,
     }>;
     load_sets?: Array<{
         systems?: Array<string>,
         command?: string,
-        root   ?: boolean,
+        as_root?: boolean,
     }>;
 }
