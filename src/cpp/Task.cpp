@@ -86,6 +86,8 @@ Json::Value Task::wait_for_line() {
         std::getline( std::cin, line );
         if ( line.empty() ) {
             std::cerr << "errno:" << errno << std::endl;
+            if ( errno )
+                exit( 1 );
             continue;
         }
 
