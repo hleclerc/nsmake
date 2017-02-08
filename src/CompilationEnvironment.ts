@@ -75,6 +75,7 @@ class CompilationEnvironment {
         p.set_mission_description( 'help'   , [], 'get help, generic, or for a given mission (in [__MISSION_TYPES__]) or universe (in [__UNIVERSES__])' );
         p.set_mission_description( 'run'    , [], '...'                                                                                                 );
         p.set_mission_description( 'sleep'  , [], 'wait for n milliseconds'                                                                             );
+        p.set_mission_description( 'status' , [], 'display information about the server'                                                                );
 
         p.add_positional_argument( [ 'help'              ], 'help-args'  , 'mission(s) or universe(s) to focus on', 'string*' );
         p.add_positional_argument( [ 'prerequ'           ], 'prerequs'   , 'needed prerequisite(s)'               , 'string*' );

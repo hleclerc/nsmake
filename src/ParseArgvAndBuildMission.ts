@@ -80,14 +80,15 @@ class ParseArgvAndBuildMission {
         p.parse_args( this.env.args, targets, this.argv.slice( 1 ), this.cwd );
 
         // Handling of trivial flags.
-        if ( this.env.args.version              ) { this.send_out( `${ p.prg_name } version: ${ p.version }` );                                    }
-        if ( this.env.args._error               ) { this.send_end( this.env.args._msg );                                                   return; }
-        if ( this.env.args.help                 ) { this.send_out( p.format_help( this.env.args, this.nb_columns ) ); this.send_end( 0 );  return; }
-        if ( ! this.env.args.mission            ) { this.send_end( 'Please define a mission' );                                            return; }
-        if ( this.env.args.mission == "help"    ) { this.send_out( p.format_help( this.env.args, this.nb_columns ) );  this.send_end( 0 ); return; }
+        if ( this.env.args.version              ) { this.send_out( `${ p.prg_name } version: ${ p.version }` );                                      }
+        if ( this.env.args._error               ) { this.send_end( this.env.args._msg );                                                     return; }
+        if ( this.env.args.help                 ) { this.send_out( p.format_help( this.env.args, this.nb_columns ) );    this.send_end( 0 ); return; }
+        if ( ! this.env.args.mission            ) { this.send_end( 'Please define a mission' );                                              return; }
+        if ( this.env.args.mission == "help"    ) { this.send_out( p.format_help( this.env.args, this.nb_columns ) );    this.send_end( 0 ); return; }
+        if ( this.env.args.mission == "status"  ) { this.send_out( this.proc.status( this.env.args, this.nb_columns ) ); this.send_end( 0 ); return; }
         if ( this.env.args.mission == "clean"   ) { this.send_out( `Cleaning all the build files for directory ${ this.cwd }` );
-                                                    this.proc.clean( this.cwd, err => this.send_end( 0 ) );                                return; }
-        if ( this.env.args.mission == "stop"    ) { process.exit( 0 );                                                                             }
+                                                    this.proc.clean( this.cwd, err => this.send_end( 0 ) );                                  return; }
+        if ( this.env.args.mission == "stop"    ) { process.exit( 0 );                                                                               }
 
         if ( this.env.args.mission == "prerequ" )
             return async.forEach( this.env.args.prerequs, ( req: string, cb_async ) => this.proc._check_prerequ( this.env.com, null, req, cb_async ), err => this.send_end( err ? 1 : 0 ) );

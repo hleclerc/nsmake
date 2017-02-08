@@ -84,8 +84,10 @@ Json::Value Task::wait_for_line() {
         // wait
         std::string line;
         std::getline( std::cin, line );
-        if ( line.empty() )
+        if ( line.empty() ) {
+            std::cerr << "errno:" << errno << std::endl;
             continue;
+        }
 
         // parse
         Json::Value root( Json::objectValue );

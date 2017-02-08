@@ -181,6 +181,10 @@ class Processor {
         // } );
     }
 
+    status( args: any, nb_columns: number ): string {
+        return "status:" + this.services.map( service => `cn:${ service.cn ? service.cn.pretty : "" } cat:${ service.category } status:${ service.status }` ).join("\n");
+    }
+    
     _done( env: CompilationEnvironment, cn: CompilationNode, err = false ): void {
         // stuff to be made, error ot not
         cn.children           .forEach( ch => cn.merge_res_from( ch ) );
@@ -369,24 +373,16 @@ class Processor {
                 this._done( env, cn, false );
             } );
         }
-        
-        //
-        if ( env.verbose ) {
-            // function cut( line: string ): string {
-            //     if ( env.com.nb_columns == 0 || line.length < env.com.nb_columns )
-            //         return line;
-            //     let res = line.slice( 0, env.com.nb_columns ), rem = line.slice( env.com.nb_columns ), nc = env.com.nb_columns - 5;
-            //     for( ; rem.length > nc; rem = rem.slice( nc ) ) res += "\n  ..." + rem.slice( 0, nc );
-            //     return rem.length ? res + "\n  ..." + rem : res;
-            // } // cn.pretty.length > env.com.nb_columns - 10 ? cn.pretty.slice( 0, env.com.nb_columns - 13 ) + "..." : cn.pretty 
-            env.com.announcement( cn, `Launch of ${ cn.pretty }` );
-        }
 
         // if would lead to too much active service, wait a bit
         if ( this.services.filter( s => s.status == "active" ).length >= this.jobs ) {
+            if ( env.verbose )
+                env.com.announcement( cn, `Delayed launch of ${ cn.pretty }` );
             this.waiting_cns.push( { env, cn } );
             return;
         }
+        if ( env.verbose )
+            env.com.announcement( cn, `Launch of ${ cn.pretty }` );
 
         // clear stuff like for_found, additional_children, ...
         cn._init_for_build( err => {
@@ -422,7 +418,7 @@ class Processor {
             if ( service )
                 use_service( service );
             else
-                this._make_new_service( this.services.length, use_service, category, env.com );
+                this._make_new_service( use_service, category, env.com );
         } );
     }
 
@@ -433,7 +429,7 @@ class Processor {
         }
     }
 
-    _make_new_service( pos = this.services.length, service_cb: ( service: Service ) => void, category = null as string, com = null as CommunicationEnvironment ): void {
+    _make_new_service( service_cb: ( service: Service ) => void, category = null as string, com = null as CommunicationEnvironment ): void {
         // what to do when we have the child process
         const init_cp = ( cp: child_process.ChildProcess, force_stdin: boolean ) => {
             if ( ! cp )
@@ -446,7 +442,7 @@ class Processor {
             service.category = category;
             service.cp = cp;
 
-            this.services[ pos ] = service;
+            this.services.push( service );
 
             let lines = "";
             const on_message = ( data: Buffer ) => {
