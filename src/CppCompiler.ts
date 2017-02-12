@@ -10,13 +10,15 @@ import * as path                   from "path";
 
 export
 interface ArgsCppCompiler {
-    define    : Array<string>;
-    system    : SystemInfo;
-    launch_dir: string;
-    inc_paths : Array<string>;
-    cmd_flags : Array<string>;
-    output    : string;
-    soTTY     : boolean;
+    define     : Array<string>;
+    system     : SystemInfo;
+    launch_dir : string;
+    inc_paths  : Array<string>;
+    cmd_flags  : Array<string>;
+    output     : string;
+    soTTY      : boolean;
+    debug_level: string;
+    opt_level  : string;
 }
 
 /** executable or items args number => num in children

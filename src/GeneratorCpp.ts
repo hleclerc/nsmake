@@ -117,16 +117,18 @@ class GeneratorCpp extends Generator {
             // executable or library ?
             if ( [ "exe", "lib" ].indexOf( args.mission ) >= 0 ) {
                 return cb( this.env.New( "Linker", [ cn_o, this.cpp_rules_cn(), this.base_compiler_info_cn( this.env.arg_rec( "cxx" ), "cpp" ) ], {
-                    output    : args.output || [],
-                    mission   : args.mission,
-                    cwd       : this.env.cwd,
-                    define    : define( args ),
-                    dylib     : dylib( args ),
-                    bootstrap : args.cpp_bootstrap || false,
-                    system    : this.env.com.proc.system_info,
-                    cmd_flags : split_spurienc( this.env.args.ld_flag || [] ),
-                    ld_in_args: this.env.args.ld,
-                    ar_in_args: this.env.args.ar,
+                    output     : args.output || [],
+                    mission    : args.mission,
+                    cwd        : this.env.cwd,
+                    define     : define( args ),
+                    dylib      : dylib( args ),
+                    bootstrap  : args.cpp_bootstrap || false,
+                    system     : this.env.com.proc.system_info,
+                    cmd_flags  : split_spurienc( this.env.args.ld_flag || [] ),
+                    ld_in_args : this.env.args.ld,
+                    ar_in_args : this.env.args.ar,
+                    debug_level: this.env.args.debug_level || null,
+                    opt_level  : this.env.args.opt_level || null,
                 } as ArgsLinker ) );
             }
 
@@ -152,13 +154,15 @@ class GeneratorCpp extends Generator {
     make_cpp_compiler( cn: CompilationNode, output: string, cb: ( cn: CompilationNode ) => void, for_c = false ): void {
         const ncc = `CppCompiler@${ path.resolve( __dirname, "..", "..", "src", "cpp", "main_cpp_services.cpp" ) }`;
         cb( this.env.New( this.env.args.cpp_bootstrap ? "CppCompiler": ncc, [ cn, this.cpp_rules_cn(), this.base_compiler_info_cn( this.env.arg_rec( "cxx" ), "cpp" ) ], {
-            define    : [],
-            system    : this.env.com.proc.system_info,
-            launch_dir: this.env.cwd,
-            inc_paths : include_path( this.env.args ),
-            cmd_flags : split_spurienc( ( for_c ? this.env.args.c_flag :  this.env.args.cpp_flag ) || [] ),
-            pic       : pic( this.env.args ),
-            soTTY     : this.env.com.soTTY,
+            define     : this.env.args.define || [],
+            debug_level: this.env.args.debug_level || null,
+            opt_level  : this.env.args.opt_level || null,
+            system     : this.env.com.proc.system_info,
+            launch_dir : this.env.cwd,
+            inc_paths  : include_path( this.env.args ),
+            cmd_flags  : split_spurienc( ( for_c ? this.env.args.c_flag :  this.env.args.cpp_flag ) || [] ),
+            pic        : pic( this.env.args ),
+            soTTY      : this.env.com.soTTY,
             output,
         } as ArgsCppCompiler ) );
     }

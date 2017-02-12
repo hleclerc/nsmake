@@ -47,7 +47,10 @@ void CppCompiler::exec() {
     for( const auto &cpf : cp.cpp_flags         ) append_unique( cmds, cpf );
     for( const auto &inc : cp.inc_paths         ) append_unique( cmds, "-I" + inc );
     for( const auto &inc : cp.cmd_include_paths ) append_unique( cmds, "-I" + inc );
+    for( const auto &def : args[ "define" ]     ) append_unique( cmds, "-D" + def.asString() );
     if ( args[ "pic" ].asBool()                 ) append_unique( cmds, "-fpic" );
+    if ( args[ "opt_level" ].isString()         ) append_unique( cmds, "-O" + args[ "opt_level" ].asString() );
+    if ( args[ "debug_level" ].isString()       ) append_unique( cmds, "-g" + args[ "debug_level" ].asString() );
 
     //
     string compiler = cp.cxx_name.size() ? cp.cxx_name : from_json( children[ 2 ].exe_data[ "compiler"  ] );

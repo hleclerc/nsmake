@@ -7,16 +7,18 @@ import * as path          from 'path'
 
 export
 interface ArgsLinker {
-    output    : Array<string>;
-    mission   : string;
-    cwd       : string;
-    define    : Array<string>; /** NAME(args...)=val or NAME for macros without arguments */
-    cmd_flags : Array<string>; /**  */
-    bootstrap : boolean;
-    system    : SystemInfo;    /** e.g. ubuntu 14.04, ... */
-    dylib     : boolean;       /**  */
-    ld_in_args: string;        /** ld specified in cmd line arguments */
-    ar_in_args: string;        /** ld specified in cmd line arguments */
+    output     : Array<string>;
+    mission    : string;
+    cwd        : string;
+    define     : Array<string>; /** NAME(args...)=val or NAME for macros without arguments */
+    cmd_flags  : Array<string>; /**  */
+    bootstrap  : boolean;
+    system     : SystemInfo;    /** e.g. ubuntu 14.04, ... */
+    dylib      : boolean;       /**  */
+    ld_in_args : string;        /** ld specified in cmd line arguments */
+    ar_in_args : string;        /** ld specified in cmd line arguments */
+    debug_level: string;
+    opt_level  : string;
 }
 
 interface ResCnGenCompiler {
@@ -156,6 +158,10 @@ class Linker extends Task {
             pu( cmd_args, ...( cp.exe_data.lib_paths || [] ).map( n => "-L" + n ) );
             pu( cmd_args, ...( cp.exe_data.lib_flags || [] ) );
         }
+        if ( args.debug_level )
+            pu( cmd_args, "-g" + args.debug_level );
+        if ( args.opt_level )
+            pu( cmd_args, "-O" + args.opt_level );
 
         // go (call the linker directly in the task: that's the only remaining thing to do)
         this.spawn( ld, cmd_args, ( err, code ) => this.done_cb( Boolean( err || code ) ) );
