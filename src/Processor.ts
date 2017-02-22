@@ -60,6 +60,16 @@ class Processor {
         if ( this.building )
             return waiting_cb( this.waiting_build_seqs.push({ at_launch_cb, cb }) );
 
+        // kill still active services
+        for( let i = 0; i < this.services.length; ++i ) {
+            if ( this.services[ i ].status != "idle" ) {
+                if ( this.services[ i ].cp )
+                    tree_kill( this.services[ i ].cp.pid, 'SIGTERM', () => {} );
+                this.services[ i ].cp = null;
+                this.services.splice( i--, 1 );
+           }
+        }
+
         this.building = true;
         this.num_build += 1;
         cb( () => {
@@ -106,11 +116,10 @@ class Processor {
 
     /** service working on env are restarted. Waiting launches are removed */
     stop_tasks_from( com: CommunicationEnvironment ): void {
-        // kill and restart
+        // kill
         for( let i = 0; i < this.services.length; ++i ) {
             if ( this.services[ i ].env && this.services[ i ].env.com == com ) {
                 tree_kill( this.services[ i ].cp.pid, 'SIGTERM', () => {} );
-                // this.services[ i ].cp.kill();
                 this.services[ i ].cp = null;
                 this.services.splice( i--, 1 );
            }
