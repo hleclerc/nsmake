@@ -1,4 +1,4 @@
-includes: [ boost/intrusive/avl_set.hpp, boost/intrusive/avl_map.hpp ]
+includes: [ boost/intrusive/ ]
 flag_sets:
   - systems:   []
     lib_names: []

@@ -1,4 +1,4 @@
-includes: [ boost/config.hpp ]
+includes: [ boost/ ]
 flag_sets:
   - inc_paths: [ ext/boost/install/include ]
   - lib_paths: [ ext/boost/install/lib ]

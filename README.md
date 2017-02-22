@@ -55,7 +55,7 @@ Speed comes from the use of a server, with micro-services that can be written in
 
 * Concatenation, Minification, Typescript, Coffeescript, React extensions, Sass, etc... with of course plugins and support for arbitrary transformations (e.g. with babel plugins and presets, etc...).
 * Full support for **Hot Module Reload** (as e.g. in WebPack).
-* Rules for **Nodejs *and* Web** targets (where policies for concatenation, CDN, and so on... are not the same),
+* Rules for **Nodejs *and* Web** targets (where policies for concatenation, CDN, and so on... may not be the same),
 * **Generation of the surrounding of `.js`-like entry points**: from the complete needed `.html` files (handling of script inclusion, templates, ...), to the sourcemaps.
 * Integrated support for **testing frameworks** (mocha, karma, ...),
 * **Integrated preprocessing** support (e.g. for handling of target execution, language environment, ...)

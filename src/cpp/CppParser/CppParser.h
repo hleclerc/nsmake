@@ -81,6 +81,7 @@ struct CppParser {
     void                 _pragma            ( const char *b, const char *e, Read *read, const char *od );
 
     void                 write_substitution ( unsigned variable_type, const char *b, const char *&e, const char *end, Read *read );
+    MapSJV::iterator     inc_rules_find     ( const std::string &inc );
 
     struct Block {
         Block( bool cur_ok, bool has_ok, bool sur_ko ) : cur_ok( cur_ok ), has_ok( has_ok ), sur_ko( sur_ko ) {}

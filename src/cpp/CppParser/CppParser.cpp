@@ -664,7 +664,7 @@ void CppParser::read_rules() {
             std::string str = include.asString();
             auto iter = inc_rules.find( str );
             if ( iter != inc_rules.end() )
-                task->error( "Rule for include <" + str + "> appears twice in yaml rule files." );
+                task->error( "Rule for include <" + str + "> appears twice in yaml rule files (" + item[ "name" ].asString() + " and " + iter->second[ "data" ].asString() + ")." );
             item[ "data" ][ "yaml_name" ] = item[ "name" ];
             inc_rules.insert( iter, std::make_pair( str, item[ "data" ] ) );
         }
@@ -751,7 +751,7 @@ void CppParser::_include( const char *b, const char *e, Read *read, const char *
         Task::NumAndSignature nas = task->get_first_filtered_target_signature( to_try, read->dir );
         if ( nas.signature.empty() ) {
             // try to load the library
-            auto iter = inc_rules.find( inc_str );
+            auto iter = inc_rules_find( inc_str );
             if ( iter != inc_rules.end() ) {
                 const Json::Value &rules = iter->second[ "load_sets" ];
                 if ( rules.isNull() ) {
@@ -828,7 +828,7 @@ std::vector<std::string> CppParser::include_try_list( std::string cur_dir, std::
         to_try.push_back( cur_dir + "/" + basename );
 
     // there's a rule for this include ?
-    auto iter = inc_rules.find( basename );
+    auto iter = inc_rules_find( basename );
     if ( iter != inc_rules.end() ) {
         for( Json::Value set : iter->second[ "flag_sets" ] ) {
             if ( task->system_is_in( from_json( set[ "systems" ] ), task->args[ "system" ] ) ) {
@@ -908,6 +908,16 @@ void CppParser::_if( const char *b, const char *e, Read *read, const char *od ) 
 
     // new block
     blocks.emplace( ok, ok, false );
+}
+
+CppParser::MapSJV::iterator CppParser::inc_rules_find( const std::string &inc ) {
+    CppParser::MapSJV::iterator res = inc_rules.find( inc );
+    if ( res != inc_rules.end() )
+        return res;
+    // 'foo/bar/smurf.h' => try 'foo/bar/' (with the trailing '/')
+    // 'foo/bar/' => try 'foo/' (with the trailing '/')
+    size_t ind = inc.size() >= 2 ? inc.rfind( '/', inc.size() - 2 ) : std::string::npos;
+    return ind != std::string::npos ? inc_rules_find( inc.substr( 0, ind + 1 ) ) : inc_rules.end();
 }
 
 void CppParser::_else( Read *read, const char *od ) {

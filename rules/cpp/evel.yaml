@@ -1,0 +1,6 @@
+includes: [ Evel/ ]
+flag_sets:
+  - inc_paths: [ ext/Evel/src ]
+load_sets:
+  - command: git clone https://github.com/hleclerc/Evel.git ext/Evel
+    

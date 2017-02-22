@@ -1,4 +1,4 @@
-includes: [ boost/random.hpp, boost/random/random_device.hpp ]
+includes: [ boost/random.hpp, boost/random/ ]
 flag_sets:
   - systems:   []
     lib_names: [ boost_random ]

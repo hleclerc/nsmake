@@ -1,4 +1,4 @@
-includes: [ boost/filesystem/operations.hpp, boost/filesystem/path.hpp ]
+includes: [ boost/filesystem/ ]
 flag_sets:
   - systems  : []
     lib_names: [ boost_system, boost_filesystem, pthread ]

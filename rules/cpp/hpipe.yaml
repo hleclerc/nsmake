@@ -1,0 +1,6 @@
+includes: [ Hpipe/ ]
+flag_sets:
+  - inc_paths: [ ext/Hpipe/src ]
+load_sets:
+  - command: git clone https://github.com/hleclerc/Hpipe.git ext/Hpipe
+    
