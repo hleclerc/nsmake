@@ -11,11 +11,11 @@ int usage( const char *prg, const char *msg, int res ) {
 }
 
 int main( int argc, char **argv ) {
-    if ( argc != 4 )
+    if ( argc != 3 )
         return usage( argv[ 0 ], "nb args", 1 );
     // std::ofstream fo( argv[ 1 ] );
     std::ifstream fi( argv[ 1 ] );
-    if ( not fi or not fo )
+    if ( ! fi )
         return 2;
 
     std::cout << "char " << argv[ 2 ] << "[] = {";
