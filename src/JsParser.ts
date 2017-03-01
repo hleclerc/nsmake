@@ -192,7 +192,7 @@ export default
 class JsParser extends TaskFiber {
     exec( args: ArgsJsParser, done: ( err: boolean ) => void ) {
         const js_name = this.children[ 0 ].outputs[ 0 ];
-        const orig_name = this.children[ 0 ].exe_data.orig_name || js_name;
+        const orig_name = this.children[ 0 ].exe_data.orig_name || js_name as string;
 
         // new exe_data, with first trivial arguments
         let exe_data = this.exe_data = new ExeDataJsParser();
@@ -210,9 +210,10 @@ class JsParser extends TaskFiber {
             ins( this, sm );
         }
 
-        // babel presets
+        // babel presets (if in a node_modules, we don't do anything)
         let presets = new Array<any>();
-        if ( args.babel_env_arguments || args.target_browsers.length ) {
+        const is_a_node_module = orig_name.split( path.sep ).indexOf( "node_modules" ) >= 0;
+        if ( is_a_node_module == false && ( args.babel_env_arguments || args.target_browsers.length ) ) {
             let ea = args.babel_env_arguments ? yaml.load( "{" + args.babel_env_arguments + "}" ) : {};
             if ( args.target_browsers.length ) {
                 if ( ! ea.targets )
@@ -246,16 +247,18 @@ class JsParser extends TaskFiber {
         }
         
         // get requires, accept, ...
-        try {
-            babel.transform( sm.src_content, {
-                plugins   : [ parser( this, exe_data, args.js_env ) ],
-                ast       : false,
-                code      : false,
-                sourceMaps: false,
-            } );
-        } catch ( e ) {
-            this.error( `Error:Babel:${ js_name }:${ e }\n${ e.codeFrame }` );
-            return done( true );
+        if ( is_a_node_module == false ) {
+            try {
+                babel.transform( sm.src_content, {
+                    plugins   : [ parser( this, exe_data, args.js_env ) ],
+                    ast       : false,
+                    code      : false,
+                    sourceMaps: false,
+                } );
+            } catch ( e ) {
+                this.error( `Error:Babel:${ js_name }:${ e }\n${ e.codeFrame }` );
+                return done( true );
+            }
         }
 
         // save js and map files if necessary (if we had changes)
@@ -490,6 +493,10 @@ class JsParser extends TaskFiber {
                 const str = token == "NSMAKE_CMD" ?
                     this.nsmake_cmd_sync( args, path.dirname( orig_name ), ".js", ".js" ) :
                     this.nsmake_run_sync( args, path.dirname( orig_name ), ".js" );
+                sm.replace( beg, pos, str );
+                pos = beg + str.length;
+            } else if ( token == "__dirname" ) {
+                const str = '"' + path.dirname( orig_name ) + '"';
                 sm.replace( beg, pos, str );
                 pos = beg + str.length;
             }

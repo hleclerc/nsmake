@@ -6,7 +6,7 @@
     "test": "test"
   },
   "bin": {
-    "nsmake": "dist/nsmake.js"
+    "nsmake": "nsmake.js"
   },
   "scripts": {
     "test": "mocha test/*.ts",

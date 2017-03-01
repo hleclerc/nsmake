@@ -1,5 +1,6 @@
 import CommunicationEnvironment from "./CommunicationEnvironment"
-import CompilationEnvironment   from "./CompilationEnvironment"
+import CompilationEnvironment,
+     { CompilationPlugins }     from "./CompilationEnvironment"
 import FileDependencies         from "./FileDependencies"
 import CompilationNode          from "./CompilationNode"
 import RandNameSuffix           from "./RandNameSuffix"
@@ -18,7 +19,7 @@ import * as lodash              from 'lodash'
 import * as rimraf              from 'rimraf'
 import * as async               from 'async'
 import * as path                from 'path'
-import * as os                  from 'os' // cpus()
+import * as os                  from 'os'
 import * as fs                  from 'fs'
 const tree_kill = require( 'tree-kill' );
 
@@ -778,7 +779,7 @@ class Processor {
             entry_point  : 0,
             cpp_bootstrap: true,
             // verbose      : true,
-        }, [ ep ] );
+        }, [ ep ], new CompilationPlugins );
 
         // make an executable
         this.make( nce, ep, err => {
@@ -786,8 +787,14 @@ class Processor {
             nce.get_mission_node( new FileDependencies, ncn => {
                 if ( ! ncn ) return init_cp( null, true );
                 this.make( nce, ncn, err => {
-                   if ( err ) return init_cp( null, true );
-                    init_cp( child_process.spawn( ncn.outputs[ 0 ] ), true );
+                    if ( err ) return init_cp( null, true );
+                    // TODO: find a way to specify for a wanted ipc channel
+                    if ( ncn.outputs[ 0 ].endsWith( ".js" ) )
+                        init_cp( child_process.spawn( "nodejs", [ ncn.outputs[ 0 ] ], { stdio: [ 'ignore', 1, 2, 'ipc' ] } as any ), false );
+                    else if ( ncn.exe_data.exec_with )
+                        init_cp( child_process.spawn( ncn.exe_data.exec_with, [ ncn.outputs[ 0 ] ] ), true );
+                    else
+                        init_cp( child_process.spawn( ncn.outputs[ 0 ] ), true );
                     // init_cp( child_process.spawn( "valgrind", [ ncn.outputs[ 0 ] ] ), true );
                 } );
             } );

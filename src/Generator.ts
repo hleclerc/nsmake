@@ -6,6 +6,8 @@ import Service                             from "./Service";
 
 export default
 class Generator {
+    static src = ""; /** source file */
+    
     constructor( env: CompilationEnvironment ) {
         this.env = env;
     }
@@ -29,5 +31,5 @@ class Generator {
         service.cp.kill();
     }
     
-    env: CompilationEnvironment;
+    env : CompilationEnvironment;
 }

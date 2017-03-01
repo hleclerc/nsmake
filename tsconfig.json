@@ -13,7 +13,7 @@
         "removeComments": false,
         "noLib": false,
         "preserveConstEnums": true,
-        "outDir": "dist",
+        // "outDir": "dist",
         "suppressImplicitAnyIndexErrors": true,
         "pretty": true,
         "sourceMap": true

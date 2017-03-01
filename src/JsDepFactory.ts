@@ -60,6 +60,7 @@ interface ArgsJsDepFactory {
 export
 class ResJsDepFactory {
     url_ext_libs = new Array<string>(); /** url of scripts to be included */
+    exec_with    = "nodejs";
 }
 
 // stuff that has to be modified in js files

@@ -333,7 +333,6 @@ abstract class Task {
     // input
     children            : Array<CnData>;
     signature           : string;
-    stdin_fd            : number;
     nb_columns          : number;
 
     // output

@@ -19,38 +19,60 @@ export declare type GcnItem = {
     func: ( target: string, output: string, cwd: string, cb: ( cn: CompilationNode ) => void, for_found: FileDependencies, care_about_target: boolean, allow_generation: boolean ) => void;
 };
 
+export
+class CompilationPlugins {
+    generators = new Array<typeof Generator>();
+}
+
 /** compilation context */
 export default 
 class CompilationEnvironment {
-    constructor( com: CommunicationEnvironment, cwd: string, args = {} as any, cns = new Array<CompilationNode>(), parent = null as CompilationEnvironment ) {
-        this.com    = com;
-        this.cwd    = cwd;
-        this.args   = args;
-        this.cns    = cns;
-        this.parent = parent;
-
+    constructor( com: CommunicationEnvironment, cwd: string, args = {} as any, cns = new Array<CompilationNode>(), plugins = null as CompilationPlugins, parent = null as CompilationEnvironment ) {
+        this.com     = com;
+        this.cwd     = cwd;
+        this.args    = args;
+        this.cns     = cns;
+        this.parent  = parent;
+        this.plugins = plugins;
+        
         // add the default generators
-        this.generators.push( new GeneratorCodegen( this ) );
-        this.generators.push( new GeneratorCpp    ( this ) );
-        this.generators.push( new GeneratorPy     ( this ) );
-        this.generators.push( new GeneratorSh     ( this ) );
-        this.generators.push( new GeneratorJs     ( this ) );
-        this.generators.push( new GeneratorId     ( this ) );
+        this.add_generator( GeneratorCodegen );
+        this.add_generator( GeneratorCpp     );
+        this.add_generator( GeneratorPy      );
+        this.add_generator( GeneratorSh      );
+        this.add_generator( GeneratorJs      );
+        this.add_generator( GeneratorId      );
 
-        // get functions for `get_target`
-        for( let g of this.generators )
-            g.get_gcn_funcs( this.gcn_funcs );
+        // generators from plugins
+        if ( plugins )
+            for( const G of plugins.generators )
+                this.add_generator( G );
+    }
+
+    /** */
+    add_generator( T: typeof Generator ) {
+        const generator = new T( this );
+
+        this.generators.push( generator );
+
+        try {
+            generator.get_gcn_funcs( this.gcn_funcs );
+        } catch ( e ) {
+            this.com.error( null, `Pb with generator${ T.src ? ` '${ T.src }'` : "" }: ${ e }\n${ e.stack }` );
+        }
+
+        // sort (again)
         this.gcn_funcs.sort( function( a, b ) { return b.prio - a.prio; } );
     }
 
     /** beware: mod_args must not contain references to CompilationNode, excepted if with in additional_cns, with an offset of this.cns.length */
     clone( mod_args: any, additional_cns = new Array<CompilationNode>() ): CompilationEnvironment {
-        return new CompilationEnvironment( this.com, this.cwd, Object.assign( {}, this.args, mod_args ), [ ...this.cns, ...additional_cns ], this.parent );
+        return new CompilationEnvironment( this.com, this.cwd, Object.assign( {}, this.args, mod_args ), [ ...this.cns, ...additional_cns ], this.plugins, this.parent );
     }
 
     /** */
     make_child( args: any, cns: Array<CompilationNode> ): CompilationEnvironment {
-        return new CompilationEnvironment( this.com, this.cwd, args, cns, this );
+        return new CompilationEnvironment( this.com, this.cwd, args, cns, this.plugins, this );
     }
 
     get active(): boolean {
@@ -83,8 +105,13 @@ class CompilationEnvironment {
         p.add_positional_argument( [ 'run'               ], 'arguments'  , "arguments passed to the executable"   , 'string*' );
         p.add_positional_argument( [ 'sleep'             ], 'time'       , "time in milliseconds to wait for"     , 'number'  );
 
-        for( let g of this.generators )
-            g.decl_additional_options( p );
+        for( let g of this.generators ) {
+            try {
+                g.decl_additional_options( p );
+            } catch ( e ) {
+                this.com.error( null, `Pb with generator${ ( g.constructor as any ).src ? ` '${ ( g.constructor as any ).src }'` : "" }: ${ e }` );
+            }
+        }
     }
 
     /**  */
@@ -151,6 +178,7 @@ class CompilationEnvironment {
     args       : any;                      /** result of argument parsing */
     cns        : Array<CompilationNode>;   /** */
     parent     : CompilationEnvironment;   /** */
+    plugins    : CompilationPlugins;       /** */
 
     aliases    = new Map<string,string>(); /** as in `nsmake alias visible_filename internal_name_used` */ 
 } 

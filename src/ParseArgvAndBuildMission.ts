@@ -1,14 +1,15 @@
 import CommunicationEnvironment from "./CommunicationEnvironment"
-import CompilationEnvironment   from "./CompilationEnvironment"
+import CompilationEnvironment,
+     { CompilationPlugins }     from "./CompilationEnvironment"
 import FileDependencies         from "./FileDependencies"
 import CompilationNode          from "./CompilationNode"
-import ArgumentParser           from './ArgumentParser';
+import ArgumentParser           from './ArgumentParser'
 import { SystemInfo }           from "./SystemInfo"
 import Processor                from "./Processor"
 import SpRepr                   from "./SpRepr"
-import * as rimraf              from 'rimraf';
-import * as async               from 'async';
-import * as path                from 'path';
+import * as rimraf              from 'rimraf'
+import * as async               from 'async'
+import * as path                from 'path'
 import * as net                 from 'net'
 import * as fs                  from 'fs'
 
@@ -97,20 +98,69 @@ class ParseArgvAndBuildMission {
         // com environment
         this.env.com.no_root = this.env.args.no_root;
 
-        // fill inp_cns and replace compilation nodes string attributes by numbers
+        // when proc is ready
         let file_dependencies = new FileDependencies;
-        async.forEachOf( targets, ( target: string, num_target: number, cb: ( boolean ) => void ) => {
-            this.env.get_compilation_node( target, this.cwd, file_dependencies, cn => {
-                if ( ! cn ) this.send_err( `Error: don't known how to read or build target '${ target }'` );
-                this.env.cns[ num_target ] = cn;
-                cb( cn == null );
-            } );
-        }, ( err: boolean ) => {
-            if ( err )
-                return this._end_comp( true, file_dependencies, [] );
+        const compilation = ( done_cb, plugins_allowed = true ) => {
 
-            // helper
-            const compilation = done_cb => {
+            // plugins
+            if ( plugins_allowed && ! this.env.plugins ) {
+                let plugin_path = path.resolve( this.cwd, "nsmake", "plugins", "generators" );
+                return fs.readdir( plugin_path, ( err, files ) => {
+                    this.env.plugins = new CompilationPlugins;
+                    async.forEach( err ? [] : files, ( file, cb ) => {
+                        let plugin_env = new CompilationEnvironment( this.env.com, this.cwd );
+                        const target = path.resolve( plugin_path, file );
+                        plugin_env.get_compilation_node( target, this.cwd, file_dependencies, cn => {
+                            if ( ! cn ) {
+                                this.send_err( `Error: don't known how to read or build target '${ target }'` );
+                                return cb( null );
+                            }
+                            plugin_env.args.entry_point = 0;
+                            plugin_env.args.mission = "exe";
+                            plugin_env.cns[ 0 ] = cn;
+
+                            // compilation of target
+                            this.proc.make( plugin_env, cn, err => {
+                                if ( err )
+                                    return cb( null );
+                                // get mission node
+                                plugin_env.get_mission_node( file_dependencies, mission_node => {
+                                    if ( ! mission_node ) {
+                                        this.send_err( `Error: don't known what to do for args ${ JSON.stringify( plugin_env.args ) } and cns=[${ plugin_env.cns.map( x => x.pretty ) }]` );
+                                        return cb( null );
+                                    }
+                                    // compilation of mission node
+                                    this.proc.make( plugin_env, mission_node, err => {
+                                        let cf = mission_node.outputs[ 0 ];
+                                        try {
+                                            let G = require( cf ).default;
+                                            G.src = cf;
+                                            this.env.add_generator( G );
+                                        } catch ( e ) {
+                                            this.send_err( `Problem with plugin ${ cf }: ${ e }\n${ e.stack }` );
+                                        }
+                                        return cb( null );
+                                    } );
+                                } );
+                            } );
+                        } );
+                    }, err => {
+                        compilation( done_cb, false );
+                    } )
+                } );
+            }
+
+            // fill inp_cns and replace compilation nodes string attributes by numbers
+            async.forEachOf( targets, ( target: string, num_target: number, cb: ( boolean ) => void ) => {
+                this.env.get_compilation_node( target, this.cwd, file_dependencies, cn => {
+                    if ( ! cn ) this.send_err( `Error: don't known how to read or build target '${ target }'` );
+                    this.env.cns[ num_target ] = cn;
+                    cb( cn == null );
+                } );
+            }, ( err: boolean ) => {
+                if ( err )
+                    return this._end_comp( true, file_dependencies, [] );
+
                 // compilation of input CompilationNodes
                 async.forEach( this.env.cns, ( cn: CompilationNode, cb_comp ) => {
                     this.proc.make( this.env, cn, cb_comp );
@@ -126,24 +176,24 @@ class ParseArgvAndBuildMission {
                             this._end_comp( true, file_dependencies, this.env.cns );
                             return done_cb();
                         }
-                        // compilation if mission node
+                        // compilation of mission node
                         this.proc.make( this.env, mission_node, err => {
                             this._end_comp( err, mission_node.file_dependencies, [ mission_node ] );
                             return done_cb();
                         } );
                     } );
                 } );
-            };
+            } );
+        };
 
-            // do it in the current build sequence ?
-            if ( this.env.args.current_build_seq )
-                return compilation( () => {} );
+        // do it in the current build sequence ?
+        if ( this.env.args.current_build_seq )
+            return compilation( () => {} );
 
-            // start a new build sequence
-            const on_wait = nb => this.env.com.note( null, nb > 1 ? `Waiting for another builds to complete (${ nb } tasks)` : `Waiting for another build to complete` );
-            const on_launch = () => this.env.com.note( null, `Launching build` );
-            this.proc.start_new_build_seq( on_wait, on_launch, compilation );
-        } );
+        // start a new build sequence
+        const on_wait = nb => this.env.com.note( null, nb > 1 ? `Waiting for another builds to complete (${ nb } tasks)` : `Waiting for another build to complete` );
+        const on_launch = () => this.env.com.note( null, `Launching build` );
+        this.proc.start_new_build_seq( on_wait, on_launch, compilation );
     }
 
     /** */

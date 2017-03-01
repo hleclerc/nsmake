@@ -79,6 +79,7 @@ Alternatively, you can use the git repository for a more recent version (or to m
 git clone https://github.com/hleclerc/nsmake.git
 cd nsmake
 npm install
+npm run build
 sudo npm link
 ```
 

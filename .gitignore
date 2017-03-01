@@ -9,3 +9,7 @@ nsmake.creator*
 nsmake.files
 nsmake.includes
 *.log
+*.js
+*.js.map
+*.tgz
+

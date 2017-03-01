@@ -47,7 +47,12 @@ class TypescriptCompiler extends TaskFiber {
         const ts_name = this.children[ 0 ].outputs[ 0 ];
         const orig_name = this.children[ 0 ].exe_data.orig_name || ts_name;
 
-        this.announcement( `tsc ${ ts_name}${ args.define.map( x => " -D" + x ).join( "" ) }` );
+        // outputs
+        const njs = args.output || this.new_build_file_sync( orig_name, ".js" );
+        const nsm = this.new_build_file_sync( njs, ".js.map" );
+        this.outputs = [ njs, nsm ];
+
+        this.announcement( `tsc ${ ts_name}${ args.define.map( x => " -D" + x ).join( "" ) } => ${ njs }` );
 
         // exe_data
         let exe_data = ( this.exe_data = new ExeDataTypescriptParser() ) as ExeDataTypescriptParser;
@@ -99,7 +104,7 @@ class TypescriptCompiler extends TaskFiber {
             noEmitOnError: true,
             experimentalDecorators: true,
             noImplicitAny: args.no_implicit_any,
-            target       : args.js_env.startsWith( "nodejs" ) ? typescript.ScriptTarget.Latest : typescript.ScriptTarget.ES2015,
+            target       : args.js_env.startsWith( "nodejs" ) && orig_name.split( path.sep ).indexOf( "node_modules" ) < 0 ? typescript.ScriptTarget.Latest : typescript.ScriptTarget.ES2015,
             module       : typescript.ModuleKind.CommonJS,
             jsx          : typescript.JsxEmit.React,
             sourceMap    : true,
@@ -116,11 +121,6 @@ class TypescriptCompiler extends TaskFiber {
                 is_sourcemap = false;
                 return;
             }
-
-            // outputs
-            const njs = args.output || this.new_build_file_sync( orig_name, ".js" );
-            const nsm = this.new_build_file_sync( njs, ".js.map" );
-            this.outputs = [ njs, nsm ];
 
             // remove all //# sourceMappingURL=.... TODO: something context sensitive
             data = data.replace( /^\/\/# sourceMappingURL=.*/g, "" );

@@ -1,20 +1,20 @@
-import CompilationEnvironment, { GcnItem } from "./CompilationEnvironment";
-import { CoffeescriptCompilerArgs }        from "./CoffeescriptCompiler";
-import { TypescriptCompilerArgs }          from "./TypescriptCompiler";
-import FileDependencies                    from "./FileDependencies";
-import CompilationNode                     from "./CompilationNode";
-import ArgumentParser                      from "./ArgumentParser";
-import { SassCompilerArgs }                from "./SassCompiler";
-import { ArgsJsDepFactory }                from "./JsDepFactory";
-import Generator                           from "./Generator";
-import { pu }                              from "./ArrayUtil";
-import { ExecutorArgs }                    from "./Executor";
-import Service                             from "./Service";
-import { MochaArgs }                       from "./Mocha";
-import Pool                                from "./Pool";
-import * as async                          from 'async';
-import * as path                           from 'path';
-import * as fs                             from 'fs';
+import CompilationEnvironment, { GcnItem } from "./CompilationEnvironment"
+import { CoffeescriptCompilerArgs }        from "./CoffeescriptCompiler"
+import { TypescriptCompilerArgs }          from "./TypescriptCompiler"
+import FileDependencies                    from "./FileDependencies"
+import CompilationNode                     from "./CompilationNode"
+import ArgumentParser                      from "./ArgumentParser"
+import { SassCompilerArgs }                from "./SassCompiler"
+import { ArgsJsDepFactory }                from "./JsDepFactory"
+import Generator                           from "./Generator"
+import { pu }                              from "./ArrayUtil"
+import { ExecutorArgs }                    from "./Executor"
+import Service                             from "./Service"
+import { MochaArgs }                       from "./Mocha"
+import Pool                                from "./Pool"
+import * as async                          from 'async'
+import * as path                           from 'path'
+import * as fs                             from 'fs'
 
 export default
 class GeneratorJs extends Generator {
@@ -36,7 +36,7 @@ class GeneratorJs extends Generator {
         "buffer"
     ];
 
-    decl_additional_options( p : ArgumentParser ) {
+    decl_additional_options( p: ArgumentParser ) {
         // generic arguments
         p.add_argument( [], [ 'js' ], 'nodejs', 'Set name of the nodejs executable (to run javascript)' );
 
@@ -248,7 +248,7 @@ class GeneratorJs extends Generator {
             if ( ! str )
                 return require_cb( null, "" );
 
-            // it is a ext_lib ?
+            // it is an ext_lib ?
             if ( js_env != "nodejs" ) {
                 for( const ext_lib of this.env.args.ext_lib || [] ) {
                     const spl = ext_lib.split( " " );
@@ -263,25 +263,29 @@ class GeneratorJs extends Generator {
             }
 
             // helper to test for a module (`str`) from a given directory (`dir`)
-            const test_from = ( dir: string, install_allowed: boolean ) => {
+            const test_from = ( dir: Array<string>, install_allowed: boolean ) => {
                 let trials = new Array< { name: string, type: number } >();
 
                 if ( exts.indexOf( path.extname( str ).toLowerCase() ) >= 0 ) {
-                    trials.push({ name: path.resolve( dir, str ), type: 0 }); // foo.js
+                    trials.push({ name: path.resolve( dir[ 0 ], str ), type: 0 }); // foo.js
                 } else {
                     for( let ext_trial of exts )
-                        trials.push({ name: path.resolve( dir, str + ext_trial ), type: 0 }); // foo.js, foo.jsx...
-                    trials.push({ name: path.resolve( dir, str, "package.json" ), type: 1 }); // foo/package.json
+                        trials.push({ name: path.resolve( dir[ 0 ], str + ext_trial ), type: 0 }); // foo.js, foo.jsx...
+                    trials.push({ name: path.resolve( dir[ 0 ], str, "package.json" ), type: 1 }); // foo/package.json
                     for( let ext_trial of exts )
-                        trials.push({ name: path.resolve( dir, str, "index" + ext_trial ), type: 0 }); // foo/index.js, foo/index.jsx...
+                        trials.push({ name: path.resolve( dir[ 0 ], str, "index" + ext_trial ), type: 0 }); // foo/index.js, foo/index.jsx...
                 }
                 // we want the signature of the first coming ncn 
                 async.forEachSeries( trials, ( trial, cb_trial ) => {
-                    env.get_compilation_node( trial.name, dir, cn.file_dependencies, ncn => {
+                    env.get_compilation_node( trial.name, dir[ 0 ], cn.file_dependencies, ncn => {
                         cb_trial( ncn ? ( trial.type ? env.com.proc.pool.New( "MainJsFromPackageJson", [ ncn ], { js_env, typescript } ) : ncn ) : null );
                     } );
                 }, ( ncn: CompilationNode ) => {
-                    ncn ? require_cb( null, ncn.signature ) : try_installation( install_allowed, dir );
+                    if ( ncn )
+                        return require_cb( null, ncn.signature );
+                    if ( dir.length > 1 )
+                        return test_from( dir.slice( 1 ), install_allowed );
+                    try_installation( install_allowed, dir[ 0 ] );
                 } )
             };
             const try_installation = ( install_allowed: boolean, node_modules_dir: string ) => {
@@ -311,15 +315,15 @@ class GeneratorJs extends Generator {
                 env.com.proc.install_cmd( env.com, cn, path.dirname( node_modules_dir ), [ "npm", 'install', typescript ? `@types/` + base : base ], [], err => {
                     if ( err )
                         return env.com.error( cn, `Error: installation of '${ base }' failed.` ), require_cb( null, '' );
-                    test_from( node_modules_dir, false ); 
+                    test_from( [ node_modules_dir ], false ); 
                 } );
             };
 
             // local, or look for a 'node_modules' directory, starting from cwd
             if ( ( str.length >= 2 && str.substr( 0, 2 ) == "./" ) || ( str.length >= 3 && str.substr( 0, 3 ) == "../" ) || ( str.length >= 1 && str[ 0 ] == '/' ) )
-                test_from( cwd, false );
+                test_from( [ cwd ], false );
             else
-                GeneratorJs._find_node_modules_directory( cn, cwd, ( tn: string ) => tn ? test_from( typescript ? path.resolve( tn, "@types" ) : tn, true ) : try_installation( true, "" ) );
+                GeneratorJs._find_node_modules_directory( cn, cwd, ( tn: string ) => tn ? test_from( typescript ? [ path.resolve( tn, "@types" ), tn ] : [ tn ], true ) : try_installation( true, "" ) );
         }, cb_find_require );
     }
 
