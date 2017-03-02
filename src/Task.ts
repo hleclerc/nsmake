@@ -307,6 +307,11 @@ abstract class Task {
         this._send_and_wait( "push_unique_in_global_arg", { arg, val }, cb );
     }
 
+    /** */
+    get_substitution_for_time_limit( target: string, viewed: Array<string>, cb: ( sgn: string ) => void ) {
+        this._send_and_wait( "get_substitution_for_time_limit", { target, viewed }, ( err, sgn ) => cb( err ? target : sgn ) );
+    }
+
     /** `if_wrong` is used only in sync mode */
     _send_and_wait( action, args: { [ key: string ]: any }, cb: ( err: boolean, res: any ) => void ): void {
         const msg_id = ++this._cur_id_waiting_cbs;

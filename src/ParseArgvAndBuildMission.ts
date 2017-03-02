@@ -101,7 +101,6 @@ class ParseArgvAndBuildMission {
         // when proc is ready
         let file_dependencies = new FileDependencies;
         const compilation = ( done_cb, plugins_allowed = true ) => {
-
             // plugins
             if ( plugins_allowed && ! this.env.plugins ) {
                 let plugin_path = path.resolve( this.cwd, "nsmake", "plugins", "generators" );
@@ -176,7 +175,7 @@ class ParseArgvAndBuildMission {
                             this._end_comp( true, file_dependencies, this.env.cns );
                             return done_cb();
                         }
-                        // compilation of mission node
+
                         this.proc.make( this.env, mission_node, err => {
                             this._end_comp( err, mission_node.file_dependencies, [ mission_node ] );
                             return done_cb();
@@ -195,6 +194,7 @@ class ParseArgvAndBuildMission {
         const on_launch = () => this.env.com.note( null, `Launching build` );
         this.proc.start_new_build_seq( on_wait, on_launch, compilation );
     }
+
 
     /** */
     _end_comp( err: boolean, file_dependencies: FileDependencies, cns: Array<CompilationNode> ) {

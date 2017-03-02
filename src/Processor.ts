@@ -106,10 +106,6 @@ class Processor {
             return;
         }
 
-        // estimation of time needed to get cn
-        if ( env.args.time_limit && cn.type != "Id" )
-            this._time_estimation( cn );
-
         //
         cn.num_build_seen = this.num_build;
         cn.done_cbs = [ done_cb ];
@@ -287,7 +283,7 @@ class Processor {
 
         // launched at least once (i.e. data is in memory) ?
         if ( cn.num_build_exec )
-            return this._test_if_done_for_this_build( env, cn );
+            return this._launch_or_done_cb_if_to_redo_or_not( env, cn );
 
         // else, we try to download data from db
         this.db.get( cn.signature, ( err, value: string ) => {
@@ -312,18 +308,16 @@ class Processor {
                 cn.cum_time                 = json_data.cum_time;
 
                 // and continue
-                this._test_if_done_for_this_build( env, cn );
+                this._launch_or_done_cb_if_to_redo_or_not( env, cn );
             } catch ( e ) {
                 this._launch( env, cn );
             }
         } );
     }
 
-    _test_if_done_for_this_build( env: CompilationEnvironment, cn: CompilationNode ): void {
-        let _ko = ( msg: string ) => {
-            if ( env.verbose )
-                env.com.note( cn, `  Update of ${ cn.pretty }. Reason: ${ msg }` );
-            this._launch( env, cn );
+    _is_still_valid( cn: CompilationNode, redone_cb: ( still_valid: boolean, msg: string ) => void ): void {
+        const _ko = ( msg: string ) => {
+            redone_cb( false, msg );
         };
 
         // test for_found.failed
@@ -352,14 +346,25 @@ class Processor {
                 }, ( err ) => {
                     if ( err )
                         return _ko( err );
-
                     // everything seems to be ok :)
-                    this._launch_stuff_to_be_re_executed( env, cn );
-                    this._exec_done_cb( env.com, cn, false );
+                    redone_cb( true, null );
                 } );
 
             } );
 
+        } );
+    }
+
+    _launch_or_done_cb_if_to_redo_or_not( env: CompilationEnvironment, cn: CompilationNode ): void {
+        this._is_still_valid( cn, ( still_valid: boolean, msg: string ) => {
+            if ( still_valid ) {
+                this._launch_stuff_to_be_re_executed( env, cn );
+                this._exec_done_cb( env.com, cn, false );
+            } else {
+                if ( env.verbose )
+                    env.com.note( cn, `  Update of ${ cn.pretty }. Reason: ${ msg }` );
+                this._launch( env, cn );
+            }
         } );
     }
 
@@ -621,7 +626,7 @@ class Processor {
 
             case "get_cn_data": {
                 let ncn = service.env.com.proc.pool.factory( cmd.args.signature );
-                if ( service.cn ) 
+                if ( service.cn )
                     service.cn.additional_children.push( ncn );
                 service.set_waiting();
                 this._launch_waiting_cn_if_possible();
@@ -658,6 +663,11 @@ class Processor {
 
             case "append_to_env_var":
                 return service.env.append_to_env_var( cmd.args.env_var, cmd.args.value );
+
+            case "get_substitution_for_time_limit":
+                return this.get_substitution_for_time_limit( service.env, this.pool.factory( cmd.args.target ), new Set<string>( cmd.args.viewed ), cn => {
+                    ans( false, cn.signature );
+                } );
 
             case "run_mission_node":
                 service.set_waiting();
@@ -983,83 +993,125 @@ class Processor {
     }
 
     /** result in second */
-    _time_estimation( cn: CompilationNode ): number {
-        // get leaves
-        let front = new Heap( function( a: CompilationNode, b: CompilationNode ) {
-            return a.time_est_start_time - b.time_est_start_time;
-        } );
-        let get_front = ( cn: CompilationNode ) => {
+    _time_estimation( cn: CompilationNode, cb_time: ( time: number ) => void ): void {
+        // init and get the list of nodes in the graph
+        let nodes = new Array<CompilationNode>(), get_nodes = ( cn: CompilationNode ) => {
             if ( cn.time_est_id == CompilationNode.cur_time_est_id )
-                return cn.time_est_to_redo;
+                return;
             cn.time_est_id = CompilationNode.cur_time_est_id;
-
-            // if already done in this session
-            cn.time_est_to_redo = cn.num_build_done != this.num_build; // || no_need_to_redo_it
-            if ( ! cn.time_est_to_redo )
-                return 0;
+            nodes.push( cn );
 
             // 
             cn.time_est_start_time = 0;
             cn.time_est_parents.length = 0;
             cn.time_est_nb_ch_to_complete = 0;
-            for( const ch of [ ...cn.children, ...cn.additional_children ] ) {
-                if ( get_front( ch ) ) {
-                    ++cn.time_est_nb_ch_to_complete;
-                    ch.time_est_parents.push( cn );
-                }
-            }
-            if ( cn.time_est_nb_ch_to_complete == 0 ) {
-                front.push( cn );
-            }
-            return 1;
+            if ( cn.num_build_done != this.num_build )
+                for( const ch of [ ...cn.children, ...cn.additional_children ] )
+                    get_nodes( ch );
         }
         ++CompilationNode.cur_time_est_id;
-        cn.time_est_completion_time = 0;
-        get_front( cn );
+        get_nodes( cn );
 
-        // execute, virtually
-        let cpus = new Array<number>();
-        while( cpus.length < this.jobs )
-            cpus.push( 0 );
-        while ( ! front.empty() ) {
-            let cn = front.pop();
-
-            // get cpu
-            let best_cpu = 0;
-            for( let i = 1; i < this.jobs; ++i )
-                if ( cpus[ best_cpu ] > cpus[ i ] )
-                    best_cpu = i;
-
-            console.log( cn.time_est_start_time, best_cpu, cn.pretty.slice( 0, 30 ), cn.cum_time );
-
-            // "real" start time
-            if ( cn.time_est_start_time < cpus[ best_cpu ] )
-                cn.time_est_start_time = cpus[ best_cpu ];
-
-            // completion time
-            cn.time_est_completion_time = cn.time_est_start_time + cn.cum_time;
-            cpus[ best_cpu ] = cn.time_est_completion_time;
-
-            // parents
-            for( const pa of cn.time_est_parents ) {
-                pa.time_est_start_time = Math.max( pa.time_est_start_time, cn.time_est_completion_time );
-                if ( --pa.time_est_nb_ch_to_complete == 0 )
-                    front.push( pa );
+        // set cn.time_est_to_redo
+        async.forEach( nodes, ( cn, cb_to_redo ) => {
+            if ( cn.num_build_done == this.num_build ) {
+                cn.time_est_to_redo = false;
+                return cb_to_redo( null );
             }
-        }
+            this._is_still_valid( cn, still_valid => {
+                cn.time_est_to_redo = ! still_valid;
+                cb_to_redo( null );
+            } );
+        }, err => {
+            // get leaves
+            let front = new Heap( function( a: CompilationNode, b: CompilationNode ) {
+                return a.time_est_start_time - b.time_est_start_time;
+            } );
+            let get_front = ( cn: CompilationNode ) => {
+                if ( cn.time_est_id == CompilationNode.cur_time_est_id )
+                    return cn.time_est_to_redo;
+                cn.time_est_id = CompilationNode.cur_time_est_id;
 
-        console.log( cn.pretty.slice( 0, 30 ), cn.time_est_completion_time );
-        return cn.time_est_completion_time;
-        // let seen = new Map<CompilationNode,number>(); //
-        // let get_completion_time = ( cn: CompilationNode ) => {
-        //     if ( cn.num_build_done == this.num_build )
-        //         return 0;
-        //     if ( seen.has( cn ) )
-        //         return seen.get( cn );
-        //     seen.set( cn, res );
-        //     return res;
-        // }
-        // return get_completion_time( cn );
+                // if already done in this session
+                if ( ! cn.time_est_to_redo )
+                    return 0;
+
+                // 
+                for( const ch of [ ...cn.children, ...cn.additional_children ] ) {
+                    if ( get_front( ch ) ) {
+                        ++cn.time_est_nb_ch_to_complete;
+                        ch.time_est_parents.push( cn );
+                    }
+                }
+                if ( cn.time_est_nb_ch_to_complete == 0 ) {
+                    front.push( cn );
+                }
+                return 1;
+            }
+            ++CompilationNode.cur_time_est_id;
+            cn.time_est_completion_time = 0;
+            get_front( cn );
+
+            // execute (virtually)
+            let cpus = new Array<number>();
+            while( cpus.length < this.jobs )
+                cpus.push( 0 );
+            while ( ! front.empty() ) {
+                let cn = front.pop();
+
+                // get cpu
+                let best_cpu = 0;
+                for( let i = 1; i < this.jobs; ++i )
+                    if ( cpus[ best_cpu ] > cpus[ i ] )
+                        best_cpu = i;
+                // console.log( cn.time_est_start_time, best_cpu, cn.pretty.slice( 0, 30 ), cn.cum_time );
+
+                // "real" start time
+                if ( cn.time_est_start_time < cpus[ best_cpu ] )
+                    cn.time_est_start_time = cpus[ best_cpu ];
+
+                // completion time
+                cn.time_est_completion_time = cn.time_est_start_time + cn.cum_time;
+                cpus[ best_cpu ] = cn.time_est_completion_time;
+
+                // parents
+                for( const pa of cn.time_est_parents ) {
+                    pa.time_est_start_time = Math.max( pa.time_est_start_time, cn.time_est_completion_time );
+                    if ( --pa.time_est_nb_ch_to_complete == 0 )
+                        front.push( pa );
+                }
+            }
+
+            // console.log( cn.pretty.slice( 0, 30 ), cn.time_est_completion_time );
+            cb_time( cn.time_est_completion_time );
+        } );
+    }
+
+    get_substitution_for_time_limit( env: CompilationEnvironment, cn: CompilationNode, viewed: Set<string>, cb_subs: ( cn: CompilationNode ) => void ) {
+        if ( env.args.time_limit ) {
+            return this._time_estimation( cn, time => {
+                if ( time > env.args.time_limit ) {
+                    const degraded_subs = ( cn: CompilationNode ) => {
+                        if ( viewed.has( cn.signature ) )
+                            return cn;
+                        if ( cn.degraded )
+                            return cn.degraded.cn;
+                        return this.pool.New( cn.type, cn.children.map( ch => degraded_subs( ch ) ), cn.args );
+                    };
+
+                     env.com.note( cn, `Degradation of ${ cn.pretty.slice( 0, 50 ) } time estimation: ${ time }` );
+                    return cb_subs( degraded_subs( cn ) );
+                }
+                cb_subs( cn );
+                // const substitution = this._make_substitution_for_time_limit( cn, env.args.time_limit );
+                // if ( cn != substitution ) {
+                //     cn.substitution = substitution;
+                //     return this.make( env, substitution, done_cb, false );
+                // }
+                // return this.make( env, cn, done_cb, false );
+            } );
+        }
+        cb_subs( cn );
     }
 
     system_info            : SystemInfo;

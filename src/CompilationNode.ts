@@ -74,6 +74,7 @@ class CompilationNode {
             this.push_unique_in_global_arg.length = 0;
             this.exe_data                         = {};
             this.idempotent                       = true;
+            this.substitution                     = null;
             this.num_build_exec                   = this.num_build_seen;
             this.file_dependencies.clear();
 
@@ -110,6 +111,7 @@ class CompilationNode {
     loaded_from_db             = false;                                 /** true if already loaded from the database */
     done_cbs                   = new Array<( err: boolean ) => void>(); /** waiting done_cb */
     start                      : [ number, number ];                    /** time */
+    substitution               = null as CompilationNode;               /** */
  
     // output saved to the db, re-used between builds     
     outputs                    = new Array<string>();                   /** output files (generated or not) */

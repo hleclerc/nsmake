@@ -13,6 +13,7 @@ gms.add_module( "MissionMaker"         , require( "./MissionMaker"           ).d
 gms.add_module( "JsDepFactory"         , require( "./JsDepFactory"           ).default );
 gms.add_module( "CheckPrerequ"         , require( "./CheckPrerequ"           ).default );
 gms.add_module( "CppCompiler"          , require( "./CppCompiler"            ).default );
+gms.add_module( "Degradator"           , require( "./Degradator"             ).default );
 gms.add_module( "CssParser"            , require( "./CssParser"              ).default );
 gms.add_module( "MakeFile"             , require( "./MakeFile"               ).default );
 gms.add_module( "JsParser"             , require( "./JsParser"               ).default );
