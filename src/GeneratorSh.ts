@@ -30,7 +30,7 @@ class GeneratorSh extends Generator {
                     // }
 
                     // launch
-                    return cb( this.env.com.proc.pool.New( "Executor", cns, {
+                    return cb( this.env.New( "Executor", cns, {
                         executable     : "sh",
                         args           : [ args.entry_point, ...( args.arguments || [] ) ],
                         local_execution: args.local_execution == undefined ? true: args.local_execution,

@@ -4,7 +4,7 @@ import * as async from "async"
 /** positive of null number -> reference to children. negative number => - reference to new_build_files - 1 */
 export interface ExecutorArgs {
     executable       : string | number;                      
-    args             : Array<string | number>;
+    args             : Array<string | number>;                                /** positive number => look in children. negative number => look in build files */
     local_execution ?: boolean;
     redirect        ?: string | number;
     outputs         ?: Array<string | number>;                                /** outputs of the task */

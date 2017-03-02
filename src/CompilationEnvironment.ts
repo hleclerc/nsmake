@@ -1,6 +1,7 @@
 import CommunicationEnvironment from "./CommunicationEnvironment";
 import FileDependencies         from "./FileDependencies";
-import CompilationNode          from './CompilationNode';
+import CompilationNode, 
+     { Degraded }               from './CompilationNode';
 import ArgumentParser           from './ArgumentParser';
 import Generator                from "./Generator";
 import { pu }                   from "./ArrayUtil";
@@ -160,8 +161,8 @@ class CompilationEnvironment {
     }
 
     /** */
-    New( type: string, children: Array<CompilationNode>, args: any ): CompilationNode {
-        return this.com.proc.pool.New( type, children, args );
+    New( type: string, children: Array<CompilationNode>, args: any, degraded = null as Degraded  ): CompilationNode {
+        return this.com.proc.pool.New( type, children, args, degraded );
     }
 
     /** */

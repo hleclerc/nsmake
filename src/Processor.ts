@@ -463,9 +463,9 @@ class Processor {
                         try {
                             this._action_from_service( service, JSON.parse( line ) );
                         } catch( e ) {
-                            console.error( e );
+                            console.error( e, e.stack );
                             if ( service.env )
-                                service.env.com.error( service.cn, `Error: while parsing '${ line }' for '${ service.cn.pretty }': ${ e.toString() }. => Service is going to be killed (see server.log for full stack)` );
+                                service.env.com.error( service.cn, `Error: while parsing '${ line }' for '${ service.cn.pretty }': ${ e.toString() }. => Service is going to be killed (see server.log for full stack)\n${ e.stack }` );
                             if ( service.cp ) {
                                 try { ( service.cp.stdin as any ).pause(); } catch ( e ) {}
                                 service.cp.kill();

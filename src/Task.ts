@@ -50,8 +50,14 @@ abstract class Task {
     }
 
     /** get signature for generator of `target`. This version does not launch execution  */
-    get_filtered_target_signatures( targets: Array<string>, cwd: string, cb: ( err: boolean, res: Array<string> ) => void, care_about_target = false ): void {
-        return targets.length ? this._send_and_wait( "get_filtered_target_signatures", { targets, cwd, care_about_target }, cb ) : cb( false, [] );
+    get_filtered_target_signatures( targets: Array<string>, cwd: string, cb: ( err: boolean, res: Array<string> ) => void, care_about_target = false, disp_err_msg = true ): void {
+        return targets.length ? this._send_and_wait( "get_filtered_target_signatures", { targets, cwd, care_about_target }, ( err, res ) => {
+            if ( disp_err_msg && res )
+                for( let num = 0; num < targets.length; ++num )
+                    if ( ! res[ num ] )
+                        this.error( `Don't known how to read or build '${ targets[ num ] }'` );
+            cb( err || res.some( x => ! x ), res );
+        } ) : cb( false, [] );
     }
 
     /** get signature for generator of first possible `target`. num is the number in the list */

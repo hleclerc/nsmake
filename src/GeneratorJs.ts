@@ -116,7 +116,7 @@ class GeneratorJs extends Generator {
 
         // run with mocha ?
         if ( args.mission == "mocha" ) {
-            return cb( this.env.com.proc.pool.New( "Mocha", [], {
+            return cb( this.env.New( "Mocha", [], {
                 target_testing_env: [].concat( ...this.env.arg_rec( "target_testing_env", [ "nodejs" ] ).map( x => x.split( "," ) ) ),
                 entry_points      : args.entry_points || [],
                 // mocha          : ga( this.env.arg_rec( "mocha" ) ),
@@ -139,7 +139,7 @@ class GeneratorJs extends Generator {
                 return nce.get_mission_node( for_found, cn => {
                     if ( ! cn )
                         return cb( null );
-                    cb( this.env.com.proc.pool.New( "Executor", [ ...cns, cn ], {
+                    cb( this.env.New( "Executor", [ ...cns, cn ], {
                         executable     : this.env.arg_rec( "nodejs" ) || "node",
                         args           : [ cns.length, ...( args.arguments || [] ) ],
                         local_execution: typeof args.local_execution == "undefined" ? true: args.local_execution,

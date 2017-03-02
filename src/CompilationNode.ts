@@ -3,13 +3,21 @@ import * as rimraf      from "rimraf"
 import * as async       from "async"
 import * as fs          from "fs"
 
+export interface Degraded {
+    cn  : CompilationNode;
+    mul?: number;
+    off?: number;
+}
+
+
 export default
 class CompilationNode {
-    constructor( signature: string, type: string, children: Array<CompilationNode>, args: any ) {
+    constructor( signature: string, type: string, children: Array<CompilationNode>, args: any, degraded = null as Degraded ) {
         this.signature = signature;
         this.type      = type;
         this.children  = children;
         this.args      = JSON.parse( JSON.stringify( args ) );
+        this.degraded  = degraded;
     }
 
     get pretty(): string {
@@ -80,6 +88,7 @@ class CompilationNode {
     type                      : string;                                /** e.g. CppCompiler, MissionNode, ... */
     children                  : Array<CompilationNode>;                /** base children (not the ones added during compilation) */
     args                      : any;                                   /** arguments */
+    degraded                  : Degraded;                              /** */
                 
     // for Processor 
     num_build_done            = 0;                                     /** */

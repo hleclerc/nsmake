@@ -15,7 +15,7 @@ class GeneratorCodegen extends Generator {
             if ( allow_generation ) {
                 const filename = path.basename( target );
                 if ( filename[ 0 ] == '(' && filename.lastIndexOf( ')' ) > 0 )
-                    return cb( this.env.com.proc.pool.New( "Codegen", [], { output, filename, cwd } ) );
+                    return cb( this.env.New( "Codegen", [], { output, filename, cwd } ) );
             }
             return cb( null );
         } } );

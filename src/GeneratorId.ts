@@ -12,7 +12,7 @@ class GeneratorId extends Generator {
         funcs.push( { prio: -1, func: ( target: string, output: string, cwd: string, cb: ( cn: CompilationNode ) => void, for_found: FileDependencies ): void => {
             fs.exists( target, exists => {
                 if ( exists ) {
-                    cb( this.env.com.proc.pool.New( "Id", [], { target } ) );
+                    cb( this.env.New( "Id", [], { target } ) );
                 } else {
                     for_found.failed.add( target );
                     cb( null );

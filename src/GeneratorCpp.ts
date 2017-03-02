@@ -81,7 +81,7 @@ class GeneratorCpp extends Generator {
 
         // run with mocha ?
         if ( args.mission == "gtest" ) {
-            return cb( this.env.com.proc.pool.New( "Gtest", [], {
+            return cb( this.env.New( "Gtest", [], {
                 entry_points      : args.entry_points || [],
                 args              : args, // hum...
                 launch_dir        : this.env.cwd,
@@ -102,7 +102,7 @@ class GeneratorCpp extends Generator {
                     if ( ! cn )
                         return cb( null );
                     // launch
-                    return cb( this.env.com.proc.pool.New( "Executor", [ ...cns, cn ], {
+                    return cb( this.env.New( "Executor", [ ...cns, cn ], {
                         executable     : cns.length,
                         args           : args.arguments || [],
                         local_execution: typeof args.local_execution == "undefined" ? true: args.local_execution,
