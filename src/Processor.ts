@@ -196,6 +196,9 @@ class Processor {
     }
     
     _done( env: CompilationEnvironment, cn: CompilationNode, err = false ): void {
+        if ( ! cn )
+            return;
+            
         // stuff to be made, error ot not
         cn.children           .forEach( ch => cn.merge_res_from( ch ) );
         cn.additional_children.forEach( ch => cn.merge_res_from( ch ) );
@@ -211,10 +214,8 @@ class Processor {
         }
 
         // timing
-        if ( env.args.display_timings && cn.type != "Id" ) {
-            let t = process.hrtime( cn.start );
-            env.com.note( cn, `Execution of ${ cn.pretty }: ${ t[ 0 ] + t[ 1 ] / 1e9 }` );
-        }
+        if ( env.args.display_timings && cn.type != "Id" )
+            env.com.note( cn, `Execution of ${ cn.pretty }: ${ cn.cum_time }` );
 
         // outputs mtimes
         async.forEachOf( cn.type != "Id" ? cn.outputs : [], ( output: string, num_output: number, callback ) => {
@@ -410,9 +411,9 @@ class Processor {
                 if ( ! service )
                     return this._done( env, cn, true );
 
-                service.status = "active";
-                service.env    = env;
-                service.cn     = cn;
+                service.env = env;
+                service.cn  = cn;
+                service.set_active();
 
                 service.send( JSON.stringify( {
                     action    : "task",
@@ -521,13 +522,11 @@ class Processor {
 
         // helper: called when the service has finished
         const done = ( err: boolean ) => {
-            if ( service.cn ) {
-                this._done( service.env, service.cn, err );
-                service.status = "idle";
-                service.env    = null;
-                service.cn     = null;
-                this._launch_waiting_cn_if_possible();
-            }
+            service.set_idle();
+            this._done( service.env, service.cn, err );
+            service.env = null;
+            service.cn  = null;
+            this._launch_waiting_cn_if_possible();
         };
 
         // particular case: cmd == null means error
@@ -560,10 +559,10 @@ class Processor {
                     if ( ncn ) {
                         if ( service.cn )
                             service.cn.additional_children.push( ncn );
-                        service.status = "waiting";
+                        service.set_waiting();
                         this._launch_waiting_cn_if_possible();
                         this.make( service.env, ncn, err => {
-                            service.status = "active";
+                            service.set_active();
                             if ( err )
                                 return ans( true );
                             ans( false, { name: ncn.outputs[ 0 ], signature: ncn.signature, exe_data: ncn.exe_data } );
@@ -605,18 +604,18 @@ class Processor {
 
             case "get_cn_data": {
                 let ncn = service.env.com.proc.pool.factory( cmd.args.signature );
-                if ( service.cn )
+                if ( service.cn ) 
                     service.cn.additional_children.push( ncn );
-                service.status = "waiting";
+                service.set_waiting();
                 this._launch_waiting_cn_if_possible();
                 return this.make( service.env, ncn, err => {
-                    service.status = "active";
+                    service.set_active();
                     ans( err, err ? null : { signature: ncn.signature, outputs: ncn.outputs, exe_data: ncn.exe_data } );
                 } );
             }
 
             case "get_cns_data":
-                service.status = "waiting";
+                service.set_waiting();
                 this._launch_waiting_cn_if_possible();
                 return async.map( cmd.args.lst, ( sgn: string, cb: ( err: boolean, cn: CompilationNode ) => void ) => {
                     if ( ! service.env )
@@ -631,7 +630,7 @@ class Processor {
                     } else
                         cb( false, null );
                 }, ( err, ncns ) => {
-                    service.status = "active";
+                    service.set_active();
                     ans( err, err ? null : ncns.map( cn => ({
                         signature: cn ? cn.signature : null, outputs: cn ? cn.outputs : [], exe_data: cn ? cn.exe_data : {}
                     }) ) );
@@ -644,7 +643,7 @@ class Processor {
                 return service.env.append_to_env_var( cmd.args.env_var, cmd.args.value );
 
             case "run_mission_node":
-                service.status = "waiting";
+                service.set_waiting();
                 this._launch_waiting_cn_if_possible();
                 return async.map( cmd.args.signatures, ( signature: string, cb ) => {
                     if ( ! service.env )
@@ -656,7 +655,7 @@ class Processor {
                         cb( err, ncn );
                     } );
                 }, ( err, inp_cns: Array<CompilationNode> ) => {
-                    service.status = "active";
+                    service.set_active();
                     if ( err || ! service.env )
                         return ans( true );
                     let nce = service.env.make_child( cmd.args.args, inp_cns );
@@ -665,10 +664,10 @@ class Processor {
                             return ans( true );
                         if ( service.cn )
                             service.cn.additional_children.push( ncn );
-                        service.status = "waiting";
+                        service.set_waiting();
                         this._launch_waiting_cn_if_possible();
                         this.make( nce, ncn, err => {
-                            service.status = "active";
+                            service.set_active();
                             if ( err )
                                 return ans( true ); 
                             ans( false, { outputs: ncn.outputs, signature: ncn.signature, exe_data: ncn.exe_data } );
@@ -689,7 +688,7 @@ class Processor {
                 } );
                 
             case "spawn_local":
-                service.status = "active";
+                service.set_active();
                 return this._spawn_local( service.env.com, cmd.args.executable, cmd.args.args || [], cmd.args.redirect || "", code => {
                     ans( false, code );
                 } );
@@ -697,7 +696,7 @@ class Processor {
             case "spawn": {
                 // display
                 service.env.com.announcement( service.cn, [ cmd.args.cmd, ...cmd.args.args ].join( " " ) );
-                service.status = "active";
+                service.set_active();
 
                 // execution, with basic redirection
                 const cp = child_process.spawn( cmd.args.cmd, cmd.args.args, { cwd: cmd.args.cwd } );
@@ -709,11 +708,13 @@ class Processor {
             }
 
             case "set_status":
-                if ( service.status == "active" && cmd.args.status == "waiting" ) {
-                    service.status = cmd.args.status;
+                switch ( cmd.args.status ) {
+                    case "idle"   : service.set_idle   (); break;
+                    case "active" : service.set_active (); break;
+                    case "waiting": service.set_waiting(); break;
+                }
+                if ( service.status == "active" && cmd.args.status == "waiting" )
                     this._launch_waiting_cn_if_possible();
-                } else
-                    service.status = cmd.args.status;
                 return;
 
             case "push_unique_in_global_arg":

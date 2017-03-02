@@ -75,14 +75,26 @@ class CompilationNode {
             this.exe_data                         = {};
             this.idempotent                       = true;
             this.num_build_exec                   = this.num_build_seen;
-            this.start                            = process.hrtime() as [ number, number ];
             this.file_dependencies.clear();
 
             init_cb( null );
         } );
-
     }
 
+    start_chrono() {
+        this.start = process.hrtime() as [ number, number ];
+        this.cum_time = 0.0;
+    }
+
+    pause_chrono() {
+        let t = process.hrtime( this.start );
+        this.cum_time += t[ 0 ] + t[ 1 ] / 1e9;
+    }
+
+    resume_chrono() {
+        this.start = process.hrtime() as [ number, number ];
+    }
+    
     // stable arguments    
     signature                 : string;                                /** serve as an unique id */
     type                      : string;                                /** e.g. CppCompiler, MissionNode, ... */
@@ -97,7 +109,7 @@ class CompilationNode {
     build_error               = false;                                 /** true is previous build led to an error */        
     loaded_from_db            = false;                                 /** true if already loaded from the database */
     done_cbs                  = new Array<( err: boolean ) => void>(); /** waiting done_cb */
-    start                     : [ number, number ]; // time
+    start                     : [ number, number ];                    /** time */
  
     // output saved to the db, re-used between builds     
     outputs                   = new Array<string>();                   /** output files (generated or not) */
@@ -107,6 +119,7 @@ class CompilationNode {
     generated_mtimes          = new Array<number>();                   /** modification time of outputs when done */
     file_dependencies         = new FileDependencies;
     push_unique_in_global_arg = new Array<{ arg: string, val: string }>();
+    cum_time                  = 0.0;                                   /** time spent for execution of this (excluding time spent for the children) */
 
     // intermediate outputs
     additional_children       = new Array<CompilationNode>();          /** children added during execution */
