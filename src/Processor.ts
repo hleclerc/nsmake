@@ -15,13 +15,13 @@ import Pool                     from "./Pool"
 import Db                       from "./Db"
 import * as child_process       from 'child_process'
 import * as yaml                from "js-yaml"
-import * as lodash              from 'lodash'
 import * as rimraf              from 'rimraf'
 import * as async               from 'async'
 import * as path                from 'path'
 import * as os                  from 'os'
 import * as fs                  from 'fs'
 const tree_kill = require( 'tree-kill' );
+const Heap = require( 'heap' );
 
 interface DataInDb {
     outputs                  : Array<string>;
@@ -32,6 +32,7 @@ interface DataInDb {
     failed                   : Array<string>;
     found                    : Array<[string,number]>;
     push_unique_in_global_arg: Array<{ arg: string, val: string }>;
+    cum_time                 : number;
 }
 
 export default
@@ -104,6 +105,12 @@ class Processor {
             cn.done_cbs.push( done_cb );
             return;
         }
+
+        // estimation of time needed to get cn
+        if ( env.args.time_limit && cn.type != "Id" )
+            this._time_estimation( cn );
+
+        //
         cn.num_build_seen = this.num_build;
         cn.done_cbs = [ done_cb ];
 
@@ -198,7 +205,7 @@ class Processor {
     _done( env: CompilationEnvironment, cn: CompilationNode, err = false ): void {
         if ( ! cn )
             return;
-            
+
         // stuff to be made, error ot not
         cn.children           .forEach( ch => cn.merge_res_from( ch ) );
         cn.additional_children.forEach( ch => cn.merge_res_from( ch ) );
@@ -256,6 +263,7 @@ class Processor {
                         push_unique_in_global_arg: cn.push_unique_in_global_arg,
                         failed                   : [ ...cn.file_dependencies.failed ],
                         found                    : [ ...cn.file_dependencies.found.keys() ].map( name => [ name, cn.file_dependencies.found.get( name ) ] ),
+                        cum_time                 : cn.cum_time,
                     } as DataInDb ), err => {
                         console.assert( ! err, "TODO: db put error" );
                     } );
@@ -301,6 +309,7 @@ class Processor {
                 cn.generated_mtimes         = json_data.generated_mtimes;
                 cn.file_dependencies.failed = new Set<string>( json_data.failed );
                 cn.file_dependencies.found  = new Map<string,number>( json_data.found );
+                cn.cum_time                 = json_data.cum_time;
 
                 // and continue
                 this._test_if_done_for_this_build( env, cn );
@@ -385,8 +394,19 @@ class Processor {
             } );
         }
 
+        // clear stuff like for_found, additional_children, ...
+        cn._init_for_build( err => {
+            if ( err ) {
+                env.com.error( cn, err );
+                return this._done( env, cn, true );
+            }
+            this._launch_initialized( env, cn );
+        } );
+    }
+
+    _launch_initialized( env: CompilationEnvironment, cn: CompilationNode ) {
         // if would lead to too much active service, wait a bit
-        if ( this.services.filter( s => s.status == "active" ).length >= this.jobs ) {
+        if ( this.services.filter( s => s.status == "active" ).length + this.nb_warming_up_services >= this.jobs ) {
             if ( env.verbose )
                 env.com.announcement( cn, `Delayed launch of ${ cn.pretty }` );
             this.waiting_cns.push( { env, cn } );
@@ -395,48 +415,45 @@ class Processor {
         if ( env.verbose )
             env.com.announcement( cn, `Launch of ${ cn.pretty }` );
 
-        // clear stuff like for_found, additional_children, ...
-        cn._init_for_build( err => {
-            if ( err ) {
-                env.com.error( cn, err );
+        // kind of service
+        const ind_at = cn.type.indexOf( "@" );
+        const category = ind_at >= 0 ? cn.type.slice( ind_at + 1 ) : null;
+
+        // launch in a free service
+        const use_service = ( service: Service ) => {
+            if ( ! service )
                 return this._done( env, cn, true );
-            }
 
-            // kind of service
-            const ind_at = cn.type.indexOf( "@" );
-            const category = ind_at >= 0 ? cn.type.slice( ind_at + 1 ) : null;
+            service.env = env;
+            service.cn  = cn;
+            service.set_active();
 
-            // launch in a free service
-            const use_service = ( service: Service ) => {
-                if ( ! service )
-                    return this._done( env, cn, true );
+            service.send( JSON.stringify( {
+                action    : "task",
+                type      : ind_at >= 0 ? cn.type.slice( 0, ind_at ) : cn.type,
+                signature : cn.signature,
+                nb_columns: env.com.nb_columns || 120,
+                children  : cn.children.map( ch => ( { signature: ch.signature, outputs: ch.outputs, exe_data: ch.exe_data } ) ),
+                args      : cn.args
+            } ) + `\n` );
+        };
 
-                service.env = env;
-                service.cn  = cn;
-                service.set_active();
-
-                service.send( JSON.stringify( {
-                    action    : "task",
-                    type      : ind_at >= 0 ? cn.type.slice( 0, ind_at ) : cn.type,
-                    signature : cn.signature,
-                    nb_columns: env.com.nb_columns || 120,
-                    children  : cn.children.map( ch => ( { signature: ch.signature, outputs: ch.outputs, exe_data: ch.exe_data } ) ),
-                    args      : cn.args
-                } ) + `\n` );
-            };
-
-            const service = this.services.find( s => s.status == "idle" && category == s.category );
-            if ( service )
+        const service = this.services.find( s => s.status == "idle" && category == s.category );
+        if ( service ) {
+            use_service( service );
+        } else {
+            ++this.nb_warming_up_services;
+            this._make_new_service( service => {
+                --this.nb_warming_up_services;
                 use_service( service );
-            else
-                this._make_new_service( use_service, category, env.com );
-        } );
+            }, category, env.com );
+        }
     }
 
     _launch_waiting_cn_if_possible() {
         while ( this.waiting_cns.length && this.services.filter( s => s.status == "active" ).length < this.jobs ) {
             let item = this.waiting_cns.shift();
-            this._launch( item.env, item.cn );
+            this._launch_initialized( item.env, item.cn );
         }
     }
 
@@ -965,19 +982,100 @@ class Processor {
         } );
     }
 
-    system_info          : SystemInfo;
-    nsmake_dir           : string;
-    build_dir            : string;
-    jobs                 = os.cpus().length;
-    pool                 = new Pool();
-    num_build            = 0;                    /** incremented each time we launch a new build. We assume that files are not changed during the process */
-    db                   : Db;
-    services             = new Array<Service>();
-    building             = false;
-    waiting_cns          = new Array<{ env: CompilationEnvironment, cn: CompilationNode }>();
-    waiting_spw          = new Map<string,{ com: CommunicationEnvironment, cb: ( code: number ) => void, cwd: string }>();
-    waiting_build_seqs   = new Array<{ at_launch_cb: () => void, cb: ( done_cb: () => void ) => void }>(); 
-    current_install_cmds = new Set<string>();
-    waiting_install_cmds = new Array< { com: CommunicationEnvironment, cn: CompilationNode, cwd: string, cmd: Array<string> | string, cb: ( err: boolean ) => void } >();
+    /** result in second */
+    _time_estimation( cn: CompilationNode ): number {
+        // get leaves
+        let front = new Heap( function( a: CompilationNode, b: CompilationNode ) {
+            return a.time_est_start_time - b.time_est_start_time;
+        } );
+        let get_front = ( cn: CompilationNode ) => {
+            if ( cn.time_est_id == CompilationNode.cur_time_est_id )
+                return cn.time_est_to_redo;
+            cn.time_est_id = CompilationNode.cur_time_est_id;
+
+            // if already done in this session
+            cn.time_est_to_redo = cn.num_build_done != this.num_build; // || no_need_to_redo_it
+            if ( ! cn.time_est_to_redo )
+                return 0;
+
+            // 
+            cn.time_est_start_time = 0;
+            cn.time_est_parents.length = 0;
+            cn.time_est_nb_ch_to_complete = 0;
+            for( const ch of [ ...cn.children, ...cn.additional_children ] ) {
+                if ( get_front( ch ) ) {
+                    ++cn.time_est_nb_ch_to_complete;
+                    ch.time_est_parents.push( cn );
+                }
+            }
+            if ( cn.time_est_nb_ch_to_complete == 0 ) {
+                front.push( cn );
+            }
+            return 1;
+        }
+        ++CompilationNode.cur_time_est_id;
+        cn.time_est_completion_time = 0;
+        get_front( cn );
+
+        // execute, virtually
+        let cpus = new Array<number>();
+        while( cpus.length < this.jobs )
+            cpus.push( 0 );
+        while ( ! front.empty() ) {
+            let cn = front.pop();
+
+            // get cpu
+            let best_cpu = 0;
+            for( let i = 1; i < this.jobs; ++i )
+                if ( cpus[ best_cpu ] > cpus[ i ] )
+                    best_cpu = i;
+
+            console.log( cn.time_est_start_time, best_cpu, cn.pretty.slice( 0, 30 ), cn.cum_time );
+
+            // "real" start time
+            if ( cn.time_est_start_time < cpus[ best_cpu ] )
+                cn.time_est_start_time = cpus[ best_cpu ];
+
+            // completion time
+            cn.time_est_completion_time = cn.time_est_start_time + cn.cum_time;
+            cpus[ best_cpu ] = cn.time_est_completion_time;
+
+            // parents
+            for( const pa of cn.time_est_parents ) {
+                pa.time_est_start_time = Math.max( pa.time_est_start_time, cn.time_est_completion_time );
+                if ( --pa.time_est_nb_ch_to_complete == 0 )
+                    front.push( pa );
+            }
+        }
+
+        console.log( cn.pretty.slice( 0, 30 ), cn.time_est_completion_time );
+        return cn.time_est_completion_time;
+        // let seen = new Map<CompilationNode,number>(); //
+        // let get_completion_time = ( cn: CompilationNode ) => {
+        //     if ( cn.num_build_done == this.num_build )
+        //         return 0;
+        //     if ( seen.has( cn ) )
+        //         return seen.get( cn );
+        //     seen.set( cn, res );
+        //     return res;
+        // }
+        // return get_completion_time( cn );
+    }
+
+    system_info            : SystemInfo;
+    nsmake_dir             : string;
+    build_dir              : string;
+    jobs                   = os.cpus().length;
+    pool                   = new Pool();
+    num_build              = 0;                    /** incremented each time we launch a new build. We assume that files are not changed during the process */
+    db                     : Db;
+    services               = new Array<Service>();
+    building               = false;
+    waiting_cns            = new Array<{ env: CompilationEnvironment, cn: CompilationNode }>();
+    waiting_spw            = new Map<string,{ com: CommunicationEnvironment, cb: ( code: number ) => void, cwd: string }>();
+    waiting_build_seqs     = new Array<{ at_launch_cb: () => void, cb: ( done_cb: () => void ) => void }>(); 
+    current_install_cmds   = new Set<string>();
+    waiting_install_cmds   = new Array< { com: CommunicationEnvironment, cn: CompilationNode, cwd: string, cmd: Array<string> | string, cb: ( err: boolean ) => void } >();
+    nb_warming_up_services = 0;
 }
 

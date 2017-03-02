@@ -96,33 +96,42 @@ class CompilationNode {
     }
     
     // stable arguments    
-    signature                 : string;                                /** serve as an unique id */
-    type                      : string;                                /** e.g. CppCompiler, MissionNode, ... */
-    children                  : Array<CompilationNode>;                /** base children (not the ones added during compilation) */
-    args                      : any;                                   /** arguments */
-    degraded                  : Degraded;                              /** */
+    signature                  : string;                                /** serve as an unique id */
+    type                       : string;                                /** e.g. CppCompiler, MissionNode, ... */
+    children                   : Array<CompilationNode>;                /** base children (not the ones added during compilation) */
+    args                       : any;                                   /** arguments */
+    degraded                   : Degraded;                              /** */
                 
     // for Processor 
-    num_build_done            = 0;                                     /** */
-    num_build_seen            = 0;                                     /** */
-    num_build_exec            = 0;                                     /** */
-    build_error               = false;                                 /** true is previous build led to an error */        
-    loaded_from_db            = false;                                 /** true if already loaded from the database */
-    done_cbs                  = new Array<( err: boolean ) => void>(); /** waiting done_cb */
-    start                     : [ number, number ];                    /** time */
+    num_build_done             = 0;                                     /** */
+    num_build_seen             = 0;                                     /** */
+    num_build_exec             = 0;                                     /** */
+    build_error                = false;                                 /** true is previous build led to an error */        
+    loaded_from_db             = false;                                 /** true if already loaded from the database */
+    done_cbs                   = new Array<( err: boolean ) => void>(); /** waiting done_cb */
+    start                      : [ number, number ];                    /** time */
  
     // output saved to the db, re-used between builds     
-    outputs                   = new Array<string>();                   /** output files (generated or not) */
-    output_mtimes             = new Array<number>();                   /** modification time of outputs when done */
-    exe_data                  = {} as any;                             /** output data structure */
-    generated                 = new Array<string>();                   /** generated files (must be deleted if redo or clean, ...) */
-    generated_mtimes          = new Array<number>();                   /** modification time of outputs when done */
-    file_dependencies         = new FileDependencies;
-    push_unique_in_global_arg = new Array<{ arg: string, val: string }>();
-    cum_time                  = 0.0;                                   /** time spent for execution of this (excluding time spent for the children) */
+    outputs                    = new Array<string>();                   /** output files (generated or not) */
+    output_mtimes              = new Array<number>();                   /** modification time of outputs when done */
+    exe_data                   = {} as any;                             /** output data structure */
+    generated                  = new Array<string>();                   /** generated files (must be deleted if redo or clean, ...) */
+    generated_mtimes           = new Array<number>();                   /** modification time of outputs when done */
+    file_dependencies          = new FileDependencies;
+    push_unique_in_global_arg  = new Array<{ arg: string, val: string }>();
+    cum_time                   = 0.0;                                   /** time spent for execution of this (excluding time spent for the children) */
+
+    // for time estimation
+    static cur_time_est_id     = 0;
+    time_est_id                = 0;
+    time_est_to_redo           = false;
+    time_est_start_time        = 0;
+    time_est_completion_time   = 0;
+    time_est_nb_ch_to_complete = 0;
+    time_est_parents           = new Array<CompilationNode>();
 
     // intermediate outputs
-    additional_children       = new Array<CompilationNode>();          /** children added during execution */
-    idempotent                = true;                                  /** true is different execution with the same parameters yield the same results */
+    additional_children        = new Array<CompilationNode>();          /** children added during execution */
+    idempotent                 = true;                                  /** true is different execution with the same parameters yield the same results */
 } 
  

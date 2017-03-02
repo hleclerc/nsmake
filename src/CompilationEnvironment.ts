@@ -91,6 +91,7 @@ class CompilationEnvironment {
         this.com.decl_additional_options( p );
 
         p.add_argument( [], [], 'dist-dir'    , 'Set directory for public/distribution (i.e. not intermediate) outputs' );
+        p.add_argument( [], [], 'time-limit'  , 'Set time limit for execution' );
 
         p.set_mission_description( 'clean'  , [], 'remove all the output files'                                                                         );
         p.set_mission_description( 'prerequ', [], 'check for prerequisites'                                                                             );
