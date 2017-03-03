@@ -346,6 +346,9 @@ abstract class Task {
     signature           : string;
     nb_columns          : number;
 
+    old_outputs         = new Array<string>();
+    old_exe_data        = {} as any;
+
     // output
     outputs             = new Array<string>();
     generated           = new Array<string>();

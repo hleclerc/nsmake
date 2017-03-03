@@ -43,10 +43,12 @@ class GenericMicroService {
                                 if ( ! task_type )
                                     return send_end( `Error: ${ args.type } is not a registered task type.` );
                                 // execution
-                                active_task            = new task_type;
-                                active_task.nb_columns = args.nb_columns;
-                                active_task.children   = args.children;
-                                active_task.signature  = args.signature;
+                                active_task              = new task_type;
+                                active_task.nb_columns   = args.nb_columns;
+                                active_task.children     = args.children;
+                                active_task.signature    = args.signature;
+                                active_task.old_exe_data = args.old_exe_data;
+                                active_task.old_outputs  = args.old_outputs;
 
                                 active_task._exec( args.args, err => {
                                     send_end( err || false, active_task ? active_task._output_summary() : {} );

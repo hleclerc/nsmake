@@ -38,7 +38,10 @@ class ParseArgvAndBuildMission {
         this.env.com.info( null, "Killing processes" );
         for( const watcher of this.to_be_watched.values() )
             watcher.close();
-        this.proc.stop_tasks_from( this.env.com );
+        if ( this.proc.building )
+            this.proc.stop_tasks_from( this.env.com );
+        else
+            this.send_end( 1 );
     }
 
     /** send a message to the client */

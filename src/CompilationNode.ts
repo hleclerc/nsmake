@@ -67,12 +67,12 @@ class CompilationNode {
             if ( err ) return init_cb( err.toString() );
             
             this.additional_children.length       = 0;
-            this.outputs.length                   = 0;
-            this.output_mtimes.length             = 0;
+            // this.outputs.length                   = 0;
+            // this.output_mtimes.length             = 0;
             this.generated.length                 = 0;
             this.generated_mtimes.length          = 0;
             this.push_unique_in_global_arg.length = 0;
-            this.exe_data                         = {};
+            // this.exe_data                         = {};
             this.idempotent                       = true;
             this.substitution                     = null;
             this.num_build_exec                   = this.num_build_seen;
