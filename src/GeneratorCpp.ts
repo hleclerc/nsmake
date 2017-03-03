@@ -152,7 +152,7 @@ class GeneratorCpp extends Generator {
     }
 
     make_cpp_compiler( cn: CompilationNode, output: string, cb: ( cn: CompilationNode ) => void, for_c = false ): void {
-        const ncc = `CppCompiler@${ path.resolve( __dirname, "..", "..", "src", "cpp", "main_cpp_services.cpp" ) }`;
+        const ncc = `CppCompiler@${ path.resolve( __dirname, "cpp", "main_cpp_services.cpp" ) }`;
         cb( this.env.New( this.env.args.cpp_bootstrap ? "CppCompiler": ncc, [ cn, this.cpp_rules_cn(), this.base_compiler_info_cn( this.env.arg_rec( "cxx" ), "cpp" ) ], {
             define     : this.env.args.define || [],
             debug_level: this.env.args.debug_level || null,
