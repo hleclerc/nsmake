@@ -69,6 +69,7 @@ class ParseArgvAndBuildMission {
         var p = new ArgumentParser( path.basename( this.argv[ 0 ] ), 'an hopefully less dummy build system', '0.0.1' );
         p.add_argument( [], [], 'v,version'        , 'get version number'                                                                       , 'boolean' );
         p.add_argument( [], [], 'w,watch'          , 'watch files, reconstruct dependencies if changed'                                         , 'boolean' );
+        p.add_argument( [], [], 'W,watch-all'      , 'call build periodically (watch mode that relaunch execution)'                             , 'boolean' );
         p.add_argument( [], [], 'config-dir'       , "specify the configuration directory (default: '~/.nsmake')"                               , "path"    );
         p.add_argument( [], [], 'inotify'          , 'if -w or --watch, watch using inotify or equivalent (unsafe but consumes less ressources)', 'boolean' );
         p.add_argument( [], [], 'watch-delay'      , 'if -w or --watch and method==polling, delay between tests, in ms'                                     );
@@ -206,11 +207,15 @@ class ParseArgvAndBuildMission {
             return;
 
         // no watch => say that we're done, return
-        if ( ! this.env.args.watch ) {
+        if ( ! this.env.args.watch && ! this.env.args.watch_all ) {
             this.send_end( err ? 1 : 0 );
             this.env.com.active = false;
             return;
         }
+
+        //
+        if ( this.env.args.watch_all )
+            return setTimeout( () => this._launch(), this.env.args.watch_delay || 0.5 );
 
         // else (watch mode), update file_dependencies
         for( const cn of cns )
