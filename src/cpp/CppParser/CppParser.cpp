@@ -656,7 +656,6 @@ void CppParser::read_rules() {
     Json::Value data;
     Json::Reader reader;
     reader.parse( task->read_file_sync( task->children[ 1 ].outputs[ 0 ] ), data );
-
     for( Json::Value &item : data ) {
         if ( item[ "data" ].isNull() )
             continue;

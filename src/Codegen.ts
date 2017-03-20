@@ -28,7 +28,7 @@ class Codegen extends Task {
         for( let tok of res.tokens ) {
             switch ( tok.type ) {
                 case "Target":
-                    fts.push( path.resolve( args.cwd, tok.name.startsWith( "#" ) ? path.resolve( __dirname, "..", "..", "rules", "gen", tok.name.slice( 1 ) ) : tok.name ) );
+                    fts.push( path.resolve( args.cwd, tok.name.startsWith( "#" ) ? path.resolve( __dirname, "..", "rules", "gen", tok.name.slice( 1 ) ) : tok.name ) );
                     break;
                 case "SubExpr":
                     nbd.push( "Codegen" );

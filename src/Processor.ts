@@ -458,7 +458,7 @@ class Processor {
     }
 
     _launch_waiting_cn_if_possible() {
-        while ( this.waiting_cns.length && this.services.filter( s => s.status == "active" ).length < this.jobs ) {
+        while ( this.waiting_cns.length && this.services.filter( s => s.status == "active" ).length + this.nb_warming_up_services < this.jobs ) {
             let item = this.waiting_cns.shift();
             this._launch_initialized( item.env, item.cn );
         }
@@ -939,7 +939,7 @@ class Processor {
     _check_prerequ( com: CommunicationEnvironment, cn: CompilationNode, req: string, cb: ( err: boolean ) => void ) {
         // try to find prerequ
         let trials = [
-            path.resolve( __dirname, "..", "..", "rules", "prerequ", req + ".yaml" ),
+            path.resolve( __dirname, "..", "rules", "prerequ", req + ".yaml" ),
             path.resolve( com.cwd, "nsmake", "rules", "prerequ", req + ".yaml" ),
         ];
         async.forEachSeries( trials, ( trial, cbt ) => {

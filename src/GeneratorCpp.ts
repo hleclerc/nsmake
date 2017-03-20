@@ -172,7 +172,7 @@ class GeneratorCpp extends Generator {
         return this.env.New( "ConcatYamlToJson", [], {
             directories: [
                 path.resolve( this.env.cwd, "nsmake", "rules", "cpp" ),
-                path.resolve( __dirname, "..", "..", "rules", "cpp" ),
+                path.resolve( __dirname, "..", "rules", "cpp" ),
             ]
         } as ConcatYamlToJsonArgs );
     }

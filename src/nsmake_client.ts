@@ -52,7 +52,7 @@ function start_server( nsmake_dir: string, fifo_file: string, cb_ready: () => vo
         // we remove info_file because presence will be used to wait for the server to be started
         require( 'rimraf' )( info_file, err => {
             // start a new server "--trace-deprecation", "--trace-warnings", "--debug=7000", 
-            const child = child_process.spawn( process.argv[ 0 ], [ `${ __dirname }/nsmake_server.js`, nsmake_dir, fifo_file, info_file ], {
+            const child = child_process.spawn( process.argv[ 0 ], [ "--debug=7016", `${ __dirname }/nsmake_server.js`, nsmake_dir, fifo_file, info_file ], {
                 detached: true,
                 stdio   : [ 'ignore', fs.openSync( log_file, 'a' ), fs.openSync( log_file, 'a' ) ],
                 cwd     : path.dirname( __dirname ) // notably to find node_modules for libraries (as babel) with dynamic loading
