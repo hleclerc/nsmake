@@ -48,6 +48,7 @@ class ExeDataJsParser {
     define               = new Array<string>();
     needed_css           = new Array<string>();
     aliases              = new Array<{key:string,val:string}>();
+    mission_keys         = new Array<{key:string,val:string}>();
     js_content_is_new    = false;                                           /** if JsParser has modified the original js content */
     pos_sharp_sourcemaps = new Array<Pss>();
     sourcemap            = "";
@@ -417,6 +418,9 @@ class JsParser extends TaskFiber {
                         key: path.resolve( path.dirname( orig_name ), spl[ nspl[ 1 ] ] ),
                         val: path.resolve( path.dirname( orig_name ), cf( 2 ) )
                     } );
+                    break;
+                case "mission_key":
+                    exe_data.mission_keys.push( { key: spl[ nspl[ 1 ] ], val: cf( 2 ) } );
                     break;
                 case "trans":
                     trans_list.push( { prog: path.resolve( path.dirname( orig_name ), spl[ nspl[ 1 ] ] ), args: cf( 2 ) } );

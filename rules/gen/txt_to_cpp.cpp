@@ -1,4 +1,5 @@
 #include "Hpipe/Stream.h"
+#include <iostream>
 #include <fstream>
 using namespace std;
 
@@ -6,7 +7,7 @@ int usage( const char *prg, const char *msg, int res ) {
     if ( msg )
         std::cerr << msg << std::endl;
     std::cerr << "Usage:" << std::endl;
-    std::cerr << "  " << prg << " output_file input_file cpp_var_name" << std::endl;
+    std::cerr << "  " << prg << " cpp_var_name input_file" << std::endl;
     return res;
 }
 
@@ -15,8 +16,10 @@ int main( int argc, char **argv ) {
         return usage( argv[ 0 ], "nb args", 1 );
     // std::ofstream fo( argv[ 1 ] );
     std::ifstream fi( argv[ 1 ] );
-    if ( ! fi )
+    if ( ! fi ) {
+        std::cerr << "Impossible to open file '" << argv[ 1 ] << "'" << std::endl;
         return 2;
+    }
 
     std::cout << "char " << argv[ 2 ] << "[] = {";
     for( int i = 0; ; ++i ) {

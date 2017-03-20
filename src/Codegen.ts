@@ -39,6 +39,10 @@ class Codegen extends Task {
         async.map( fts, ( target, cb_fts ) => this.get_filtered_target_signature( target, args.cwd, cb_fts ), ( err: boolean, fts_sgns: Array<string> ) => {
             if ( err )
                 return done( err );
+            if ( fts_sgns.findIndex( x => ! x ) >= 0 ) {
+                fts_sgns.forEach( ( sgn, ind ) => { if ( ! sgn ) this.error( `Not found how to read or make '${ fts[ ind ] }'` ); } );
+                return done( true );
+            }
             async.map( nbd, ( build_file, cb_nbd ) => this.new_build_file( null, null, null, cb_nbd ), ( err: boolean, nbd_names: Array<string> ) => {
                 if ( err )
                     return done( err );

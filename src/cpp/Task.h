@@ -40,6 +40,7 @@ public:
     bool               run_install_cmd                    ( std::string cwd, std::string cmd, std::vector<std::string> prerequ = {} );         ///< return true if error
     Pbs                run_yaml_install_cmd               ( std::string cwd, Json::Value cmd, Json::Value system_info, bool assume_has_not );  ///< return true if error
     void               register_aliases                   ( const std::vector<std::pair<std::string,std::string>> &aliases, std::string cur_dir ); ///<
+    void               register_mission_key               ( const std::string &key, const std::string &val );                                  ///<
     std::string        nsmake_cmd                         ( const std::vector<std::string> &args, const std::string &cwd );                    ///<
     std::string        nsmake_run                         ( const std::vector<std::string> &args, const std::string &cwd );                    ///<
     CnData             run_mission_node                   ( const Json::Value &args, const std::vector<std::string> &signatures );             ///< in args, stuff which is described as a number whereas a string would be expected means that the string is the output of signature[ the number ]

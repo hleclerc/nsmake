@@ -9,6 +9,7 @@ gms.add_module( "TypescriptCompiler"   , require( "./TypescriptCompiler"     ).d
 gms.add_module( "ConcatYamlToJson"     , require( "./ConcatYamlToJson"       ).default );
 gms.add_module( "BaseCompilerInfo"     , require( "./BaseCompilerInfo"       ).default );
 gms.add_module( "SassCompiler"         , require( "./SassCompiler"           ).default );
+gms.add_module( "MissionOutput"        , require( "./MissionOutput"          ).default );
 gms.add_module( "MissionMaker"         , require( "./MissionMaker"           ).default );
 gms.add_module( "JsDepFactory"         , require( "./JsDepFactory"           ).default );
 gms.add_module( "CheckPrerequ"         , require( "./CheckPrerequ"           ).default );

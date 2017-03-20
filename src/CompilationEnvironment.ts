@@ -9,6 +9,7 @@ import * as async               from 'async'
 import * as path                from 'path'        
         
 import GeneratorCodegen         from "./GeneratorCodegen";
+import GeneratorMission         from "./GeneratorMission";
 import GeneratorCpp             from "./GeneratorCpp";
 import GeneratorSh              from "./GeneratorSh";
 import GeneratorPy              from "./GeneratorPy";
@@ -38,6 +39,7 @@ class CompilationEnvironment {
         
         // add the default generators
         this.add_generator( GeneratorCodegen );
+        this.add_generator( GeneratorMission );
         this.add_generator( GeneratorCpp     );
         this.add_generator( GeneratorPy      );
         this.add_generator( GeneratorSh      );
@@ -155,6 +157,16 @@ class CompilationEnvironment {
     }
 
     /** */
+    register_mission_key( cn: CompilationNode, key: string, val: string ) {        
+        const old = this.mission_keys.get( key );
+        if ( old ) {
+            if ( old != val )
+                this.com.error( cn, `Mission key '${ key }' is associated twice, with different values ('${ old }' and '${ val }')` );
+        } else
+            this.mission_keys.set( key, val );
+    }
+
+    /** */
     append_to_env_var( env_var: string, value: any ) {
         if ( typeof this.args[ env_var ] == "undefined" )
             this.args[ env_var ] = [];
@@ -171,17 +183,18 @@ class CompilationEnvironment {
         if ( this.args[ name ] ) return this.args[ name ];
         return this.parent ? this.parent.arg_rec( name, default_value ) : default_value;
     }
-
-    com        : CommunicationEnvironment; /** client link */
-    cwd        : string;                   /** current working directory */
-    generators = new Array<Generator>();
-    gcn_funcs  = new Array<GcnItem>();
-
-    args       : any;                      /** result of argument parsing */
-    cns        : Array<CompilationNode>;   /** */
-    parent     : CompilationEnvironment;   /** */
-    plugins    : CompilationPlugins;       /** */
-
-    aliases    = new Map<string,string>(); /** as in `nsmake alias visible_filename internal_name_used` */ 
+  
+    com          : CommunicationEnvironment; /** client link */
+    cwd          : string;                   /** current working directory */
+    generators   = new Array<Generator>();
+    gcn_funcs    = new Array<GcnItem>();
+  
+    args         : any;                      /** result of argument parsing */
+    cns          : Array<CompilationNode>;   /** */
+    parent       : CompilationEnvironment;   /** */
+    plugins      : CompilationPlugins;       /** */
+  
+    aliases      = new Map<string,string>(); /** as in `nsmake alias visible_filename internal_name_used` */ 
+    mission_keys = new Map<string,string>(); /** as in `nsmake alias visible_filename internal_name_used` */ 
 } 
 

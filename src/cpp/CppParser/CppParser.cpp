@@ -225,6 +225,11 @@ void CppParser::_nsmake( const char *b, const char *e, Read *read ) {
         task->register_aliases( { std::make_pair( spl[ nspl[ 1 ] ], cf( 2 ) ) }, read->dir );
         return;
     }
+    if ( spl[ 0 ] == "mission_key" ) {
+        if ( nspl.size() < 3 ) throw "'//// nsmake mission_key' is supposed to be followed by at least 2 arguments (key and value)";
+        task->register_mission_key( spl[ nspl[ 1 ] ], cf( 2 ) );
+        return;
+    }
     if ( spl[ 0 ] == "inc_path" ) {
         if ( nspl.size() < 2 ) throw "'//// nsmake inc_path' is supposed to be followed by 1 argument";
         if ( glob ) task->append_to_env_var( "include_path", cf( 1 ) );

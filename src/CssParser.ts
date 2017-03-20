@@ -37,6 +37,7 @@ class ExeDataCssParser {
     urls                 = new Array<Url>();
     sourcemap            = "";
     aliases              = new Array<{key:string,val:string}>();
+    mission_keys         = new Array<{key:string,val:string}>();
     pos_sharp_sourcemaps = new Array<Pss>();
     html_content         = new Array<string>();
     define               = new Array<string>();
@@ -165,7 +166,13 @@ class CssParser extends TaskFiber {
                     exe_data.html_content.push( cf( 1 ) );
                     break;
                 case "alias":
-                    exe_data.aliases.push( { key: path.resolve( path.dirname( orig_name ), spl[ nspl[ 1 ] ] ), val: path.resolve( path.dirname( orig_name ), cf( 2 ) ) } );
+                    this.register_aliases( [ {
+                        key: path.resolve( path.dirname( orig_name ), spl[ nspl[ 1 ] ] ),
+                        val: path.resolve( path.dirname( orig_name ), cf( 2 ) )
+                    } ] );
+                    break;
+                case "mission_key":
+                    this.register_mission_key( spl[ nspl[ 1 ] ], cf( 2 ) );
                     break;
                 case "trans":
                     trans_list.push( { prog: path.resolve( path.dirname( orig_name ), spl[ nspl[ 1 ] ] ), args: cf( 2 ) } );

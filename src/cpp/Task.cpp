@@ -150,6 +150,10 @@ void Task::register_aliases( const std::vector<std::pair<std::string,std::string
     SEND( "register_aliases", "lst", aj );
 }
 
+void Task::register_mission_key( const std::string &key, const std::string &val ) {
+    SEND( "register_mission_key", "key", key, "val", val );
+}
+
 std::string Task::make_signature( std::string type, std::vector<std::string> children_signatures, Json::Value args ) {
     Json::Value chv( Json::arrayValue );
     for( std::string sgn : children_signatures )

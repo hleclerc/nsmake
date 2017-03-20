@@ -663,6 +663,9 @@ class Processor {
             case "register_aliases":
                 return service.env.register_aliases( service.cn, cmd.args.lst );
 
+            case "register_mission_key":
+                return service.env.register_mission_key( service.cn, cmd.args.key, cmd.args.val );
+
             case "append_to_env_var":
                 return service.env.append_to_env_var( cmd.args.env_var, cmd.args.value );
 

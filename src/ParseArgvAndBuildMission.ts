@@ -56,11 +56,14 @@ class ParseArgvAndBuildMission {
     
     /** */
     send_end( code: string | number ): void {
-        if ( typeof code == "string" ) {
-            this.send_err( code );
-            return this.send_end( 1 );
+        try {
+            if ( typeof code == "string" ) {
+                this.send_err( code );
+                return this.send_end( 1 );
+            }
+            this.c.end( `X ${ code.toString() }\n` );
+        } catch( e ) {
         }
-        this.c.end( `X ${ code.toString() }\n` );
     }
 
     /** */

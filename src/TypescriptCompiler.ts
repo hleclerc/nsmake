@@ -291,6 +291,9 @@ class TypescriptCompiler extends TaskFiber {
                         val: path.resolve( path.dirname( orig_name ), cf( 2 ) )
                     } ] );
                     break;
+                case "mission_key":
+                    this.register_mission_key( spl[ nspl[ 1 ] ], cf( 2 ) );
+                    break;
                 case "define":
                     if ( global ) {
                         if ( nspl.length == 1 ) {

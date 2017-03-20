@@ -170,6 +170,11 @@ abstract class Task {
     }
 
     /** */
+    register_mission_key( key: string, val: string ): void  {
+        process.send( JSON.stringify( { action: "register_mission_key", args: { key, val } } ) + "\n" );
+    }
+
+    /** */
     append_to_env_var( env_var: string, value: string ): void  {
         process.send( JSON.stringify( { action: "append_to_env_var", args: { env_var, value } } ) + "\n" );
     }
