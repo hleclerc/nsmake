@@ -43,7 +43,7 @@ class Codegen extends Task {
                 fts_sgns.forEach( ( sgn, ind ) => { if ( ! sgn ) this.error( `Not found how to read or make '${ fts[ ind ] }'` ); } );
                 return done( true );
             }
-            async.map( nbd, ( build_file, cb_nbd ) => this.new_build_file( null, null, null, cb_nbd ), ( err: boolean, nbd_names: Array<string> ) => {
+            async.map( nbd, ( build_file, cb_nbd ) => this.new_build_file( "", "", "", cb_nbd ), ( err: boolean, nbd_names: Array<string> ) => {
                 if ( err )
                     return done( err );
                 //

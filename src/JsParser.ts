@@ -248,7 +248,7 @@ class JsParser extends TaskFiber {
         }
         
         // get requires, accept, ...
-        if ( is_a_node_module == false ) {
+        if ( is_a_node_module == false || args.js_env.startsWith( "nodejs" ) == false ) {
             try {
                 babel.transform( sm.src_content, {
                     plugins   : [ parser( this, exe_data, args.js_env ) ],

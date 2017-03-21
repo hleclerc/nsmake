@@ -12,8 +12,6 @@ class MissionOutput extends Task {
                 if ( err )
                     return done( err );
                 this.outputs = [ res.outputs[ args.ind ] ];
-                this.note( `res.outputs: ${ JSON.stringify( res.outputs ) }` );
-                this.note( `this.outputs: ${ this.outputs }` );
                 done( false );
             } );
         } );

@@ -45,6 +45,8 @@ interface ArgsJsDepFactory {
     pos_js_header      : number;        /** pos of JsHeader in children */
     output             : Array<string>;
     mission            : string;
+    single_page        : boolean;
+    no_dist            : boolean;
     sm_line            : string;
     dist_dir           : string;
     cwd                : string;
@@ -256,7 +258,7 @@ class JsDepFactory extends TaskFiber {
                     if ( path.extname( cn.outputs[ 0 ] ) == ".css" ) {
                         pu( needed_css, cn.signature );
                     } else if ( ! this.dist_corr.has( cn.signature ) ) {
-                        const ext_name = this.new_build_file_sync( cn.exe_data.orig_name || cn.outputs[ 0 ], path.extname( cn.outputs[ 0 ] ), args.dist_dir );
+                        const ext_name = this.new_build_file_sync( cn.exe_data.orig_name || cn.outputs[ 0 ], path.extname( cn.outputs[ 0 ] ), args.no_dist ? "" : args.dist_dir );
                         this.dist_corr.set( cn.signature, ext_name );
                         this.note( `Emission of '${ ext_name }'` );
                         this.write_file_sync( ext_name, this.read_file_sync( cn.outputs[ 0 ] ) );
@@ -279,15 +281,15 @@ class JsDepFactory extends TaskFiber {
     _make_concat( args: ArgsJsDepFactory ) {
         //
         if ( ! this._js_name )
-            this._js_name = this.new_build_file_sync( this.ep_js_parser.exe_data.orig_name, ".js", args.dist_dir );
+            this._js_name = this.new_build_file_sync( this.ep_js_parser.exe_data.orig_name, ".js", args.no_dist ? "" : args.dist_dir );
         else
             this.generated.push( this._js_name );
         this.outputs = [ this._js_name ];
 
-        const map_name = this.new_build_file_sync( this._js_name, ".js.map", args.dist_dir );
+        const map_name = this.new_build_file_sync( this._js_name, ".js.map", args.no_dist ? "" : args.dist_dir );
         this.generated.push( map_name );
 
-        const manifest_name = this.new_build_file_sync( this._js_name, ".js.manifest", args.dist_dir );
+        const manifest_name = this.new_build_file_sync( this._js_name, ".js.manifest", args.no_dist ? "" : args.dist_dir );
         this.generated.push( manifest_name );
 
         // load the content (sources and sourcemaps), set sourcemap, update change directory of output if necessary, store mtime
@@ -298,7 +300,7 @@ class JsDepFactory extends TaskFiber {
                 this._make_sourcemap_from_js_content( js.content, js.outputs[ 0 ] );
 
             // if hot_replacement and outputs is not in dist, copy the file to have it in the expected directory
-            if ( args.hot_replacement && ! path.normalize( js.outputs[ 0 ] ).startsWith( args.dist_dir ) ) {
+            if ( args.hot_replacement && ! args.no_dist && ! path.normalize( js.outputs[ 0 ] ).startsWith( args.dist_dir ) ) {
                 js.outputs[ 0 ] = this.new_build_file_sync( js.outputs[ 0 ], ".js", args.dist_dir );
                 this.write_file_sync( js.outputs[ 0 ], js.content );
             }
@@ -442,7 +444,7 @@ class JsDepFactory extends TaskFiber {
     _make_css( args: ArgsJsDepFactory ) {
         // get the names in dist_dir
         this.css_parsers.forEach( ( css, sgn ) => {
-            const css_name = this.new_build_file_sync( css.exe_data.orig_name || css.outputs[ 0 ], ".css", args.dist_dir );
+            const css_name = this.new_build_file_sync( css.exe_data.orig_name || css.outputs[ 0 ], ".css", args.no_dist ? "" : args.dist_dir );
             this.dist_corr.set( sgn, css_name );
         } );
 
@@ -472,7 +474,7 @@ class JsDepFactory extends TaskFiber {
                 }
                 this.announcement( `sm.src_content: ${ sm.src_content }` );
             }
-            const map_name = this.new_build_file_sync( out_name, ".css.map", args.dist_dir );
+            const map_name = this.new_build_file_sync( out_name, ".css.map", args.no_dist ? "" : args.dist_dir );
             sm.src_content += `\n/*# sourceMappingURL=${ this.rel_with_dot( path.dirname( out_name ), map_name ) } */`;
 
             this.note( `Emission of '${ out_name }'` );
@@ -484,7 +486,7 @@ class JsDepFactory extends TaskFiber {
 
     _make_html( args: ArgsJsDepFactory ) {
         if ( ! this._html_name )
-            this._html_name = this.new_build_file_sync( this.ep_js_parser.exe_data.orig_name, ".html", args.dist_dir );
+            this._html_name = this.new_build_file_sync( this.ep_js_parser.exe_data.orig_name, ".html", args.no_dist ? "" : args.dist_dir );
         else
             this.generated.push( this._html_name );
         this.outputs.unshift( this._html_name );
@@ -507,24 +509,50 @@ class JsDepFactory extends TaskFiber {
         let scripts = '';
         for( const url_ext_lib of ( this.exe_data as ResJsDepFactory ).url_ext_libs )
             scripts += `  <script type='text/javascript' src='${ url_ext_lib }' charset='utf-8'></script>\n`;
-        scripts += `  <script type='text/javascript' src='${ this.rel_with_dot( path.dirname( this._html_name ), this._js_name ) }' charset='utf-8'></script>`;
+
+        if ( args.single_page ) {
+            this.note( `this._js_name: ${ JSON.stringify( this._js_name ) }` );
+            scripts += `  <script type='text/javascript' charset='utf-8'>\n${ this.read_file_sync( this._js_name ) }\n  </script>`;
+        } else
+            scripts += `  <script type='text/javascript' src='${ this.rel_with_dot( path.dirname( this._html_name ), this._js_name ) }' charset='utf-8'></script>`;
 
         // head
         let lst_head = [];
-        for( const js of this.js_parsers.values() )
-            for( const css_sgn of js.exe_data.needed_css )
-                pu( lst_head, `  <link rel="stylesheet" type="text/css" href=${ JSON.stringify( this.rel_with_dot( path.dirname( this._html_name ), this.dist_corr.get( css_sgn ) ) ) }/>\n` );
+        for( const js of this.js_parsers.values() ) {
+            for( const css_sgn of js.exe_data.needed_css ) {
+                if ( args.single_page ) {
+                    pu( lst_head, `  <style>\n${ this.read_file_sync( this.dist_corr.get( css_sgn ) ) }\n  </style>\n` );
+                } else
+                    pu( lst_head, `  <link rel="stylesheet" type="text/css" href=${ JSON.stringify( this.rel_with_dot( path.dirname( this._html_name ), this.dist_corr.get( css_sgn ) ) ) }/>\n` );
+            }
+        }
         let head = lst_head.join( "" );
 
-        // substitutions
-        const new_data = html_template.
-            replace( "$HTML_CONTENT", [ ...this.js_parsers.values() ].map( x => x.exe_data.html_content.map( x => x + "\n" ) ).reduce( ( x, y ) => x.concat( y ) ).join( "" ) ).
-            replace( "$SCRIPTS"     , scripts ).
-            replace( "$HEAD"        , head );
+        // substitutions.
+        var lst_subs = new Array<{ ind: number, key: string }>();
+        const add_subs = ( key ) => {
+            const ind = html_template.indexOf( key );
+            if ( ind >= 0 )
+                lst_subs.push( { ind, key } );
+        };
+        add_subs( "$HTML_CONTENT" );
+        add_subs( "$SCRIPTS"      );
+        add_subs( "$HEAD"         );
+        lst_subs.sort( ( a, b ) => b.ind - a.ind );
+this.note( `lst_subs: ${ JSON.stringify( lst_subs ) }` );
+
+        const repl = ( str: string, subs: { ind: number, key: string }, val: string ) => str.substr( 0, subs.ind ) + val + str.substr( subs.ind + subs.key.length );
+        for( const subs of lst_subs ) {
+            switch( subs.key ) {
+                case "$HTML_CONTENT": html_template = repl( html_template, subs, [ ...this.js_parsers.values() ].map( x => x.exe_data.html_content.map( x => x + "\n" ) ).reduce( ( x, y ) => x.concat( y ) ).join( "" ) ); break;
+                case "$SCRIPTS"     : html_template = repl( html_template, subs, scripts ); break;
+                case "$HEAD"        : html_template = repl( html_template, subs, head ); break;
+            }
+        }
 
         // output
         this.note( `Emission of '${ this._html_name }'` );
-        this.write_file_sync( this._html_name, new_data );
+        this.write_file_sync( this._html_name, html_template );
     }
 
     /** */

@@ -23,7 +23,7 @@ int main( int argc, char **argv ) {
 
     std::cout << "char " << argv[ 2 ] << "[] = {";
     for( int i = 0; ; ++i ) {
-        int c = fi.get();
+        char c = fi.get();
         if ( fi.eof() )
             c = 0;
 
@@ -31,7 +31,7 @@ int main( int argc, char **argv ) {
             std::cout << ", ";
         if ( i % 16 == 0 )
             std::cout << "\n    ";
-        std::cout << c;
+        std::cout << (int)c;
 
         if ( fi.eof() ) {
             if ( i )

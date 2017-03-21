@@ -48,24 +48,26 @@ class GeneratorJs extends Generator {
         p.set_mission_description( 'mocha', [ 'js' ], 'Run tests using mocha (with transpilation, concatenation, ... managed by nsmake)' );
 
         const missions = [ 'run', 'exe', 'lib', 'html', 'mocha' ];
-        p.add_argument( missions, [ 'js' ], 'js-env'               , 'set javascript target environment (nodejs|browser)'                             , "string"  );
-        p.add_argument( missions, [ 'js' ], 'target-browsers'      , 'shortcut to set target browser(s) in babel-preset-env, list of strings separated ' +
+        p.add_argument( missions  , [ 'js' ], 'js-env'               , 'set javascript target environment (nodejs|browser)'                             , "string"  );
+        p.add_argument( missions  , [ 'js' ], 'target-browsers'      , 'shortcut to set target browser(s) in babel-preset-env, list of strings separated ' +
                                                                      'by commas. Ex of value: "last 2 versions, safari >= 7"'                         , "string*" );
-        p.add_argument( missions, [ 'js' ], 'babel-env-arguments'  , 'set arguments for babel-preset-env in YAML format without the surrounding braces ' +
+        p.add_argument( missions  , [ 'js' ], 'babel-env-arguments'  , 'set arguments for babel-preset-env in YAML format without the surrounding braces ' +
                                                                      '(@see https://github.com/babel/babel-preset-env). ' + 
                                                                      'Ex of value: "targets:{browsers:[\'last 2 versions\']}"'                        , "string"  );
-        p.add_argument( missions, [ 'js' ], 'sm-line'              , 'line added for sourcemap support if target is nodejs'                           , "string"  );
-        p.add_argument( missions, [ 'js' ], 'concat'               , 'make concatened versions (remove requires)'                                     , "boolean" );
-        p.add_argument( missions, [ 'js' ], 'min'                  , 'make minified versions'                                                         , "boolean" );
-        p.add_argument( missions, [ 'js' ], 'browser'              , 'specify browser(s) to launch html pages (use "," to specify different choices)' , "string*" );
-        p.add_argument( missions, [ 'js' ], 'hot-replacement'      , 'say that hot replacement is required'                                           , "boolean" );
-        p.add_argument( missions, [ 'js' ], 'hot-replacement-type' , 'specify hot replacement type ("Hmr" by default, compatible with webpack)'       , "string"  );
-        p.add_argument( missions, [ 'js' ], 'o,output'             , 'set name(s) of the output file(s), separated by a comma if several are expected', 'path*'   );
-        p.add_argument( missions, [ 'js' ], 'js-header'            , 'header used for concatened javascript', 'cn'                                                );
-        p.add_argument( missions, [ 'js' ], 'D,define'             , 'add a define (like with the C preprocessor)'                                    , 'string*' );
-        p.add_argument( missions, [ 'js' ], 'ext-lib'              , 'Ex: "react https://unpkg.com/react@15/dist/react.js React" says that require `react` ' +
+        p.add_argument( missions  , [ 'js' ], 'sm-line'              , 'line added for sourcemap support if target is nodejs'                           , "string"  );
+        p.add_argument( missions  , [ 'js' ], 'concat'               , 'make concatened versions (remove requires)'                                     , "boolean" );
+        p.add_argument( missions  , [ 'js' ], 'min'                  , 'make minified versions'                                                         , "boolean" );
+        p.add_argument( missions  , [ 'js' ], 'browser'              , 'specify browser(s) to launch html pages (use "," to specify different choices)' , "string*" );
+        p.add_argument( [ "html" ], [ 'js' ], 'single-page'          , 'put everything in the resulting .html page'                                     , "boolean" );
+        p.add_argument( [ "html" ], [ 'js' ], 'no-dist'              , 'do not save the output in a dist-like directory'                                , "boolean" );
+        p.add_argument( missions  , [ 'js' ], 'hot-replacement'      , 'say that hot replacement is required'                                           , "boolean" );
+        p.add_argument( missions  , [ 'js' ], 'hot-replacement-type' , 'specify hot replacement type ("Hmr" by default, compatible with webpack)'       , "string"  );
+        p.add_argument( missions  , [ 'js' ], 'o,output'             , 'set name(s) of the output file(s), separated by a comma if several are expected', 'path*'   );
+        p.add_argument( missions  , [ 'js' ], 'js-header'            , 'header used for concatened javascript', 'cn'                                                );
+        p.add_argument( missions  , [ 'js' ], 'D,define'             , 'add a define (like with the C preprocessor)'                                    , 'string*' );
+        p.add_argument( missions  , [ 'js' ], 'ext-lib'              , 'Ex: "react https://unpkg.com/react@15/dist/react.js React" says that require `react` ' +
                                                                      'will be replaced by the variable `React` found in the data of the given url, '  , 'string*' );
-        p.add_argument( missions, [ 'js' ], 'no-implicit-any'      , 'prohibit implicit any(s) for typescript compiler'                               , 'boolean' );
+        p.add_argument( missions  , [ 'js' ], 'no-implicit-any'      , 'prohibit implicit any(s) for typescript compiler'                               , 'boolean' );
 
         // html specifics
         p.add_positional_argument( [ 'html' ], 'entry_point', 'Entry point (a javascript file, or something that can be transpiled to javascript)', 'cn' );
@@ -166,6 +168,8 @@ class GeneratorJs extends Generator {
                     js_env             : js_env( args ),
                     output             : args.output || [],
                     mission            : args.mission,
+                    single_page        : args.single_page || false,
+                    no_dist            : args.no_dist || false,
                     sm_line            : sm_line( args ),
                     ext_libs           : args.ext_lib || [],
                     dist_dir           : this.env.arg_rec( "dist_dir" ) || path.resolve( this.env.cwd, "dist" ),
