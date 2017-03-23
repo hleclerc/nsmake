@@ -511,7 +511,6 @@ class JsDepFactory extends TaskFiber {
             scripts += `  <script type='text/javascript' src='${ url_ext_lib }' charset='utf-8'></script>\n`;
 
         if ( args.single_page ) {
-            this.note( `this._js_name: ${ JSON.stringify( this._js_name ) }` );
             scripts += `  <script type='text/javascript' charset='utf-8'>\n${ this.read_file_sync( this._js_name ) }\n  </script>`;
         } else
             scripts += `  <script type='text/javascript' src='${ this.rel_with_dot( path.dirname( this._html_name ), this._js_name ) }' charset='utf-8'></script>`;
@@ -539,7 +538,6 @@ class JsDepFactory extends TaskFiber {
         add_subs( "$SCRIPTS"      );
         add_subs( "$HEAD"         );
         lst_subs.sort( ( a, b ) => b.ind - a.ind );
-this.note( `lst_subs: ${ JSON.stringify( lst_subs ) }` );
 
         const repl = ( str: string, subs: { ind: number, key: string }, val: string ) => str.substr( 0, subs.ind ) + val + str.substr( subs.ind + subs.key.length );
         for( const subs of lst_subs ) {
