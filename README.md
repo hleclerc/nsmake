@@ -1,10 +1,10 @@
 # What is Nsmake ?
 
-Nsmake stands for "No Script Make". It is a *fast* and *extensible* build system, designed to dramatically *reduce redundancies, trivial and tangled information* in build configurations, while guaranteeing far better *correctness*, even for complex code generation schemes.
+Nsmake stands for "No Script Make". It is a *fast* and *extensible* build system, designed to dramatically *reduce redundancies, trivial and tangled information* in build configurations, while guaranteeing *correctness*, even for complex code generation schemes.
 
 Nsmake takes responsibility to *ensure the link between the tools*. In most cases, it allows to get rid of the usual large number of configuration files (and thus boilerplates...), and most sources of discrepancies in build configurations.
 
-Speed comes from the use of a server, with micro-services that can be written in any language.
+Speed comes from the use of a server, with micro-services (that can be written in any language).
 
 # Table of contents:
 

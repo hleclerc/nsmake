@@ -329,7 +329,7 @@ class GeneratorJs extends Generator {
                 env.com.proc.install_cmd( env.com, cn, path.dirname( node_modules_dir ), [ "npm", 'install', typescript ? `@types/` + base : base ], [], err => {
                     if ( err )
                         return env.com.error( cn, `Error: installation of '${ base }' failed.` ), require_cb( null, '' );
-                    test_from( [ node_modules_dir ], false ); 
+                    test_from( typescript ? [ path.resolve( node_modules_dir, "@types" ), node_modules_dir ] : [ node_modules_dir ], false ); 
                 } );
             };
 
