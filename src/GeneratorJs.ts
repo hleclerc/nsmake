@@ -251,6 +251,8 @@ class GeneratorJs extends Generator {
         async.map( requires, ( str: string, require_cb: ( err: boolean, sgn: string ) => void ) => {
             if ( ! str )
                 return require_cb( null, "" );
+            const ind_dtr = str.indexOf( '/' );
+            const dtr = ind_dtr >= 0 && str[ 0 ] != '.' ? str.slice( 0, ind_dtr ) : str;
 
             // it is an ext_lib ?
             if ( js_env != "nodejs" ) {
@@ -275,10 +277,18 @@ class GeneratorJs extends Generator {
                 } else {
                     for( let ext_trial of exts )
                         trials.push({ name: path.resolve( dir[ 0 ], str + ext_trial ), type: 0 }); // foo.js, foo.jsx...
-                    trials.push({ name: path.resolve( dir[ 0 ], str, "package.json" ), type: 1 }); // foo/package.json
+                    if ( typescript == false || dir.length == 2 )
+                        trials.push({ name: path.resolve( dir[ 0 ], str, "package.json" ), type: 1 }); // foo/package.json
                     for( let ext_trial of exts )
                         trials.push({ name: path.resolve( dir[ 0 ], str, "index" + ext_trial ), type: 0 }); // foo/index.js, foo/index.jsx...
+                    if ( typescript && dtr != str ) {
+                        if ( dir.length == 2 )
+                            trials.push({ name: path.resolve( dir[ 0 ], dtr, "package.json" ), type: 1 }); // mod_name_of_foo/package.json
+                        for( let ext_trial of exts )
+                            trials.push({ name: path.resolve( dir[ 0 ], dtr, "index" + ext_trial ), type: 0 }); // mod_name_of_foo/index.ts...
+                    }
                 }
+
                 // we want the signature of the first coming ncn 
                 async.forEachSeries( trials, ( trial, cb_trial ) => {
                     env.get_compilation_node( trial.name, dir[ 0 ], cn.file_dependencies, ncn => {
@@ -297,7 +307,7 @@ class GeneratorJs extends Generator {
                 if ( ! install_allowed )
                     return require_cb( null, '' );
                 //
-                if ( js_env == "nodejs" && GeneratorJs.nodejs_base_modules.indexOf( str ) >= 0 )
+                if ( ( js_env == "nodejs" || typescript ) && GeneratorJs.nodejs_base_modules.indexOf( str ) >= 0 )
                     return require_cb( null, null );
                 //
                 if ( ! node_modules_dir ) {
