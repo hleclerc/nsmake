@@ -359,6 +359,8 @@ class Processor {
         this._is_still_valid( cn, ( still_valid: boolean, msg: string ) => {
             if ( still_valid ) {
                 this._launch_stuff_to_be_re_executed( env, cn );
+                for( const g of env.generators )
+                    g.launch_stuff_to_be_re_executed( cn );
                 this._exec_done_cb( env.com, cn, false );
             } else {
                 if ( env.verbose )

@@ -30,6 +30,10 @@ class Generator {
         err_msg( `Service ${ this.constructor.name } does not have a 'msg_from_service' method (for action ${ action } or not). Service is going to be killed` );
         service.cp.kill();
     }
+
+    /** */
+    launch_stuff_to_be_re_executed( cn: CompilationNode ) {
+    }
     
     env : CompilationEnvironment;
 }

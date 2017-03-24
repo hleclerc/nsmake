@@ -234,7 +234,10 @@ class GeneratorJs extends Generator {
             case "register_ext_lib":
                 if ( ! this.env.args.ext_lib )
                     this.env.args.ext_lib = [];
-                return pu( this.env.args.ext_lib, [ args.name, args.url, args.glob ].join( " " ) );
+                const line = [ args.name, args.url, args.glob ].join( " " );
+                pu( this.env.args.ext_lib, line );
+                pu( service.cn.ext_libs, line );
+                return;
 
             case "get_requires":
                 return async.map( args.lst as Array<{cwd:string,requires:Array<string>}>, ( item: {cwd:string,requires:Array<string>}, cb: ( err: boolean, signatures: Array<string> ) => void ) => {
@@ -245,6 +248,11 @@ class GeneratorJs extends Generator {
                 err_msg( `There's no action ${ action } is GeneratorJs. => Service is going to be killed.` );
                 service.cp.kill();
         }
+    }
+
+    launch_stuff_to_be_re_executed( cn: CompilationNode ) {
+        for( const line of cn.ext_libs )
+            pu( this.env.args.ext_lib, line );
     }
 
     _find_requires( env: CompilationEnvironment, cn: CompilationNode, cwd: string, js_env: string, requires: Array<string>, typescript: boolean, cb_find_require: ( err: boolean, signatures: Array<string> ) => void ) {

@@ -121,6 +121,7 @@ class CompilationNode {
     generated_mtimes           = new Array<number>();                   /** modification time of outputs when done */
     file_dependencies          = new FileDependencies;
     push_unique_in_global_arg  = new Array<{ arg: string, val: string }>();
+    ext_libs                   = new Array<string>();
     cum_time                   = 0.0;                                   /** time spent for execution of this (excluding time spent for the children) */
 
     // for time estimation
