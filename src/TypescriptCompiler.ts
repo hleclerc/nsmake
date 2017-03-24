@@ -62,7 +62,7 @@ class TypescriptCompiler extends TaskFiber {
         let sourcemaps = new Map<string,SourceMap>();
 
         // compiler_host: set of function to replace system call by call to get_compilation_node, etc...
-        let compiler_host = typescript.createCompilerHost( {} );
+        let compiler_host = typescript.createCompilerHost( {} ), to_add = new Array<string>();
 
         compiler_host.getSourceFile = ( fileName: string, languageVersion, onError?: ( message: string ) => void ) => {
             let cn = this.get_filtered_target_sync( fileName, path.dirname( fileName ) );
@@ -80,7 +80,7 @@ class TypescriptCompiler extends TaskFiber {
                     }
                 }
             }
-            return cn ? typescript.createSourceFile( fileName, this.preprocessing( args, cn.name, cn.exe_data.orig_name || fileName ), languageVersion ) : undefined;
+            return cn ? typescript.createSourceFile( fileName, this.preprocessing( args, cn.name, cn.exe_data.orig_name || fileName, fileName == ts_name ? to_add : [] ), languageVersion ) : undefined;
         };
 
         compiler_host.fileExists = ( fileName: string ): boolean => {
@@ -101,13 +101,13 @@ class TypescriptCompiler extends TaskFiber {
 
         //
         let compiler_options = {
-            noEmitOnError: true,
+            noEmitOnError         : true,
             experimentalDecorators: true,
-            noImplicitAny: args.no_implicit_any,
-            target       : args.js_env.startsWith( "nodejs" ) && orig_name.split( path.sep ).indexOf( "node_modules" ) < 0 ? typescript.ScriptTarget.Latest : typescript.ScriptTarget.ES2015,
-            module       : typescript.ModuleKind.CommonJS,
-            jsx          : typescript.JsxEmit.React,
-            sourceMap    : true,
+            noImplicitAny         : args.no_implicit_any,
+            target                : args.js_env.startsWith( "nodejs" ) && orig_name.split( path.sep ).indexOf( "node_modules" ) < 0 ? typescript.ScriptTarget.Latest : typescript.ScriptTarget.ES2015,
+            module                : typescript.ModuleKind.CommonJS,
+            jsx                   : typescript.JsxEmit.React,
+            sourceMap             : true,
         };
 
         //
@@ -135,6 +135,8 @@ class TypescriptCompiler extends TaskFiber {
             map_version[ typescript.ScriptTarget.ES2016 ] = 2016;
             map_version[ typescript.ScriptTarget.ES2017 ] = 2017;
             data += `\n//// nsmake es_version ${ map_version[ compiler_options.target ] || compiler_options.target }\n`;
+            for( const add of to_add )
+                data += "\n" + add;
 
             // save the generated content
             // let new_sourcemap = new SourceMap( data, path.dirname( ts_name ),  );
@@ -183,7 +185,7 @@ class TypescriptCompiler extends TaskFiber {
 
     /** simplified preprocessing: typescript has to be valid also for IDEs... which only have non modified versions of the file.
      *  So, we focus on stuff that could change the requires */
-    preprocessing( args: TypescriptCompilerArgs, fileName: string, orig_name: string ) : string {
+    preprocessing( args: TypescriptCompilerArgs, fileName: string, orig_name: string, to_add: Array<string> ) : string {
         let src_content = this.read_file_sync( fileName ).toString();
 
         // parse
@@ -282,8 +284,11 @@ class TypescriptCompiler extends TaskFiber {
                 case "ext_lib":
                     if ( nspl.length != 4 )
                         this.error( "ext_lib expects exactly 3 arguments (name in requires, url, and name in the global/window space, e.g. '//// nsmake ext_lib react https://unpkg.com/react@15/dist/react.js React')" );
-                    else
+                    else {
                         this.register_ext_lib( spl[ nspl[ 1 ] ], spl[ nspl[ 2 ] ], spl[ nspl[ 3 ] ] );
+                        // the typescript compiler use to removes some comment... so we add it again
+                        to_add.push( "//// nsmake " + c.content );
+                    }
                     break;
                 case "alias":
                     this.register_aliases( [ {

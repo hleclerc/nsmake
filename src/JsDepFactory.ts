@@ -41,22 +41,23 @@ interface ResCssParser {
 
 export
 interface ArgsJsDepFactory {
-    js_env             : string;
-    pos_js_header      : number;        /** pos of JsHeader in children */
-    output             : Array<string>;
-    mission            : string;
-    single_page        : boolean;
-    no_dist            : boolean;
-    sm_line            : string;
-    dist_dir           : string;
-    cwd                : string;
-    concat             : boolean;
-    min                : boolean;
-    hot_replacement    : string;
-    define             : Array<string>; /** NAME(args...)=val or NAME for macros without arguments */
-    ext_libs           : Array<string>; /**  */
-    babel_env_arguments: string;
-    target_browsers    : Array<string>;
+    js_env              : string;
+    pos_js_header       : number;        /** pos of JsHeader in children */
+    output              : Array<string>;
+    mission             : string;
+    single_page         : boolean;
+    no_dist             : boolean;
+    sm_line             : string;
+    dist_dir            : string;
+    cwd                 : string;
+    concat              : boolean;
+    min                 : boolean;
+    hot_replacement     : string;
+    hot_replacement_poll: number;
+    define              : Array<string>; /** NAME(args...)=val or NAME for macros without arguments */
+    ext_libs            : Array<string>; /**  */
+    babel_env_arguments : string;
+    target_browsers     : Array<string>;
 }
 
 export
@@ -99,6 +100,7 @@ class JsDepFactory extends TaskFiber {
                 define             : [ ...args.define, `NSMAKE_JS_ENV_IS_${ args.js_env }` ],
                 babel_env_arguments: args.babel_env_arguments,
                 target_browsers    : args.target_browsers,
+                dist_dir           : args.hot_replacement ? args.dist_dir : null,
             } as ArgsJsParser ) );
             const res_js_parsers = this.get_cns_data_sync( lst ) as Array<ResJsParser>;
             if ( ! res_js_parsers )
@@ -128,6 +130,7 @@ class JsDepFactory extends TaskFiber {
         for( let num_needed_css = 0; num_needed_css < needed_css.length; ) {
             // parse required files in parallel
             const lst = needed_css.slice( num_needed_css ).map( x => this.make_signature( "CssParser", [ x ], {
+                dist_dir: args.hot_replacement ? args.dist_dir : null,
             } as ArgsCssParser ) );
             const res_css_parsers = this.get_cns_data_sync( lst ) as Array<ResCssParser>;
             if ( ! res_css_parsers )
@@ -152,7 +155,7 @@ class JsDepFactory extends TaskFiber {
     /** try to set _js_name and _html_name */
     _get_output_names( outputs: Array<string>, mission: string ): void {
         // look in output extensions
-        let output = outputs.filter( x => {
+        outputs = outputs.filter( x => {
             if ( mission == "html" && [ ".html", ".htm" ].indexOf( path.extname( x ).toLowerCase() ) >= 0 ) {
                 this._html_name = x;
                 return false;
@@ -299,13 +302,14 @@ class JsDepFactory extends TaskFiber {
                 new SourceMap( js.content, path.dirname( js.exe_data.sourcemap ), this.read_file_sync( js.exe_data.sourcemap ).toString() ) : 
                 this._make_sourcemap_from_js_content( js.content, js.outputs[ 0 ] );
 
+            js.mtime = this.stat_sync( js.outputs[ 0 ] ).mtime.getTime();
+
             // if hot_replacement and outputs is not in dist, copy the file to have it in the expected directory
             if ( args.hot_replacement && ! args.no_dist && ! path.normalize( js.outputs[ 0 ] ).startsWith( args.dist_dir ) ) {
                 js.outputs[ 0 ] = this.new_build_file_sync( js.outputs[ 0 ], ".js", args.dist_dir );
+                this.announcement( `Copy of '${ js.signature.slice( 0, 30 ) }...' to '${ js.outputs[ 0 ] }'` );
                 this.write_file_sync( js.outputs[ 0 ], js.content );
             }
-
-            js.mtime = this.stat_sync( js.outputs[ 0 ] ).mtime.getTime();
         }
 
         // how a js parser is reference in the js file
@@ -424,19 +428,23 @@ class JsDepFactory extends TaskFiber {
             };
         }
          
+        if ( args.hot_replacement && args.hot_replacement_poll )
+            sm.src_content += `\nhmr.poll( ${ 1000 * args.hot_replacement_poll } );\n`;
+
         // write result
         this.note( `Emission of '${ this._js_name }'` );
         this.note( `Emission of '${ map_name }'` );
         this.note( `Emission of '${ manifest_name }'` );
         this.write_file_sync( this._js_name, sm.src_content );
         this.write_file_sync( map_name, sm.toString( this._js_name ) );
-        this.write_file_sync( manifest_name, JSON.stringify( manifest ) );
 
         //
         if ( args.mission == 'html' ) {
             this._make_css( args );
             this._make_html( args );
         }
+
+        this.write_file_sync( manifest_name, JSON.stringify( manifest ) );
         return false;
     }
 
@@ -472,7 +480,6 @@ class JsDepFactory extends TaskFiber {
                         sm.remove( ms.data.beg, ms.data.end );
                         break;
                 }
-                this.announcement( `sm.src_content: ${ sm.src_content }` );
             }
             const map_name = this.new_build_file_sync( out_name, ".css.map", args.no_dist ? "" : args.dist_dir );
             sm.src_content += `\n/*# sourceMappingURL=${ this.rel_with_dot( path.dirname( out_name ), map_name ) } */`;

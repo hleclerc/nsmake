@@ -39,6 +39,7 @@ interface ArgsJsParser {
     babel_env_arguments: string;
     target_browsers    : Array<string>,
     define             : Array<string>;
+    dist_dir           : string;
 }
 
 export
@@ -264,10 +265,10 @@ class JsParser extends TaskFiber {
 
         // save js and map files if necessary (if we had changes)
         if ( sm.has_changes ) {
-            const njs = this.new_build_file_sync( orig_name, ".js" );
-            const nsm = this.new_build_file_sync( njs, ".js.map" );
+            const njs = this.new_build_file_sync( orig_name, ".js", args.dist_dir );
+            const nsm = this.new_build_file_sync( njs, ".js.map", args.dist_dir );
             
-            sm.append( `\n//# sourceMappingURL=${ path.relative( path.dirname( njs ), nsm ) }` );
+            sm.append( `\n//# sourceMappingURL=${ path.relative( path.dirname( njs ), nsm ) }\n` );
             this.write_file_sync( nsm, sm.toString( njs ) );
             this.write_file_sync( njs, sm.src_content );
             exe_data.js_content_is_new = true;

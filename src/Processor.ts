@@ -971,13 +971,18 @@ class Processor {
     }
 
     new_build_file( cwd: string, orig: string, ext: string, dist: string, cb: ( err, name ) => void ) {
+        const wodd = ( p: string ) => {
+            const sep = p.split( path.sep );
+            const ind = sep.findIndex( d => d != ".." );
+            return ind >= 0 ? sep.slice( ind ).join( path.sep ) : "";
+        }
+        // orig = /shmurtz/smurf/orig, dist = /shmurtz/dist -> dst = /shmurtz/dist/smurf/orig
         const corr = path.normalize( orig.slice( 0, orig.length - path.extname( orig ).length ) || "tmp" );
         const suff = ext || path.extname( orig );
-        // orig = /shmurtz/smurf/orig, dist = /shmurtz/dist -> dst = /shmurtz/dist/smurf/orig
         const prop = dist ? (
             orig.startsWith( dist ) && orig ? 
                 path.resolve( path.dirname( orig ), path.basename( corr ) ) :
-                path.resolve( dist, orig ? path.relative( cwd, corr ) : corr )
+                path.resolve( dist, orig ? wodd( path.relative( cwd, corr ) ) : corr )
             ) : path.resolve( this.build_dir, path.basename( corr ) );
 
         let mp = new RandNameSuffix;

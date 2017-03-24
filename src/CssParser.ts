@@ -21,6 +21,7 @@ interface ArgsCssParser {
     babel_env_arguments: string;
     target_browsers    : Array<string>,
     define             : Array<string>;
+    dist_dir           : string;
 }
 
 /** Pos sharp sourcemap */
@@ -85,8 +86,8 @@ class CssParser extends TaskFiber {
 
         // save css and map files if necessary (if we had changes)
         if ( sm.has_changes ) {
-            const njs = this.new_build_file_sync( orig_name, ".css" );
-            const nsm = this.new_build_file_sync( njs, ".css.map" );
+            const njs = this.new_build_file_sync( orig_name, ".css", args.dist_dir );
+            const nsm = this.new_build_file_sync( njs, ".css.map", args.dist_dir );
             
             sm.append( `\n//# sourceMappingURL=${ path.relative( path.dirname( njs ), nsm ) }` );
             this.write_file_sync( nsm, sm.toString( njs ) );

@@ -162,7 +162,6 @@ class Hmr {
         for( let id in newHmrManifest.md )
             if ( ! this.buildIds[ id ] || this.buildIds[ id ] != newHmrManifest.md[ id ].build_id )
                 to_load.push( id );
-        
 
         let nb_to_load = to_load.length;
         if ( nb_to_load ) {
@@ -190,11 +189,14 @@ class Hmr {
                         for( let req of newHmrManifest.md[ id ].accepts )
                             lst.push( { b: req.b, e: req.e, t: req.t } );
                         lst.sort( ( a, b ) => b.b - a.b );
-
                         for( let obj of lst ) 
                             txt = txt.substr( 0, obj.b ) + obj.t + txt.substr( obj.e );
-
-                        eval( "this.moduleFuncs[ id ] = function( module, exports, __nsmake_require__ ) { " + txt + "}" );
+                        try {
+                            let func = eval( "function __mod( module, exports, __nsmake_require__ ) {\n" + txt + "\n} __mod;" );
+                            this.moduleFuncs[ id ] = func;
+                        } catch ( e ) {
+                            console.log( "During eval:", e );
+                        }
                     }
 
                     if ( --nb_to_load == 0 )

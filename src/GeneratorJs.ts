@@ -61,6 +61,7 @@ class GeneratorJs extends Generator {
         p.add_argument( [ "html" ], [ 'js' ], 'single-page'          , 'put everything in the resulting .html page'                                     , "boolean" );
         p.add_argument( [ "html" ], [ 'js' ], 'no-dist'              , 'do not save the output in a dist-like directory'                                , "boolean" );
         p.add_argument( missions  , [ 'js' ], 'hot-replacement'      , 'say that hot replacement is required'                                           , "boolean" );
+        p.add_argument( missions  , [ 'js' ], 'hot-replacement-poll' , 'add a poll function in the main js file to check for change (delay in s)'       , "number" );
         p.add_argument( missions  , [ 'js' ], 'hot-replacement-type' , 'specify hot replacement type ("Hmr" by default, compatible with webpack)'       , "string"  );
         p.add_argument( missions  , [ 'js' ], 'o,output'             , 'set name(s) of the output file(s), separated by a comma if several are expected', 'path*'   );
         p.add_argument( missions  , [ 'js' ], 'js-header'            , 'header used for concatened javascript', 'cn'                                                );
@@ -165,21 +166,22 @@ class GeneratorJs extends Generator {
                 }
 
                 return cb( this.env.New( "JsDepFactory", ch, {
-                    js_env             : js_env( args ),
-                    output             : args.output || [],
-                    mission            : args.mission,
-                    single_page        : args.single_page || false,
-                    no_dist            : args.no_dist || false,
-                    sm_line            : sm_line( args ),
-                    ext_libs           : args.ext_lib || [],
-                    dist_dir           : this.env.arg_rec( "dist_dir" ) || path.resolve( this.env.cwd, "dist" ),
-                    cwd                : this.env.cwd,
-                    concat             : concat             ( args ),
-                    min                : min                ( args ),
-                    hot_replacement    : hot_replacement    ( args ),
-                    define             : define             ( args ),
-                    babel_env_arguments: babel_env_arguments( args ),
-                    target_browsers    : target_browsers    ( args ),
+                    js_env              : js_env( args ),
+                    output              : args.output || [],
+                    mission             : args.mission,
+                    single_page         : args.single_page || false,
+                    no_dist             : args.no_dist || false,
+                    sm_line             : sm_line( args ),
+                    ext_libs            : args.ext_lib || [],
+                    dist_dir            : this.env.arg_rec( "dist_dir" ) || path.resolve( this.env.cwd, "dist" ),
+                    cwd                 : this.env.cwd,
+                    concat              : concat             ( args ),
+                    min                 : min                ( args ),
+                    hot_replacement     : hot_replacement    ( args ),
+                    hot_replacement_poll: args.hot_replacement_poll || null,
+                    define              : define             ( args ),
+                    babel_env_arguments : babel_env_arguments( args ),
+                    target_browsers     : target_browsers    ( args ),
                     pos_js_header,
                 } as ArgsJsDepFactory ) );
             }
