@@ -268,7 +268,7 @@ class GeneratorJs extends Generator {
             const dtr = ind_dtr >= 0 && str[ 0 ] != '.' ? str.slice( 0, ind_dtr ) : str;
 
             // it is an ext_lib ?
-            if ( js_env != "nodejs" ) {
+            if ( typescript == false && js_env != "nodejs" ) {
                 for( const ext_lib of this.env.args.ext_lib || [] ) {
                     const spl = ext_lib.split( " " );
                     if ( spl[ 0 ] == str ) {
