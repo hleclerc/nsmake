@@ -205,7 +205,7 @@ class Processor {
         // stuff to be made, error ot not
         cn.children           .forEach( ch => cn.merge_res_from( ch ) );
         cn.additional_children.forEach( ch => cn.merge_res_from( ch ) );
-        cn.file_dependencies.untangle();
+        cn.file_dependencies.untangle( cn.get_generated_rec() );
 
         // if error => cleansing
         if ( err ) {

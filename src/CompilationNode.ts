@@ -95,6 +95,18 @@ class CompilationNode {
     resume_chrono() {
         this.start = process.hrtime() as [ number, number ];
     }
+
+    get_generated_rec(): Array<string> {
+        let s = new Set<string>();
+        this._get_generated_rec( s );
+        return [ ...s ];
+    }
+
+    _get_generated_rec( s: Set<string> ) {
+        this.generated.forEach( v => s.add( v ) );
+        this.children.forEach( ch => ch._get_generated_rec( s ) );
+        this.additional_children.forEach( ch => ch._get_generated_rec( s ) );
+    }
     
     // stable arguments    
     signature                  : string;                                /** serve as an unique id */
