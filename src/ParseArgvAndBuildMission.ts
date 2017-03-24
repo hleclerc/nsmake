@@ -40,8 +40,8 @@ class ParseArgvAndBuildMission {
             watcher.close();
         if ( this.proc.building )
             this.proc.stop_tasks_from( this.env.com );
-        else
-            this.send_end( 1 );
+        // else
+        this.send_end( 1 );
     }
 
     /** send a message to the client */
@@ -68,6 +68,9 @@ class ParseArgvAndBuildMission {
 
     /** */
     _launch(): void {
+        if ( this.killed )
+            return;
+
         // define common argument types (mission independant)
         var p = new ArgumentParser( path.basename( this.argv[ 0 ] ), 'an hopefully less dummy build system', '0.0.1' );
         p.add_argument( [], [], 'v,version'        , 'get version number'                                                                       , 'boolean' );
@@ -230,7 +233,7 @@ class ParseArgvAndBuildMission {
                 return this._launch();
             // no change => install watchers. 1: find existing directories in parents of not found files
             file_dependencies.get_to_be_watched( watcher_list => {
-                for( const name of watcher_list )
+                for( const name of watcher_list ) 
                     this.to_be_watched.set( name, fs.watch( name, () => this._relaunch_test( file_dependencies ) ) );
             } );
         } );

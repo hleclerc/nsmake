@@ -251,8 +251,11 @@ class GeneratorJs extends Generator {
     }
 
     launch_stuff_to_be_re_executed( cn: CompilationNode ) {
-        for( const line of cn.ext_libs )
+        for( const line of cn.ext_libs ) {
+            if ( ! this.env.args.ext_lib )
+                this.env.args.ext_lib = [];
             pu( this.env.args.ext_lib, line );
+        }
     }
 
     _find_requires( env: CompilationEnvironment, cn: CompilationNode, cwd: string, js_env: string, requires: Array<string>, typescript: boolean, cb_find_require: ( err: boolean, signatures: Array<string> ) => void ) {
