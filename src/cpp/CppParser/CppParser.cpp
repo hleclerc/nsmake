@@ -1,4 +1,5 @@
 #include "../System/ErrorDisp.h"
+#include "../System/Path.h"
 #include "CppPreprocParser.h"
 #include "CppParser.h"
 #include <sys/stat.h>
@@ -232,8 +233,9 @@ void CppParser::_nsmake( const char *b, const char *e, Read *read ) {
     }
     if ( spl[ 0 ] == "inc_path" ) {
         if ( nspl.size() < 2 ) throw "'//// nsmake inc_path' is supposed to be followed by 1 argument";
-        if ( glob ) task->append_to_env_var( "include_path", cf( 1 ) );
-        inc_paths.push_back( cf( 1 ) );
+        std::string inc = Path::resolve( Path::dirname( read->filename ), cf( 1 ) );
+        if ( glob ) task->append_to_env_var( "include_path", inc );
+        inc_paths.push_back( inc );
         return;
     }
     if ( spl[ 0 ] == "cpp_flag" ) {
@@ -250,7 +252,8 @@ void CppParser::_nsmake( const char *b, const char *e, Read *read ) {
     }
     if ( spl[ 0 ] == "lib_path" ) {
         if ( nspl.size() < 2 ) throw "'//// nsmake lib_path' is supposed to be followed by 1 argument";
-        lib_paths.push_back( cf( 1 ) );
+        std::string inc = Path::resolve( Path::dirname( read->filename ), cf( 1 ) );
+        lib_paths.push_back( inc );
         return;
     }
     if ( spl[ 0 ] == "lib_name" ) {

@@ -46,6 +46,14 @@ class Linker extends Task {
     on_parsed( args: ArgsLinker, n: number, err: boolean, res: ResCnGenCompiler ) {
         if ( err )
             return this.reg_err();
+
+        // check that orig file does not appear twice
+        for( const om of this.o_makers ) {
+            if ( om && om.exe_data.orig_name == res.exe_data.orig_name ) {
+                this.error( `Object from '${ res.exe_data.orig_name }' is added twice to the linker. It may be due to a '/// nsmake global' flag added to one version and not to the second.` );
+                return this.reg_err();
+            }
+        }
         this.o_makers[ n ] = res;
 
         // update no comps
