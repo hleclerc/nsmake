@@ -95,13 +95,13 @@ class ArgumentParser {
             let num_positional = -1;
             for( let num_arg = 0; num_arg < args.length; ++num_arg ) {
                 const val = args[ num_arg ];
-                if ( val.startsWith( '--' ) ) {
+                if ( val.startsWith( '--' ) && num_positional <= 0 ) {
                     this._use_arg( res, targets, val.slice( 2 ), cur_dir, () => {
                         if ( ++num_arg >= args.length )
                             throw `'${ val }' must be followed by a value`;
                         return args[ num_arg ];
                     } );
-                } else if ( val.startsWith( '-' ) ) {
+                } else if ( val.startsWith( '-' ) && num_positional <= 0 ) {
                     for( let nsv = 1; nsv < val.length; ++nsv ) {
                         const sv = val[ nsv ];
                         this._use_arg( res, targets, val[ nsv ], cur_dir, () => {
