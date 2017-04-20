@@ -6,6 +6,8 @@ import * as fs    from "fs";
 export default
 class FileDependencies {
     clear() {
+        this.found.clear();
+        this.failed.clear();
     }
 
     merge( that: FileDependencies ): void {
