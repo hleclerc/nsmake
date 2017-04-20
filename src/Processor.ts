@@ -571,7 +571,7 @@ class Processor {
             // actions
             case "done":
                 // save result in local memory
-                if ( cmd.args.output_summary ) {
+                if ( service.cn && cmd.args.output_summary ) {
                     pu( service.cn.generated, ...( cmd.args.output_summary.generated || [] ) );
                     service.cn.outputs       = cmd.args.output_summary.outputs || [];
                     service.cn.exe_data      = cmd.args.output_summary.exe_data || {};
