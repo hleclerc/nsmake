@@ -75,8 +75,8 @@ function spawn_local( client: net.Socket, id: string, redirect: string, cwd: str
     if ( redirect )
         throw new Error( "TODO" );
     const cp = child_process.spawn( executable, args, { env: process.env, stdio: [ 0, 1, 2 ], cwd } );
-    cp.on( 'error', err  => { console.error( err ); client.write( `spawn_done ${ SpRepr.encode( id ) } ${  -1  }\n` ); } );
-    cp.on( 'close', code => client.write( `spawn_done ${ SpRepr.encode( id ) } ${ code }\n` ) );
+    cp.on( 'error', err  => client.write( `spawn_done ${ SpRepr.encode( id ) } ${ -1 }\n` ) );
+    cp.on( 'exit' , code => client.write( `spawn_done ${ SpRepr.encode( id ) } ${ code == null ? -1 : code }\n` ) );
 }
 
 /** */
@@ -84,8 +84,8 @@ function exec_local( client: net.Socket, id: string, redirect: string, cwd: stri
     if ( redirect )
         throw new Error( "TODO" );
     const cp = child_process.spawn( cmd, [], { env: process.env, stdio: [ 0, 1, 2 ], shell: true, cwd } );
-    cp.on( 'error', err  => { console.error( err ); client.write( `spawn_done ${ SpRepr.encode( id ) } ${  -1  }\n` ); } );
-    cp.on( 'close', code => client.write( `spawn_done ${ SpRepr.encode( id ) } ${ code }\n` ) );
+    cp.on( 'error', err  => client.write( `spawn_done ${ SpRepr.encode( id ) } ${ -1 }\n` ) );
+    cp.on( 'exit' , code => client.write( `spawn_done ${ SpRepr.encode( id ) } ${ code == null ? -1 : code }\n` ) );
 }
 
 /** send `query` to the server. Spawn a new server if no connection */
