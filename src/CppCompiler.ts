@@ -16,7 +16,6 @@ interface ArgsCppCompiler {
     inc_paths  : Array<string>;
     cmd_flags  : Array<string>;
     output     : string;
-    soTTY      : boolean;
     debug_level: string;
     opt_level  : string;
 }
