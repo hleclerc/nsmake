@@ -2,7 +2,7 @@ includes: [ gtest/gtest.h ]
 flag_sets:
   - systems:   []
     lib_names: [ gtest, pthread ]
-    lib_paths: [ ext/googletest/install/lib ]
+    lib_paths: [ ext/googletest/install/lib, ext/googletest/install/lib64 ]
     inc_paths: [ ext/googletest/install/include ]
 load_sets:
   - systems: []

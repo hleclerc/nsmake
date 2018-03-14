@@ -172,6 +172,7 @@ class GeneratorCpp extends Generator {
             directories: [
                 path.resolve( this.env.cwd, "nsmake", "rules", "cpp" ),
                 path.resolve( __dirname, "..", "rules", "cpp" ),
+                path.resolve( this.env.com.proc.nsmake_dir, "rules", "cpp" ),
             ]
         } as ConcatYamlToJsonArgs );
     }
