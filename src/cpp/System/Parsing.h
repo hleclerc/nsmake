@@ -1,6 +1,7 @@
 #ifndef PARSING_H
 #define PARSING_H
 
+#include <functional>
 #include <algorithm>
 #include <iostream>
 #include <vector>
