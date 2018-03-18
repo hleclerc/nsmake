@@ -1,0 +1,16 @@
+includes: [ mpi.h ]
+flag_sets:
+  - systems:   []
+    inc_paths: [ ext/mpich/install/include ]
+    lib_paths: [ ext/mpich/install/lib ]
+    lib_names: [ mpich ]
+load_sets:
+  - systems: []
+    command: "mkdir -p ext/mpich/src &&
+              cd ext/mpich/src &&
+              wget http://www.mpich.org/static/downloads/3.2.1/mpich-3.2.1.tar.gz &&
+              tar xzf mpich-3.2.1.tar.gz &&
+              cd mpich-3.2.1 &&
+              ./configure --prefix=`pwd`/../../install --disable-fortran &&
+              make -j4 &&
+              make install"
