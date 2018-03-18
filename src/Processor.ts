@@ -946,6 +946,7 @@ class Processor {
         let trials = [
             path.resolve( __dirname, "..", "rules", "prerequ", req + ".yaml" ),
             path.resolve( com.cwd, "nsmake", "rules", "prerequ", req + ".yaml" ),
+            path.resolve( this.nsmake_dir, "rules", "cpp" ),
         ];
         async.forEachSeries( trials, ( trial, cbt ) => {
             fs.readFile( trial, ( err, data ) => cbt( err ? null : { data: data.toString(), name: trial } ) );

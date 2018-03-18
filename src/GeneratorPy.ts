@@ -18,7 +18,7 @@ class GeneratorPy extends Generator {
                 if ( args.mission == "run" ) {
                     // launch
                     return cb( this.env.New( "Executor", cns, {
-                        executable     : "python3",
+                        executable     : "python",
                         args           : [ args.entry_point, ...( args.arguments || [] ) ],
                         local_execution: args.local_execution == undefined ? true: args.local_execution,
                         outputs        : args.redirect ? [ args.redirect ] : [],
