@@ -30,10 +30,11 @@ function on_new_connection( c: net.Socket, proc: Processor ) {
                 case "build":
                     try {
                         const cur_dir      = args[ 1 ];
-                        const nb_columns   = Number( args[ 2 ] ) - ( os.platform() == 'win32' ? 1 : 0 );
-                        const stdin_isTTY  = args[ 3 ] == 'true';
-                        const stdout_isTTY = args[ 4 ] == 'true';
-                        parse_and_build.start_a_new_build( cur_dir, nb_columns, stdin_isTTY, stdout_isTTY, args.slice( 5 ) );
+                        const env_vars     = JSON.parse( args[ 2 ] );
+                        const nb_columns   = Number( args[ 3 ] ) - ( os.platform() == 'win32' ? 1 : 0 );
+                        const stdin_isTTY  = args[ 4 ] == 'true';
+                        const stdout_isTTY = args[ 5 ] == 'true';
+                        parse_and_build.start_a_new_build( cur_dir, env_vars, nb_columns, stdin_isTTY, stdout_isTTY, args.slice( 6 ) );
                     } catch ( e ) {
                         // for debug purpose
                         parse_and_build.send_end( `Error from the nsmake server: ${ e.stack }\n` );

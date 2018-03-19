@@ -171,6 +171,12 @@ class Linker extends Task {
         if ( args.opt_level )
             pu( cmd_args, "-O" + args.opt_level );
 
+        // data to be transmitted to parents
+        this.exe_data.lib_paths = [];
+        for( const cp of this.o_makers )
+            if ( cp.exe_data.lib_paths )
+                pu( this.exe_data.lib_paths, ...cp.exe_data.lib_paths );
+
         // go (call the linker directly in the task: that's the only remaining thing to do)
         this.spawn( ld, cmd_args, ( err, code ) => this.done_cb( Boolean( err || code ) ) );
     }

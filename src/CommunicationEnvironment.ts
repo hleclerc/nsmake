@@ -7,7 +7,7 @@ import * as net         from 'net'
 /** store context for a given build */
 export default 
 class CommunicationEnvironment {
-    constructor( c: net.Socket, proc: Processor, nb_columns: number, siTTY: boolean, soTTY: boolean, cwd: string ) {
+    constructor( c: net.Socket, proc: Processor, nb_columns: number, siTTY: boolean, soTTY: boolean, cwd: string, env_vars: object ) {
         this.c          = c;
         this.proc       = proc;
         this.nb_columns = nb_columns;
@@ -15,6 +15,7 @@ class CommunicationEnvironment {
         this.siTTY      = siTTY;
         this.soTTY      = soTTY;
         this.cwd        = cwd;
+        this.env_vars   = env_vars;
     }
 
     decl_additional_options( p : ArgumentParser ) {
@@ -28,8 +29,8 @@ class CommunicationEnvironment {
     }
 
     /** launch executable from the client */
-    spawn_local( id: string, executable: string, args: Array<string>, redirect = "", cwd = this.cwd ): void {
-        this.c.write( `s ${ [ id, redirect, cwd, executable, ...args ].map( SpRepr.encode ).join( " " ) }\n` );
+    spawn_local( id: string, executable: string, args: Array<string>, redirect = "", cwd = this.cwd, env = {} ): void {
+        this.c.write( `s ${ [ id, redirect, cwd, JSON.stringify( env ), executable, ...args ].map( SpRepr.encode ).join( " " ) }\n` );
     }
 
     /** launch executable from the client */
@@ -69,6 +70,7 @@ class CommunicationEnvironment {
     c          : net.Socket;
     proc       : Processor;
     cwd        : string;
+    env_vars   : object;
     nb_columns : number;
     color      : boolean;
     siTTY      : boolean;

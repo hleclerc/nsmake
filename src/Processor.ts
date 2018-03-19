@@ -725,7 +725,7 @@ class Processor {
                 service.set_active();
                 return this._spawn_local( service.env.com, cmd.args.executable, cmd.args.args || [], cmd.args.redirect || "", code => {
                     ans( false, code );
-                } );
+                }, cmd.args.cwd || service.env.com.cwd, cmd.args.env || {} );
                 
             case "spawn": {
                 // display
@@ -787,9 +787,9 @@ class Processor {
         }
     }
 
-    _spawn_local( com: CommunicationEnvironment, executable: string, args: Array<string>, redirect: string, cb: ( code: number ) => void, cwd = com.cwd ) {
+    _spawn_local( com: CommunicationEnvironment, executable: string, args: Array<string>, redirect: string, cb: ( code: number ) => void, cwd = com.cwd, env = {} ) {
         const id = this.waiting_spw.size.toString();
-        com.spawn_local( id, executable, args, redirect, cwd );
+        com.spawn_local( id, executable, args, redirect, cwd, env );
         this.waiting_spw.set( id, { com, cb: ( code: number ) => {
             this.waiting_spw.delete( id );
             cb( code );

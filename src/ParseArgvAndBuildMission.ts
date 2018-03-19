@@ -22,8 +22,9 @@ class ParseArgvAndBuildMission {
     }
 
     /** with watch enabled if in argv */
-    start_a_new_build( cwd: string, nb_columns: number, siTTY: boolean, soTTY: boolean, argv: Array<string> ) {
+    start_a_new_build( cwd: string, env_vars: object, nb_columns: number, siTTY: boolean, soTTY: boolean, argv: Array<string> ) {
         this.cwd         = cwd;
+        this.env_vars    = env_vars;
         this.nb_columns  = nb_columns;
         this.siTTY       = siTTY;
         this.soTTY       = soTTY;
@@ -83,7 +84,7 @@ class ParseArgvAndBuildMission {
         p.add_argument( [], [], 'current-build-seq', 'Do not wait for the previous to be completed'                                             , 'boolean' );
 
         // make a new environment
-        this.env = new CompilationEnvironment( new CommunicationEnvironment( this.c, this.proc, this.nb_columns, this.siTTY, this.soTTY, this.cwd ), this.cwd );
+        this.env = new CompilationEnvironment( new CommunicationEnvironment( this.c, this.proc, this.nb_columns, this.siTTY, this.soTTY, this.cwd, this.env_vars ), this.cwd );
         this.env.decl_additional_options( p );
 
         // read arguments from the command line. args will contain number where CompilationNode are expected (numbers are indices to targets)
@@ -261,6 +262,7 @@ class ParseArgvAndBuildMission {
     c             : net.Socket;                     /** connection to the client */
     proc          : Processor;
     cwd           : string;                         /** current working directory */
+    env_vars       : object;                         /** environment variables of the client */
     nb_columns    : number;                         /** in the output terminal */
     siTTY         : boolean;                        /** stdin is a TTY */
     soTTY         : boolean;                        /** stdout is a TTY */

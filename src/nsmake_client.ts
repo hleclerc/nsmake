@@ -71,10 +71,11 @@ function start_server( nsmake_dir: string, fifo_file: string, cb_ready: () => vo
 }
 
 /** */
-function spawn_local( client: net.Socket, id: string, redirect: string, cwd: string, executable: string, args: Array<string> ) {
+function spawn_local( client: net.Socket, id: string, redirect: string, cwd: string, env: string, executable: string, args: Array<string> ) {
     if ( redirect )
         throw new Error( "TODO" );
-    const cp = child_process.spawn( executable, args, { env: process.env, stdio: [ 0, 1, 2 ], cwd } );
+    // console.log( "spawn_local with ", JSON.parse( env ).LD_LIBRARY_PATH );
+    const cp = child_process.spawn( executable, args, { stdio: [ 0, 1, 2 ], cwd, env: JSON.parse( env ) } );
     cp.on( 'error', err  => client.write( `spawn_done ${ SpRepr.encode( id ) } ${ -1 }\n` ) );
     cp.on( 'exit' , code => client.write( `spawn_done ${ SpRepr.encode( id ) } ${ code == null ? -1 : code }\n` ) );
 }
@@ -113,7 +114,15 @@ function send_query( pager: Pager, nsmake_dir: string, type: string, cur_dir: st
 
     // send the message
     const client = net.createConnection( fifo_file, () => {
-        client.write( [ type, cur_dir, nb_columns.toString(), ( process.stdin.isTTY || false ).toString(), ( process.stdout.isTTY || false ).toString(), ...args ].map( x => SpRepr.encode( x ) ).join( " " ) + "\n" );
+        client.write( [
+            type, 
+            cur_dir, 
+            JSON.stringify( process.env ), 
+            nb_columns.toString(), 
+            ( process.stdin.isTTY || false ).toString(), 
+            ( process.stdout.isTTY || false ).toString(),
+            ...args
+        ].map( x => SpRepr.encode( x ) ).join( " " ) + "\n" );
         active_client = client;
     } );
 
@@ -150,14 +159,14 @@ function send_query( pager: Pager, nsmake_dir: string, type: string, cur_dir: st
             for( const line of lines.slice( 0, index_lf ).split( "\n" ) ) {
                 const args = line.split( " " ).map( x => SpRepr.decode( x ) );
                 switch ( args[ 0 ] ) {
-                case "A": pager.write( args[ 1 ], args[ 2 ], 0 );                                             break; // annoucement on a given channel
-                case "N": pager.write( args[ 1 ], args[ 2 ], 1 );                                             break; // note on a given channel
-                case "I": pager.write( args[ 1 ], args[ 2 ], 2 );                                             break; // information on a given channel
-                case "E": pager.write( args[ 1 ], args[ 2 ], 3 );                                             break; // error on a given channel
-                case "C": pager.close( args[ 1 ] );                                                           break; // close channel
-                case "X": process.exitCode = Number( args[ 1 ] ); pager.close_all(); client.end();            break; // end with code
-                case "s": spawn_local( client, args[ 1 ], args[ 2 ], args[ 3 ], args[ 4 ], args.slice( 5 ) ); break; // execute something locally 
-                case "e": exec_local ( client, args[ 1 ], args[ 2 ], args[ 3 ], args[ 4 ] );                  break; // execute something locally 
+                case "A": pager.write( args[ 1 ], args[ 2 ], 0 );                                                        break; // annoucement on a given channel
+                case "N": pager.write( args[ 1 ], args[ 2 ], 1 );                                                        break; // note on a given channel
+                case "I": pager.write( args[ 1 ], args[ 2 ], 2 );                                                        break; // information on a given channel
+                case "E": pager.write( args[ 1 ], args[ 2 ], 3 );                                                        break; // error on a given channel
+                case "C": pager.close( args[ 1 ] );                                                                      break; // close channel
+                case "X": process.exitCode = Number( args[ 1 ] ); pager.close_all(); client.end();                       break; // end with code
+                case "s": spawn_local( client, args[ 1 ], args[ 2 ], args[ 3 ], args[ 4 ], args[ 5 ], args.slice( 6 ) ); break; // execute something locally 
+                case "e": exec_local ( client, args[ 1 ], args[ 2 ], args[ 3 ], args[ 4 ] );                             break; // execute something locally 
                 default: console.log( "line:", line );
                 }
             }

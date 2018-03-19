@@ -37,6 +37,7 @@ class GeneratorCpp extends Generator {
 
         const comp_missions = [ 'lib', 'exe', 'run', 'gtest' ], universes = [ 'cpp', 'c', 'fortran', 'asm' ];
         p.add_argument( comp_missions, universes, "output,o"      , 'set name(s) of the output file(s), separated by a comma if several are expected' , 'path*'   );
+        p.add_argument( comp_missions, universes, "exec-with"     , 'run executable using another executable (e.g. time -v)' , 'string*'   );
         p.add_argument( comp_missions, universes, "include-path,I", "Add the directory arg to the list of directories to be searched for header files", 'path*'   );
         p.add_argument( comp_missions, universes, "library-path,L", "Add the directory arg to the list of directories to be searched for libraries"   , 'path*'   );
         p.add_argument( comp_missions, universes, "define,D"      , "Macro definition"                                                                , 'string*' );
@@ -96,7 +97,7 @@ class GeneratorCpp extends Generator {
 
             // run
             if ( args.mission == "run" ) {
-                // try to make an executable
+                // => call 'exe' mission and add an run above that
                 let nce = this.env.clone( { mission: "exe" } );
                 return nce.get_mission_node( for_found, cn => {
                     if ( ! cn )
@@ -106,10 +107,13 @@ class GeneratorCpp extends Generator {
                         executable     : cns.length,
                         args           : args.arguments || [],
                         local_execution: typeof args.local_execution == "undefined" ? true: args.local_execution,
+                        use_lib_paths  : true,
                         outputs        : args.redirect ? [ args.redirect ] : [],
                         redirect       : args.redirect || '',
                         new_build_files: args.new_build_files || [],
                         idempotent     : args.idempotent || false,
+                        exec_with      : args.exec_with || '',
+                        orig_env       : this.env.com.env_vars,
                     } as ExecutorArgs ) );
                 } );
             }

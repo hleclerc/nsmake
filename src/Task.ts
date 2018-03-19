@@ -185,13 +185,13 @@ abstract class Task {
     }
 
     /** */
-    spawn( executable: string, args: Array<string>, cb: ( err: boolean, code: number ) => void, local_execution = false, redirect = '' ): void {
+    spawn( executable: string, args: Array<string>, cb: ( err: boolean, code: number ) => void, local_execution = false, redirect = '', env = {} ): void {
         // display
         this.announcement( `${ [ executable, ...args ].join( " " ) }${ redirect ? " > " + redirect : "" }` );
 
         // to be launched by the client ?
         if ( local_execution )
-            return this._send_and_wait( "spawn_local", { executable, args, redirect }, cb );
+            return this._send_and_wait( "spawn_local", { executable, args, redirect, env }, cb );
 
         // launch locally
         const launch = ( fd: number ) => {
