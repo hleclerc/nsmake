@@ -283,6 +283,7 @@ class CppCompiler extends TaskFiber {
     inc_rules          = new Map<string,LibRulesGenCompiler>(); /** include => rules */
     inc_paths          = new Array<string>();
     lib_paths          = new Array<string>();
+    exe_paths          = new Array<string>();
     lib_names          = new Array<string>();
 
     loaded             = new Set<string>(); ///< include loaded

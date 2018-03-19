@@ -37,7 +37,7 @@ class GeneratorCpp extends Generator {
 
         const comp_missions = [ 'lib', 'exe', 'run', 'gtest' ], universes = [ 'cpp', 'c', 'fortran', 'asm' ];
         p.add_argument( comp_missions, universes, "output,o"      , 'set name(s) of the output file(s), separated by a comma if several are expected' , 'path*'   );
-        p.add_argument( comp_missions, universes, "exec-with"     , 'run executable using another executable (e.g. time -v)' , 'string*'   );
+        p.add_argument( comp_missions, universes, "exec-with"     , 'run executable using another executable (e.g. time -v)'                          , 'string'   );
         p.add_argument( comp_missions, universes, "include-path,I", "Add the directory arg to the list of directories to be searched for header files", 'path*'   );
         p.add_argument( comp_missions, universes, "library-path,L", "Add the directory arg to the list of directories to be searched for libraries"   , 'path*'   );
         p.add_argument( comp_missions, universes, "define,D"      , "Macro definition"                                                                , 'string*' );

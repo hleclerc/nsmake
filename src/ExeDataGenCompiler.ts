@@ -13,6 +13,7 @@ class ExeDataGenCompiler {
     include_strs         = new Array<string>();                   /** strings used in include cmds (not the absolute path). Ex: 'json/json.h' */
     lib_names            = new Array<string>();
     lib_paths            = new Array<string>();
+    exe_paths            = new Array<string>();
     lib_flags            = new Array<string>();
     inc_paths            = new Array<string>();
     cpp_flags            = new Array<string>();                   /**  */

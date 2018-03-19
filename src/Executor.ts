@@ -32,23 +32,37 @@ class Executor extends Task {
             };
 
             // environment
-            let env = args.orig_env;
+            let env = args.orig_env || {};
             if ( args.use_lib_paths ) {
                 var lib_paths = [];
-                for( const ch of this.children )
-                    if ( ch.exe_data && ch.exe_data.lib_paths )
-                        pu( lib_paths, ...ch.exe_data.lib_paths );
+                var exe_paths = [];
+                for( const ch of this.children )  {
+                    if ( ch.exe_data ) {
+                        if ( ch.exe_data.lib_paths )
+                            pu( lib_paths, ...ch.exe_data.lib_paths );
+                        if ( ch.exe_data.exe_paths )
+                            pu( exe_paths, ...ch.exe_data.exe_paths );
+                    }
+                }
                 if ( lib_paths.length )
                     env["LD_LIBRARY_PATH"] = lib_paths.join( ":" ) + ( args.orig_env["LD_LIBRARY_PATH"] ? ":" + args.orig_env["LD_LIBRARY_PATH"] : "" );
+                if ( exe_paths.length )
+                    env["PATH"] = exe_paths.join( ":" ) + ( args.orig_env["PATH"] ? ":" + args.orig_env["PATH"] : "" );
+                this.info( JSON.stringify( env["PATH"] ) );
             }
 
             // launch
             let la = [ av( args.executable ), ...args.args.map( av ) ];
+            if ( args.exec_with ) {
+                la = [ ...args.exec_with.split( " " ), ...la ];
+                this.info( JSON.stringify( la ) );
+            }
+
             this.spawn( la[ 0 ], la.slice( 1 ), ( err, code ) => {
                 this.idempotent = args.idempotent != undefined ? args.idempotent : true;
                 this.outputs = ( args.outputs || [] ).map( av );
                 done( Boolean( err || code ) );
-            }, args.local_execution || false, av( args.redirect || '' ), args.orig_env || {} ); // 
+            }, args.local_execution || false, av( args.redirect || '' ), env ); // 
         } );
     }
 }

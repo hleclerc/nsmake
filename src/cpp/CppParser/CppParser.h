@@ -120,6 +120,7 @@ struct CppParser {
     StringVec            cpp_flags;
     StringVec            c_flags  ;
     StringVec            lib_paths;
+    StringVec            exe_paths;
     StringVec            lib_names;
     StringVec            lib_flags;
     StringVec            obj_names;

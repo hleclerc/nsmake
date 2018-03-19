@@ -3,6 +3,7 @@ flag_sets:
   - systems:   []
     inc_paths: [ ext/mpich/install/include ]
     lib_paths: [ ext/mpich/install/lib ]
+    exe_paths: [ ext/mpich/install/bin ]
     lib_names: [ mpich ]
 load_sets:
   - systems: []

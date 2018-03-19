@@ -74,7 +74,6 @@ function start_server( nsmake_dir: string, fifo_file: string, cb_ready: () => vo
 function spawn_local( client: net.Socket, id: string, redirect: string, cwd: string, env: string, executable: string, args: Array<string> ) {
     if ( redirect )
         throw new Error( "TODO" );
-    // console.log( "spawn_local with ", JSON.parse( env ).LD_LIBRARY_PATH );
     const cp = child_process.spawn( executable, args, { stdio: [ 0, 1, 2 ], cwd, env: JSON.parse( env ) } );
     cp.on( 'error', err  => client.write( `spawn_done ${ SpRepr.encode( id ) } ${ -1 }\n` ) );
     cp.on( 'exit' , code => client.write( `spawn_done ${ SpRepr.encode( id ) } ${ code == null ? -1 : code }\n` ) );

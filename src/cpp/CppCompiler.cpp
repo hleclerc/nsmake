@@ -63,6 +63,7 @@ void CppCompiler::exec() {
     for( const auto &inc : cp.no_comps     ) exe_data[ "no_comps"     ].append( inc );
     for( const auto &inc : cp.include_strs ) exe_data[ "include_strs" ].append( inc );
     for( const auto &inc : cp.lib_paths    ) exe_data[ "lib_paths"    ].append( inc );
+    for( const auto &inc : cp.exe_paths    ) exe_data[ "exe_paths"    ].append( inc );
     for( const auto &inc : cp.lib_names    ) exe_data[ "lib_names"    ].append( inc );
     for( const auto &inc : cp.lib_flags    ) exe_data[ "lib_flags"    ].append( inc );
     for( const auto &inc : cp.obj_names    ) exe_data[ "obj_names"    ].append( inc );
