@@ -48,16 +48,13 @@ class Executor extends Task {
                     env["LD_LIBRARY_PATH"] = lib_paths.join( ":" ) + ( args.orig_env["LD_LIBRARY_PATH"] ? ":" + args.orig_env["LD_LIBRARY_PATH"] : "" );
                 if ( exe_paths.length )
                     env["PATH"] = exe_paths.join( ":" ) + ( args.orig_env["PATH"] ? ":" + args.orig_env["PATH"] : "" );
-                this.info( JSON.stringify( env["PATH"] ) );
             }
 
             // launch
             let la = [ av( args.executable ), ...args.args.map( av ) ];
-            if ( args.exec_with ) {
+            if ( args.exec_with )
                 la = [ ...args.exec_with.split( " " ), ...la ];
-                this.info( JSON.stringify( la ) );
-            }
-
+                
             this.spawn( la[ 0 ], la.slice( 1 ), ( err, code ) => {
                 this.idempotent = args.idempotent != undefined ? args.idempotent : true;
                 this.outputs = ( args.outputs || [] ).map( av );
