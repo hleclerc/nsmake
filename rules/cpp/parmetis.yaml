@@ -1,0 +1,16 @@
+includes: [ parmetis.h ]
+flag_sets:
+  - systems:   []
+    inc_paths: [ ext/parmetis/install/include ]
+    lib_paths: [ ext/parmetis/install/lib ]
+    lib_names: [ parmetis ]
+load_sets:
+  - systems: []
+    command: "mkdir -p ext/parmetis/src &&
+              cd ext/parmetis/src &&
+              wget http://glaros.dtc.umn.edu/gkhome/fetch/sw/parmetis/parmetis-4.0.3.tar.gz &&
+              tar xzf parmetis-4.0.3.tar.gz &&
+              cd parmetis-4.0.3 &&
+              make config prefix=`pwd`/../../install &&
+              make -j4 &&
+              make install"
