@@ -216,7 +216,7 @@ class JsParser extends TaskFiber {
         let presets = new Array<any>();
         const is_a_node_module = orig_name.split( path.sep ).indexOf( "node_modules" ) >= 0;
         if ( is_a_node_module == false && ( args.babel_env_arguments || args.target_browsers.length ) ) {
-            let ea = args.babel_env_arguments ? yaml.load( "{" + args.babel_env_arguments + "}" ) : {};
+            let ea = args.babel_env_arguments ? yaml.load( "{" + args.babel_env_arguments + "}" ) : {} as any;
             if ( args.target_browsers.length ) {
                 if ( ! ea.targets )
                     ea.targets = {};

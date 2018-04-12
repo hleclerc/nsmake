@@ -83,7 +83,7 @@ class __XMLHttpRequest {
         this.url = url;
     }
     
-    send( data: string ) {
+    send( data: any ) {
         if ( typeof window === "undefined" ) {
             require( "fs" ).readFile( __dirname + "/" + this.url, ( err, data ) => {
                 if ( err )
