@@ -32,8 +32,8 @@ Speed comes from the use of a server, with micro-services (that can be written i
 
 * Extensive analysis of trees and content for all the source languages. **Nsmake will never ask you to specify information that can be found or easily infered from the sources**.
 * No global intricate configuration(s) file(s). **Information is specified where it is relevant** and use of global variables are a choice of the user, not of the build system.
-* No Domain Specific Language: most of the source languages already have conditionals, pre-processors, ... Nsmake let's you be consistent with the programming languages you're already using, **avoiding the need to cope with new conventions new tools, a new DSL, and so on**.
-* Overall Significant **reduction of number of configuration files**, and need for boilerplates: Nsmake takes the responsibility to fill the gap, allowing cleansing, and cooperation for tools (compilation, testing, etc...) that need the same kinds of information.
+* No Domain Specific Language: most of the source languages already have conditionals, pre-processors, ... Nsmake let's you be **consistent with the programming languages you're already using**, avoiding the need to cope with new conventions new tools, a new DSL, and so on.
+* Overall significant **reduction of number of configuration files**, and need for boilerplates: Nsmake takes the responsibility to fill the gap, allowing cleansing, and cooperation for tools (compilation, testing, etc...) that need the same kinds of information.
 * Respect of the source tree: Nsmake tries as much as possible to **generate files in separate build directories, with proper and secure naming**, leaving you in full control of your directories.
 
 ## Speed, incrementality and correctness
@@ -70,18 +70,18 @@ Speed comes from the use of a server, with micro-services (that can be written i
 # Installation
 
 ```
-npm install nsmake -g
-```
-
-Alternatively, you can use the git repository for a more recent version (or to make pull requests, which are welcome :) ):
-
-```
 git clone https://github.com/hleclerc/nsmake.git
 cd nsmake
 npm install
 npm run build
+```
+
+If you are a sudoer, npm can make global links for you
+```
 sudo npm link
 ```
+
+Alternatively, adding the nsmake source dir in the PATH will also work (without needing to be a sudoer).
 
 # Some tutorials
 
