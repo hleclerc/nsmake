@@ -837,9 +837,9 @@ class Processor {
     }
 
     /**  */
-    yaml_install_cmd( com: CommunicationEnvironment, cn: CompilationNode, cwd: string, rules: Array<any>, system_info: SystemInfo, assume_has_not: boolean, cb: ( err: boolean, msg: string ) => void ) {
+    yaml_install_cmd( com: CommunicationEnvironment, cn: CompilationNode, cwd: string, rules: any, system_info: SystemInfo, assume_has_not: boolean, cb: ( err: boolean, msg: string ) => void ) {
         let tried = false;
-        async.forEachSeries( rules, ( rule, cb_rule_trial: ( ok: boolean ) => void ) => {
+        async.forEachSeries( rules, ( rule: any, cb_rule_trial: ( ok: boolean ) => void ) => {
             if ( ! is_compatible_with( system_info, rule.systems ) || ( com.no_root && ( rule.as_root || rule.admin ) ) )
                 return cb_rule_trial( false );
             tried = true;

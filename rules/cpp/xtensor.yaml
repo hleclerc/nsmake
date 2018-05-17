@@ -1,0 +1,27 @@
+includes: [ xtensor/ ]
+flag_sets:
+  - systems:   []
+    inc_paths: [ ext/xtensor/install/include ]
+    lib_paths: []
+    lib_names: []
+load_sets:
+  - systems: []
+    command: "
+              mkdir -p ext/xtensor/src && 
+              cd ext/xtensor/src && 
+              git clone https://github.com/QuantStack/xtl.git &&
+              cd xtl &&
+              mkdir build &&
+              cd build &&
+              cmake -DCMAKE_INSTALL_PREFIX=../../../install .. &&
+              make &&
+              make install &&
+              cd ../.. &&
+              git clone https://github.com/QuantStack/xtensor.git &&
+              cd xtensor &&
+              mkdir build &&
+              cd build &&
+              cmake -DCMAKE_INSTALL_PREFIX=../../../install .. &&
+              make &&
+              make install
+             "
