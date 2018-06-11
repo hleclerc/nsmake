@@ -48,7 +48,7 @@
     "babel-preset-env": "^1.1.1",
     "babel-preset-react": "^6.16.0",
     "babel-types": "^6.19.0",
-    "coffee-script": "^1.12.1",
+    "coffeescript": "^1.12.1",
     "console-stamp": "^0.2.4",
     "css-tokens": "^2.0.0",
     "fibers": "^1.0.15",

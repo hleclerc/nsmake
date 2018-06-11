@@ -1,6 +1,6 @@
 import Task      from "./Task"
 import * as path from "path"
-var cs = require( "coffee-script" );
+var cs = require( "coffeescript" );
 
 export interface CoffeescriptCompilerArgs {
     output: string;
