@@ -1,0 +1,14 @@
+includes: [ pngwriter.h ]
+flag_sets:
+  - systems:   []
+    inc_paths: [ ext/pngwriter/install/include, /usr/include/freetype2 ]
+    lib_paths: [ ext/pngwriter/install/lib ]
+    lib_names: [ PNGwriter, freetype, png ]
+load_sets:
+  - systems: []
+    command: "mkdir -p ext/pngwriter && cd ext/pngwriter &&
+              git clone https://github.com/pngwriter/pngwriter.git sources &&
+              mkdir build && cd build &&
+              cmake -DCMAKE_INSTALL_PREFIX=../install ../sources &&
+              make -j &&
+              make install"

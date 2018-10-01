@@ -1,0 +1,15 @@
+includes: [ uWS/uWS.h ]
+flag_sets:
+  - systems:   []
+    inc_paths: [ ext/uWS/install/include ]
+    lib_paths: [ ext/uWS/install/lib ]
+    lib_names: [ uWS, ssl, z ]
+    # -lcrypto -luv
+load_sets:
+  - systems: []
+    command: "mkdir -p ext/uWS/src &&
+              cd ext/uWS/src &&
+              git clone https://github.com/uNetworking/uWebSockets.git &&
+              cd uWebSockets &&
+              make &&
+              make PREFIX=`pwd`/../../install install"

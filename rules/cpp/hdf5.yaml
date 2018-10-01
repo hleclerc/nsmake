@@ -1,7 +1,20 @@
 includes: [ hdf5.h ]
 flag_sets: []
 load_sets:
-  - systems: [ "Ubuntu Linux", Debian ]
-    command: "gksudo apt-get install libhdf5-dev"
-  - systems: [ "Netrunner Rolling", Arch ]
-    command: "gksudo pacman -S hdf5"
+  - systems: []
+    command: "mkdir -p ext/hdf5/src &&
+              cd ext/hdf5/src &&
+              wget https://support.hdfgroup.org/ftp/HDF5/current/src/hdf5-1.10.1.tar.bz2 &&
+               tar xjf hdf5-1.10.1.tar.bz2&&
+              cd hdf5-1.10.1 &&
+              mkdir -p build_rel &&
+              cd build_rel &&
+              ../configure --prefix=`pwd`/../../../install --enable-parallel &&
+              make &&
+              make install"
+  #- systems: [ "Ubuntu Linux", Debian ]
+    #command: "sudo apt-get install libhdf5-dev"
+  #- systems: [ "Netrunner Rolling", Arch ]
+    #command: "sudo pacman -S hdf5"
+
+    

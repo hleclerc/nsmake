@@ -1,0 +1,18 @@
+includes: [ ospray/ospray_cpp.h ]
+flag_sets:
+  - systems:   []
+    lib_names: [ ospray ]
+    lib_paths: [ ext/ospray/install/lib ]
+    inc_paths: [ ext/ospray/install/include, ext/ospray/install/include/ospray ]
+load_sets:
+  - systems: []
+    command: mkdir -p ext/ospray && cd ext/ospray && wget https://github.com/ospray/OSPRay/releases/download/v1.6.1/ospray-1.6.1.x86_64.linux.tar.gz && tar xzf ospray-1.6.1.x86_64.linux.tar.gz && mv ospray-1.6.1.x86_64.linux install
+    
+#linux-vdso.so.1 (0x00007ffd33b6c000)
+#libgtk3-nocsd.so.0 => /usr/lib/x86_64-linux-gnu/libgtk3-nocsd.so.0 (0x00007f06a6547000)
+#libospray_sg.so.0 => /home/leclerc/pd3/ext/ospray/install/bin/./../lib/libospray_sg.so.0 (0x00007f06a6307000)
+#libospray.so.0 => /home/leclerc/pd3/ext/ospray/install/bin/./../lib/libospray.so.0 (0x00007f06a68c6000)
+#libospray_common.so.0 => /home/leclerc/pd3/ext/ospray/install/bin/./../lib/libospray_common.so.0 (0x00007f06a6866000)
+#libdl.so.2 => /lib/x86_64-linux-gnu/libdl.so.2 (0x00007f06a6103000)
+#libtbb.so.2 => /home/leclerc/pd3/ext/ospray/install/bin/./../lib/libtbb.so.2 (0x00007f06a5ea8000)
+#libtbbmalloc.so.2 => /home/leclerc/pd3/ext/ospray/install/bin/./../lib/libtbbmalloc.so.2 (0x00007f06a5c51000)
