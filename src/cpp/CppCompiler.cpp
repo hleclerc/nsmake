@@ -41,6 +41,11 @@ void CppCompiler::exec() {
         outs.append( -1 );
     }
 
+    //
+    string compiler = cp.cxx_name.size() ? cp.cxx_name : from_json( children[ 2 ].exe_data[ "compiler"  ] );
+    string archiver = cp.ar_name .size() ? cp.ar_name  : from_json( children[ 2 ].exe_data[ "archiver"  ] );
+    string linker   = cp.ld_name .size() ? cp.ld_name  : from_json( children[ 2 ].exe_data[ "linker"    ] );
+
     cmds.append( "-c" );
     cmds.append( cpp_name );
     for( const auto &flg : args[ "cmd_flags" ]  ) append_unique( cmds, flg );
@@ -48,14 +53,15 @@ void CppCompiler::exec() {
     for( const auto &inc : cp.inc_paths         ) append_unique( cmds, "-I" + inc );
     for( const auto &inc : cp.cmd_include_paths ) append_unique( cmds, "-I" + inc );
     for( const auto &def : args[ "define" ]     ) append_unique( cmds, "-D" + def.asString() );
-    if ( args[ "pic" ].asBool()                 ) append_unique( cmds, "-fpic" );
     if ( args[ "opt_level" ].isString()         ) append_unique( cmds, "-O" + args[ "opt_level" ].asString() );
     if ( args[ "debug_level" ].isString()       ) append_unique( cmds, "-g" + args[ "debug_level" ].asString() );
 
-    //
-    string compiler = cp.cxx_name.size() ? cp.cxx_name : from_json( children[ 2 ].exe_data[ "compiler"  ] );
-    string archiver = cp.ar_name .size() ? cp.ar_name  : from_json( children[ 2 ].exe_data[ "archiver"  ] );
-    string linker   = cp.ld_name .size() ? cp.ld_name  : from_json( children[ 2 ].exe_data[ "linker"    ] );
+    if ( args[ "pic" ].asBool()                 ) {
+        if ( compiler == "nvcc" ) // TODO: better lookup
+            append_unique( cmds, "-Xcompiler", "-fpic" );
+        else
+            append_unique( cmds, "-fpic" );
+    }
 
     // update of exe_data
     exe_data[ "orig_name" ] = orig_name;

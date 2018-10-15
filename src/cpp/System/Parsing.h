@@ -60,6 +60,15 @@ void append_unique( L &lst, T &&val ) { // TODO: tidying up (place relevant stuf
     lst.append( std::move( val ) );
 }
 
+template<class L,class T1,class T2>
+void append_unique( L &lst, T1 &&val1, T2 &&val2 ) { // TODO: tidying up (place relevant stuff in relevant files, ...)
+    for( int i = 1; i < (int)lst.size(); i++)
+        if ( lst[ i - 1 ] == val1 && lst[ i - 0 ] == val2 )
+            return;
+    lst.append( std::move( val1 ) );
+    lst.append( std::move( val2 ) );
+}
+
 // implementation --------------
 template<class Op>
 void read_variable( unsigned *lb, const char *&b, const char *e, const Trie &special_variables, const Op &op, bool skip_sp_com ) {

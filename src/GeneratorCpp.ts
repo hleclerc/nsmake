@@ -16,12 +16,14 @@ import * as os                             from 'os'
 export default
 class GeneratorCpp extends Generator {
     static cpp_ext = [ ".cpp", ".cxx", ".cc" ];
+    static cu_ext  = [ ".cu" ];
     static h_ext   = [ ".h", ".hxx" ];
     static c_ext   = [ ".c" ];
 
-    static c_family( ext : string ) { return GeneratorCpp.c_like( ext ) || GeneratorCpp.cpp_like( ext ); }
+    static c_family( ext : string ) { return GeneratorCpp.c_like( ext ) || GeneratorCpp.cpp_like( ext ) || GeneratorCpp.cu_like( ext ); }
     static c_like  ( ext : string ) { return GeneratorCpp.c_ext  .indexOf( ext.toLowerCase() ) >= 0; }
     static cpp_like( ext : string ) { return GeneratorCpp.cpp_ext.indexOf( ext.toLowerCase() ) >= 0; }
+    static cu_like ( ext : string ) { return GeneratorCpp.cu_ext .indexOf( ext.toLowerCase() ) >= 0; }
     static h_like  ( ext : string ) { return GeneratorCpp.h_ext  .indexOf( ext.toLowerCase() ) >= 0; }
 
     decl_additional_options( p : ArgumentParser ) {
@@ -37,7 +39,7 @@ class GeneratorCpp extends Generator {
 
         const comp_missions = [ 'lib', 'exe', 'run', 'gtest' ], universes = [ 'cpp', 'c', 'fortran', 'asm' ];
         p.add_argument( comp_missions, universes, "output,o"      , 'set name(s) of the output file(s), separated by a comma if several are expected' , 'path*'   );
-        p.add_argument( comp_missions, universes, "exec-with"     , 'run executable using another executable (e.g. time -v)'                          , 'string'   );
+        p.add_argument( comp_missions, universes, "exec-with"     , 'run executable using another executable (e.g. time -v)'                          , 'string'  );
         p.add_argument( comp_missions, universes, "include-path,I", "Add the directory arg to the list of directories to be searched for header files", 'path*'   );
         p.add_argument( comp_missions, universes, "library-path,L", "Add the directory arg to the list of directories to be searched for libraries"   , 'path*'   );
         p.add_argument( comp_missions, universes, "define,D"      , "Macro definition"                                                                , 'string*' );
@@ -64,6 +66,7 @@ class GeneratorCpp extends Generator {
                 const basename = target.substr( 0, target.length - t_ext.length );
                 return async.forEachSeries( [
                     ...GeneratorCpp.cpp_ext.map( ext => ({ ext, make_cn: ( ch, cb ) => this.make_cpp_compiler( ch, care_about_target ? target : "", cb ) }) ),
+                    ...GeneratorCpp.cu_ext .map( ext => ({ ext, make_cn: ( ch, cb ) => this.make_cpp_compiler( ch, care_about_target ? target : "", cb ) }) ),
                     ...GeneratorCpp.c_ext  .map( ext => ({ ext, make_cn: ( ch, cb ) => this.make_cpp_compiler( ch, care_about_target ? target : "", cb ) }) ),
                 ], ( trial, cb_ext ) => {
                     this.env.get_compilation_node( basename + trial.ext, cwd, for_found, cn => {

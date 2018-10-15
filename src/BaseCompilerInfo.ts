@@ -69,7 +69,7 @@ class BaseCompilerInfo extends Task {
     }
 
     get_base_programs( args: BaseCompilerInfoArgs, cb: ( compiler: string, linker: string, archiver: string ) => void ) {
-        this.get_exe( args.target == "c" ? "cc" : "cxx", args.compiler, ( compiler ) => {
+        this.get_exe( args.target == "c" ? "cc" : ( args.target == "cu" ? "cu" : "cxx" ), args.compiler, ( compiler ) => {
             const linker = args.linker || compiler;
             this.get_exe( "ar", args.archiver, ( archiver ) => {
                 cb( compiler, linker, archiver );
