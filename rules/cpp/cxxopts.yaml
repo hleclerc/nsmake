@@ -1,0 +1,7 @@
+includes: [ cxxopts.hpp ]
+flag_sets:
+  - systems:   []
+    inc_paths: [ ext/cxxopts/include ]
+load_sets:
+  - systems: []
+    command: ( test -e ext || mkdir ext ) && git clone https://github.com/jarro2783/cxxopts.git ext/cxxopts

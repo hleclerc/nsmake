@@ -1,0 +1,7 @@
+includes: [ pybind11/pybind11.h ]
+flag_sets:
+  - systems:   []
+    inc_paths: [ ext/pybind11/include ]
+load_sets:
+  - systems: []
+    command: ( test -e ext || mkdir ext ) && git clone https://github.com/pybind/pybind11.git ext/pybind11

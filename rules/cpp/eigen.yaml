@@ -1,4 +1,4 @@
-includes: [ Eigen/ ]
+includes: [ Eigen/, unsupported/Eigen/ ]
 flag_sets:
   - systems:   []
     inc_paths: [ ext/Eigen/install/include/eigen3 ]
