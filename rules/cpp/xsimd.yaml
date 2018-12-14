@@ -1,0 +1,27 @@
+includes: [ xsimd/xsimd.hpp ]
+flag_sets:
+  - systems:   []
+    inc_paths: [ ext/xsimd/include ]
+    lib_paths: []
+    lib_names: []
+load_sets:
+  - systems: []
+    command: "
+              mkdir -p ext/xsimd/src && 
+              cd ext/xsimd/src && 
+              git clone https://github.com/QuantStack/xsimd.git &&
+              cd xsimd &&
+              mkdir build &&
+              cd build &&
+              cmake -DCMAKE_INSTALL_PREFIX=../../../install .. &&
+              make &&
+              make install
+             "
+#git clone https://github.com/QuantStack/xtl.git &&
+#cd xtl &&
+#mkdir build &&
+#cd build &&
+#cmake -DCMAKE_INSTALL_PREFIX=../../../install .. &&
+#make &&
+#make install &&
+#cd ../.. &&

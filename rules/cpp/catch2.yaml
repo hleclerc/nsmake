@@ -1,0 +1,16 @@
+includes: [ catch.hpp ]
+flag_sets:
+  - systems:   []
+    inc_paths: [ ext/Catch2/install/include/catch2 ]
+load_sets:
+  - systems: []
+    command: "
+        mkdir -p ext/Catch2/sources && 
+        git clone https://github.com/catchorg/Catch2.git ext/Catch2/sources &&
+        cd ext/Catch2/sources &&
+        mkdir build &&
+        cd build &&
+        cmake -DCMAKE_INSTALL_PREFIX=../../install .. &&
+        make &&
+        make install
+    "
