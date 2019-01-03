@@ -225,10 +225,10 @@ class Processor {
             fs.stat( output, ( err, stat ) => {
                 if ( err ) {
                     env.com.error( cn, `Output ${ output } does not exist (after execution of ${ cn.pretty }).` );
-                    return callback( true );
+                    return callback( new Error );
                 }
                 cn.output_mtimes[ num_output ] = stat.mtime.getTime();
-                callback( false );
+                callback( null );
             } );
         }, ( err ) => {
             if ( err )
@@ -239,10 +239,10 @@ class Processor {
                 fs.stat( output, ( err, stat ) => {
                     if ( err ) {
                         env.com.error( cn, `Generated (should be) file '${ output }' does not exist (after execution of ${ cn.pretty }).` );
-                        return callback( true );
+                        return callback( new Error );
                     }
                     cn.generated_mtimes[ num_output ] = stat.mtime.getTime();
-                    callback( false );
+                    callback( null );
                 } );
             }, ( err ) => {
                 if ( err )
@@ -606,7 +606,7 @@ class Processor {
             case "get_filtered_target_signatures":
                 return async.map( cmd.args.targets, ( target: string, cb ) => {
                     if ( ! service.env )
-                        return cb( true, null );
+                        return cb( new Error, null );
                     service.env.get_compilation_node( target, cmd.args.cwd, service.cn.file_dependencies, ncn => {
                         cb( null, ncn ? ncn.signature : null );
                     }, cmd.args.care_about_target );
@@ -681,12 +681,12 @@ class Processor {
                 this._launch_waiting_cn_if_possible();
                 return async.map( cmd.args.signatures, ( signature: string, cb ) => {
                     if ( ! service.env )
-                        return cb( true, null );
+                        return cb( new Error, null );
                     const ncn = this.pool.factory( signature ); 
                     if ( service.cn )
                         service.cn.additional_children.push( ncn );
                     this.make( service.env, ncn, err => {
-                        cb( err, ncn );
+                        cb( err ? new Error : null, ncn );
                     } );
                 }, ( err, inp_cns: Array<CompilationNode> ) => {
                     service.set_active();
@@ -846,7 +846,8 @@ class Processor {
 
             // chech sub prerequisites
             return async.forEach( rule.prerequ || [], ( sub_req: string, cb_prerequ ) => {
-                this._check_prerequ( com, cn, sub_req, cb_prerequ );
+                const my_cb_prerequ = ( err: boolean ) => cb_prerequ( err ? new Error : null );
+                this._check_prerequ( com, cn, sub_req, my_cb_prerequ );
             }, err_prerequ => {
                 if ( err_prerequ )
                     return cb_rule_trial( false );
@@ -902,7 +903,8 @@ class Processor {
     /** ex of category: npm... */
     install_cmd( com: CommunicationEnvironment, cn: CompilationNode, cwd: string, cmd: Array<string> | string, prerequ: Array<string>, cb: ( err: boolean ) => void ) {
         async.forEach( prerequ, ( req: string, cb_prerequ ) => {
-            this._check_prerequ( com, cn, req, cb_prerequ );
+            const my_cb_prerequ = ( err: boolean ) => cb_prerequ( err ? new Error : null );
+            this._check_prerequ( com, cn, req, my_cb_prerequ );
         }, ( err_prerequ ) => {
             if ( err_prerequ )
                 return cb( true );

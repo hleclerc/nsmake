@@ -102,8 +102,12 @@ class ParseArgvAndBuildMission {
                                                     this.proc.clean( this.cwd, err => this.send_end( 0 ) );                                  return; }
         if ( this.env.args.mission == "stop"    ) { process.exit( 0 );                                                                               }
 
-        if ( this.env.args.mission == "prerequ" )
-            return async.forEach( this.env.args.prerequs, ( req: string, cb_async ) => this.proc._check_prerequ( this.env.com, null, req, cb_async ), err => this.send_end( err ? 1 : 0 ) );
+        if ( this.env.args.mission == "prerequ" ) {
+            return async.forEach( this.env.args.prerequs, ( req: string, cb_async ) => {
+                const my_cb_async = ( err: boolean ) => { cb_async( err ? new Error : null ) };
+                this.proc._check_prerequ( this.env.com, null, req, my_cb_async )
+            }, err => this.send_end( err ? 1 : 0 ) );
+        }
 
 
         // com environment

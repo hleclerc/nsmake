@@ -60,7 +60,7 @@ class CompilationNode {
                 if ( err )
                     return cb( null );
                 if ( stats.mtime.getTime() != this.generated_mtimes[ index ] )
-                    return cb( `Error: file ${ name } has been modified independently of nsmake. Nsmake is not going to remove/overwrite it. If you want to continue, please remove it manually (cur=${ stats.mtime.getTime() }, reg=${ this.generated_mtimes[ index ]}).` );
+                    return cb( new Error( `Error: file ${ name } has been modified independently of nsmake. Nsmake is not going to remove/overwrite it. If you want to continue, please remove it manually (cur=${ stats.mtime.getTime() }, reg=${ this.generated_mtimes[ index ]}).` ) );
                 rimraf( name, cb );
             } );
         }, err => {
