@@ -21,9 +21,10 @@ class Gtest extends Task {
         // get, register and make the input compilation nodes
         async.reduce( args.entry_points, new Array<{name:string,signature:string}>(), ( cns, entry_point, cb_reduce ) => {
             glob( entry_point, { cwd: args.launch_dir }, ( err, matches ) => {
-                if ( err ) { this.error( err.toString() ); return cb_reduce( true, null ); }
+                if ( err ) { this.error( err.toString() ); return cb_reduce( new Error, null ); }
                 async.map( matches, ( x, cb_map ) => {
-                    this.get_filtered_target( path.resolve( args.launch_dir, x ), args.launch_dir, cb_map );
+                    const my_cb_map = ( err: boolean, val ) => { cb_map( err ? new Error : null, val ) };
+                    this.get_filtered_target( path.resolve( args.launch_dir, x ), args.launch_dir, my_cb_map );
                 }, ( err, lst: Array<{name:string,signature:string}> ) => {
                     cb_reduce( null, cns.concat( lst ) );
                 } );

@@ -43,7 +43,7 @@ class Mocha extends Task {
             // get, register and make the input compilation nodes
             async.reduce( args.entry_points, new Array<string>(), ( entry_points, entry_point, cb_reduce ) => {
                 glob( entry_point, { cwd: args.launch_dir }, ( err, matches ) => {
-                    if ( err ) { this.error( err.toString() ); return cb_reduce( true, null ); }
+                    if ( err ) { this.error( err.toString() ); return cb_reduce( new Error, null ); }
                     cb_reduce( null, entry_points.concat( matches ) );
                 } );
             }, ( err, entry_points ) => {

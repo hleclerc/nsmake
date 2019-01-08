@@ -55,7 +55,7 @@ class FileDependencies {
                 } );
             }, err => {
                 not_found = new_not_found;
-                cb_test( new_not_found.size == 0 );
+                cb_test( new_not_found.size == 0 ? new Error : null );
             } );
         }, err => {
             // add found files

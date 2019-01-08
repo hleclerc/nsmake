@@ -112,7 +112,7 @@ class Db {
     }
 
     init() {
-        this.inst = levelup( path.resolve( this.dir, "commands" ) );
+        this.inst = levelup( leveldown( path.resolve( this.dir, "commands" ) ) );
     }
 
     remove( cond: ( key: string, val: string ) => boolean, end_cb: ( err: Error ) => void ) {
