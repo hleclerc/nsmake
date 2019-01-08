@@ -1,7 +1,7 @@
 includes: [ xsimd/xsimd.hpp ]
 flag_sets:
   - systems:   []
-    inc_paths: [ ext/xsimd/include ]
+    inc_paths: [ ext/xsimd/install/include ]
     lib_paths: []
     lib_names: []
 load_sets:
