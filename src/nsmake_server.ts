@@ -92,6 +92,7 @@ getos( ( err, si ) => {
     } );
 
     server.listen( fifo_file, () => {
+        console.log( "listening" );
         // to delete the files at the end
         function clean( msg: string ) { console.log( msg ); rimraf.sync( fifo_file ); rimraf.sync( info_file ); }
         function sigxx( msg: string ) { console.log( msg ); process.exit( 1 ); }

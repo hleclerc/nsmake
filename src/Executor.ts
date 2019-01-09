@@ -23,7 +23,8 @@ class Executor extends Task {
     exec( args: ExecutorArgs, done: ( err: boolean ) => void ) {
         // build files
         async.map( args.new_build_files || [], ( abf, cb_nbf ) => {
-            this.new_build_file( abf.orig || "", abf.ext || "", abf.dist || "", cb_nbf, abf.value || "" );
+            const my_cb_nbf = ( err: boolean, str: string ) => { cb_nbf( err ? new Error : null, str ) };
+            this.new_build_file( abf.orig || "", abf.ext || "", abf.dist || "", my_cb_nbf, abf.value || "" );
         }, ( err, build_files: Array<string> ) => {
             // helper to get arg values
             const av = ( n: string | number ): string => {

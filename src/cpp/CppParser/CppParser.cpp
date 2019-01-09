@@ -292,6 +292,11 @@ void CppParser::_nsmake( const char *b, const char *e, Read *read ) {
         ar_name = cf( 1 );
         return;
     }
+    if ( spl[ 0 ] == "avoid_inc" ) {
+        if ( nspl.size() < 2 ) throw "'//// nsmake avoid_inc' is supposed to be followed by 1 argument";
+        avoid_incs.push_back( cf( 1 ) );
+        return;
+    }
 
     c_error( "'" + spl[ 0 ] + "' is not a known nsmake command", b, read );
     throw "";
@@ -722,6 +727,13 @@ void CppParser::_include( const char *b, const char *e, Read *read, const char *
         e = b;
         while ( ++e < oe and *e != '"' );
         e += ( e < oe );
+    }
+
+    if ( *b == '<' || *b == '"' ) {
+        std::string name( b + 1, e - 1 );
+        for( std::string avoid : avoid_incs )
+            if ( avoid.size() <= name.size() && name.substr( 0, avoid.size() ) == avoid )
+                return;
     }
 
     //

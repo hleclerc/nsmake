@@ -116,6 +116,7 @@ struct CppParser {
     Task                *task;
 
     // output
+    StringVec            avoid_incs;
     StringVec            inc_paths;
     StringVec            cpp_flags;
     StringVec            c_flags  ;

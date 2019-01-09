@@ -27,11 +27,11 @@ class ConcatYamlToJson extends Task {
                     async.forEachSeries( content, ( name, cb_cnt ) => {
                         // skip if not a .yam file
                         if ( ! name.toLowerCase().endsWith( ".yaml" ) )
-                            return cb_cnt( false );
+                            return cb_cnt( null );
                         // a way to store the dependancy (and potentially handle code generation)
                         this.get_filtered_target( path.resolve( dir, name ), dir, ( err, ft ) => {
                             if ( err )
-                                return cb_cnt( false );
+                                return cb_cnt( null );
                             this.read_file( ft.name, ( err, str ) => {
                                 try {
                                     const data = yaml.safeLoad( str.toString() );
@@ -39,7 +39,7 @@ class ConcatYamlToJson extends Task {
                                 } catch ( e ) {
                                     this.error( `Error:${ path.join( dir, name ) }:${ e }` );
                                 }
-                                cb_cnt( false );
+                                cb_cnt( null );
                             } );
                         } );
                     }, err => cb_dir( false ) );
