@@ -28,7 +28,7 @@ int main() {
             if ( strlen( msg ) ) std::cerr << msg << std::endl;
             Task::send_done();
 
-        } catch ( Json::LogicError msg ) {
+        } catch ( const Json::LogicError &msg ) {
             std::cerr << "Error: CppCompiler: while parsing Json: " << msg.what() << std::endl;
             Task::send_done();
         }

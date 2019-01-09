@@ -9,5 +9,5 @@ load_sets:
     command: "
               mkdir -p ext && 
               cd ext/ && 
-              git clone https://github.com/ddemidov/amgcl.git &&
+              git clone https://github.com/ddemidov/amgcl.git
              "
