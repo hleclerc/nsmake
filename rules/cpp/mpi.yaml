@@ -4,7 +4,7 @@ flag_sets:
     inc_paths: [ ext/mpich/install/include, /usr/include/openmpi ]
     lib_paths: [ ext/mpich/install/lib ]
     exe_paths: [ ext/mpich/install/bin ]
-    lib_names: [ mpi, mpi_cxx ]
+    lib_names: [ mpi, mpicxx ]
 load_sets:
   - systems: []
     command: "mkdir -p ext/mpich/src &&
