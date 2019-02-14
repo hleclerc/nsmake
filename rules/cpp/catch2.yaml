@@ -1,7 +1,7 @@
-includes: [ catch.hpp ]
+includes: [ catch2/catch.hpp ]
 flag_sets:
   - systems:   []
-    inc_paths: [ ext/Catch2/install/include/catch2 ]
+    inc_paths: [ ext/Catch2/install/include/ ]
 load_sets:
   - systems: []
     command: "
