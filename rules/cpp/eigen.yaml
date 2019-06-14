@@ -1,7 +1,7 @@
 includes: [ eigen3/ ]
 flag_sets:
   - systems:   []
-    inc_paths: [ ext/Eigen/install/include ]
+    inc_paths: [ ext/Eigen/install/include, ext/Eigen/install/eigen3 ]
     lib_paths: [ ext/Eigen/install/lib ]
     lib_names: []
 load_sets:
