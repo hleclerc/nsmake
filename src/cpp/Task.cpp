@@ -16,7 +16,7 @@ template<class ...Args>
 Json::Value _unzip( const Args& ...args ) {
     Json::Value res( Json::objectValue );
     _make_json_from_tuple( res, std::tie( args... ), N< sizeof...( Args ) / 2 >() );
-    return std::move( res );
+    return res;
 }
 
 #define SAWA( ACTION, ... ) _send_and_wait( ACTION, _unzip( __VA_ARGS__ ) )
