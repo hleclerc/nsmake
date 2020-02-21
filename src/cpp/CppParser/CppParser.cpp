@@ -6,13 +6,15 @@
 
 
 CppParser::CppParser( Task *task, bool soTTY ): soTTY( soTTY ), task( task ) {
-    special_variables.append( "NSMAKE_CMD"          , VT_NSMAKE_CMD       );
-    special_variables.append( "NSMAKE_RUN"          , VT_NSMAKE_RUN       );
-    special_variables.append( "defined"             , VT_defined          );
-    special_variables.append( "__has_include__"     , VT_has_include      );
-    special_variables.append( "__has_include"       , VT_has_include      );
-    special_variables.append( "__has_include_next__", VT_has_include_next );
-    special_variables.append( "__has_include_next"  , VT_has_include_next );
+    special_variables.append( "NSMAKE_CMD"              , VT_NSMAKE_CMD       );
+    special_variables.append( "NSMAKE_RUN"              , VT_NSMAKE_RUN       );
+    special_variables.append( "defined"                 , VT_defined          );
+    special_variables.append( "__has_include__"         , VT_has_include      );
+    special_variables.append( "__has_include"           , VT_has_include      );
+    special_variables.append( "__has_include_next__"    , VT_has_include_next );
+    special_variables.append( "__has_include_next"      , VT_has_include_next );
+    special_variables.append( "__glibc_has_include"     , VT_has_include      );
+    special_variables.append( "__glibc_has_include_next", VT_has_include_next );
 
     defines[ VT_NSMAKE_CMD       ] = Define( "...", { "x" } );
     defines[ VT_NSMAKE_RUN       ] = Define( "...", { "x" } );
@@ -1091,6 +1093,8 @@ void CppParser::_define( const char *b, const char *e, Read *read, const char *o
     if ( d.content.size() and space( d.content.back() ) )
         d.content.pop_back();
 
+    if ( var == "__glibc_has_include" || var == "__glibc_has_include_next" )
+        return;
 
     // store the key
     unsigned n = num_special_var++;
