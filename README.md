@@ -76,9 +76,9 @@ npm install
 npm run build
 ```
 
-If you are a sudoer, npm can make global links for you
+After that, npm can make global links for you (a sudo may be necessary)
 ```
-sudo npm link
+npm link
 ```
 
 Alternatively, adding the nsmake source dir in the PATH will also work (without needing to be a sudoer).
