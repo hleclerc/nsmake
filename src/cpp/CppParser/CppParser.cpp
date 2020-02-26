@@ -683,8 +683,8 @@ void CppParser::read_rules() {
         for( Json::Value &include : item[ "data" ][ "includes" ] ) {
             std::string str = include.asString();
             auto iter = inc_rules.find( str );
-            if ( iter != inc_rules.end() )
-                task->error( "Rule for include <" + str + "> appears twice in yaml rule files (" + item[ "name" ].asString() + " and " + iter->second[ "data" ].asString() + ")." );
+            //if ( iter != inc_rules.end() )
+            //    task->error( "Rule for include <" + str + "> appears twice in yaml rule files (" + item[ "name" ].asString() + " and " + iter->second[ "data" ].asString() + ")." );
             item[ "data" ][ "yaml_name" ] = item[ "name" ];
             inc_rules.insert( iter, std::make_pair( str, item[ "data" ] ) );
         }
