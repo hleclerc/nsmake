@@ -1,0 +1,7 @@
+includes: [ experimental/simd ]
+flag_sets:
+  - systems:   []
+    inc_paths: [ ext/std-simd ]
+load_sets:
+  - systems: []
+    command: ( test -e ext || mkdir ext ) && git clone https://github.com/VcDevel/std-simd.git ext/std-simd
