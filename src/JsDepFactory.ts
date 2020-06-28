@@ -108,9 +108,9 @@ class JsDepFactory extends TaskFiber {
             num_to_be_parsed = to_be_parsed.length;
             
             // store the aliases, find the new required files
-            res_js_parsers.forEach( js => js.exe_data.mission_keys.forEach( mk => this.register_mission_key( mk.key, mk.val ) ) )
-            if ( this.register_aliases( res_js_parsers.reduce( ( p, x ) => p.concat( x.exe_data.aliases ), new Array< { key: string, val: string} >() ) ) ||
-                 this._find_requires_for( args, to_be_parsed, res_js_parsers ) ||
+            res_js_parsers.forEach( js => js.exe_data.mission_keys.forEach( mk => this.register_mission_key( mk.key, mk.val ) ) );
+            this.register_aliases( res_js_parsers.reduce( ( p, x ) => p.concat( x.exe_data.aliases ), new Array< { key: string, val: string} >() ) );
+            if ( this._find_requires_for( args, to_be_parsed, res_js_parsers ) ||
                  this._find_accepts_for( args, res_js_parsers ) )
                  return done( true );
 
