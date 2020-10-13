@@ -57,7 +57,7 @@ void CppCompiler::exec() {
     if ( args[ "debug_level" ].isString()       ) append_unique( cmds, "-g" + args[ "debug_level" ].asString() );
 
     if ( args[ "pic" ].asBool()                 ) {
-        if ( compiler == "nvcc" ) // TODO: better lookup
+        if ( compiler.find( "nvcc" ) != string::npos ) // TODO: better lookup
             append_unique( cmds, "-Xcompiler", "-fpic" );
         else
             append_unique( cmds, "-fpic" );
