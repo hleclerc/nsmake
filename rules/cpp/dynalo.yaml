@@ -3,7 +3,7 @@ flag_sets:
   - systems:   []
     inc_paths: [ ext/dynalo/install/include ]
     lib_paths: [ ext/dynalo/install/lib ]
-    lib_names: [ dynalo ]
+    lib_names: [ dl ]
 load_sets:
   - systems: []
     command: "mkdir -p ext/dynalo &&

@@ -59,8 +59,8 @@ class Processor {
 
     /** call cb when ready for a new build sequence */
     start_new_build_seq( waiting_cb: ( number ) => void, at_launch_cb: () => void, cb: ( done_cb: () => void ) => void ): void {
-        if ( this.building )
-            return waiting_cb( this.waiting_build_seqs.push({ at_launch_cb, cb }) );
+        // if ( this.building )
+        //     return waiting_cb( this.waiting_build_seqs.push({ at_launch_cb, cb }) );
 
         // kill still active services
         for( let i = 0; i < this.services.length; ++i ) {
