@@ -1,0 +1,15 @@
+includes: [ cpu_features/ ]
+flag_sets:
+  - inc_paths: [ ext/cpu_features/install/include/ ]
+    lib_paths: [ ext/cpu_features/install/lib ]
+    lib_names: [ cpu_features ]
+load_sets:
+  - systems: []
+    command: "mkdir -p ext/cpu_features &&
+              cd ext/cpu_features &&
+              git clone https://github.com/google/cpu_features.git src &&
+              mkdir build &&
+              cd build &&
+              cmake -DCMAKE_INSTALL_PREFIX=../install ../src &&
+              make install
+             "
