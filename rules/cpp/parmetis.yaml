@@ -3,7 +3,7 @@ flag_sets:
   - systems:   []
     inc_paths: [ ext/parmetis/install/include ]
     lib_paths: [ ext/parmetis/install/lib ]
-    lib_names: [ parmetis ]
+    lib_names: [ mpi, parmetis ]
 load_sets:
   - systems: []
     command: "mkdir -p ext/parmetis/src &&

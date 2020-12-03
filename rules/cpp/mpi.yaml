@@ -1,10 +1,10 @@
 includes: [ mpi.h ]
 flag_sets:
   - systems:   []
-    inc_paths: [ ext/mpich/install/include, /usr/include/openmpi ]
+    inc_paths: [ ext/mpich/install/include, /usr/include/openmpi, /usr/lib/x86_64-linux-gnu/openmpi/include ]
     lib_paths: [ ext/mpich/install/lib ]
     exe_paths: [ ext/mpich/install/bin ]
-    lib_names: [ mpi, mpicxx ]
+    lib_names: [ mpi, mpi_cxx ] # 
 load_sets:
   - systems: []
     command: "mkdir -p ext/mpich/src &&
