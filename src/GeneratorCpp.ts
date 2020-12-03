@@ -15,7 +15,7 @@ import * as os                             from 'os'
 
 export default
 class GeneratorCpp extends Generator {
-    static cpp_ext = [ ".cpp", ".cu", ".cxx", ".cc" ];
+    static cpp_ext = [ ".cpp", ".cxx", ".cc" ];
     static cu_ext  = [ ".cu" ];
     static h_ext   = [ ".h", ".hxx" ];
     static c_ext   = [ ".c" ];

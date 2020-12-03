@@ -490,8 +490,11 @@ std::string CppParser::substitution( const std::string &str, Read *read, const c
                 if ( iter->first == VT_has_include ) {
                     if ( arguments.size() != 1 )
                         return c_error( "'__has_include[__]' expects exactly one argument", od, read );
+                    if ( arguments[ 0 ].second - arguments[ 0 ].first < 2 )
+                        return c_error( "'__has_include[__]' expects exactly arguments like <...>", od, read );
                     // send a request, wait for an answer
-                    std::vector<std::string> to_try = include_try_list( read->dir, task->args[ "launch_dir" ].asString(), { arguments[ 0 ].first, arguments[ 0 ].second }, 0 );
+                    std::string inc_str( arguments[ 0 ].first + 1, arguments[ 0 ].second - 1 );
+                    std::vector<std::string> to_try = include_try_list( *arguments[ 0 ].first == '"' ? read->dir : "", task->args[ "launch_dir" ].asString(), inc_str, 0 );
                     Task::NumAndSignature nas = task->get_first_filtered_target_signature( to_try, read->dir );
                     return repl( nas ? "1" : "0" );
                 }
@@ -500,8 +503,11 @@ std::string CppParser::substitution( const std::string &str, Read *read, const c
                 if ( iter->first == VT_has_include_next ) {
                     if ( arguments.size() != 1 )
                         return c_error( "'__has_include_next[__]' expects exactly one argument", od, read );
+                    if ( arguments[ 0 ].second - arguments[ 0 ].first < 2 )
+                        return c_error( "'__has_include_next[__]' expects exactly arguments like <...>", od, read );
                     // send a request, wait for an answer
-                    std::vector<std::string> to_try = include_try_list( read->dir, task->args[ "launch_dir" ].asString(), { arguments[ 0 ].first, arguments[ 0 ].second }, get_num_path( read ) + 1 );
+                    std::string inc_str( arguments[ 0 ].first + 1, arguments[ 0 ].second - 1 );
+                    std::vector<std::string> to_try = include_try_list( *arguments[ 0 ].first == '"' ? read->dir : "", task->args[ "launch_dir" ].asString(), inc_str, get_num_path( read ) + 1 );
                     Task::NumAndSignature nas = task->get_first_filtered_target_signature( to_try, read->dir );
                     return repl( nas ? "1" : "0" );
                 }
