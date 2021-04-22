@@ -1,0 +1,12 @@
+includes: [ inja/inja.hpp ]
+flag_sets:
+  - systems:   []
+    inc_paths: [ ext/inja/source/include ]
+    lib_paths: []
+    lib_names: []
+load_sets:
+  - systems: []
+    command: "
+              mkdir -p ext/inja && 
+              git clone https://github.com/pantor/inja.git ext/inja/source
+             "
