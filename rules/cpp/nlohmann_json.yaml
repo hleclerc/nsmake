@@ -7,7 +7,7 @@ flag_sets:
 load_sets:
   - systems: []
     command: "
-              mkdir -p ext/nlohmann_json/source/include && 
-              cd ext/nlohmann_json/source/include &&
+              mkdir -p ext/nlohmann_json/source/single_include/nlohmann && 
+              cd ext/nlohmann_json/source/single_include/nlohmann &&
               wget https://github.com/nlohmann/json/releases/download/v3.9.1/json.hpp
              "
