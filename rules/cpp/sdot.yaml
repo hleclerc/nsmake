@@ -1,0 +1,8 @@
+includes: [ sdot/ ]
+flag_sets:
+  - systems: []
+    inc_paths: [ ext/sdot/src ]
+#load_sets:
+  #- systems: [ "Ubuntu Linux", Debian ]
+    #command: apt-get install libspdlog-dev
+    #as_root: true

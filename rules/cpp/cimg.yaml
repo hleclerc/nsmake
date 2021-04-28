@@ -1,0 +1,13 @@
+includes: [ CImg.h ]
+flag_sets:
+  - systems:   []
+    inc_paths: [ ext/CImg ]
+    lib_paths: []
+    lib_names: [ X11, pthread ]
+load_sets:
+  - systems: []
+    command: "
+              mkdir -p ext && 
+              cd ext && 
+              git clone --depth=1 https://github.com/dtschump/CImg.git
+             "

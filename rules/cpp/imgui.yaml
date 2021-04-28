@@ -1,0 +1,14 @@
+includes: [ imgui/, imgui.h ]
+flag_sets:
+  - systems:   []
+    inc_paths: [ ext/, ext/imgui ]
+    lib_paths: []
+    lib_names: []
+load_sets:
+  - systems: []
+    command: "
+              mkdir -p ext && 
+              cd ext/ && 
+              git clone https://github.com/ocornut/imgui.git && 
+              cd imgui
+             "

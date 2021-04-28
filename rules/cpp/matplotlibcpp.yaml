@@ -1,8 +1,8 @@
 includes: [ matplotlibcpp.h ]
 flag_sets:
   - systems:   []
-    lib_names: [ python3.8 ] # TODO: make a python-dev require
-    inc_paths: [ /usr/include/python3.8, ext/matplotlibcpp ]
+    lib_names: [ python3.9 ] # TODO: make a python-dev require
+    inc_paths: [ /usr/include/python3.6, /usr/include/python3.7, /usr/include/python3.8, /usr/include/python3.9, ext/matplotlibcpp ]
 load_sets:
   - systems: []
     command: git clone https://github.com/lava/matplotlib-cpp.git ext/matplotlibcpp
