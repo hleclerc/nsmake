@@ -1,18 +1,12 @@
-includes: [ eigen3/ ]
+includes: [ Eigen/ ]
 flag_sets:
   - systems:   []
-    inc_paths: [ ext/Eigen/install/include, ext/Eigen/install/eigen3 ]
-    lib_paths: [ ext/Eigen/install/lib ]
+    inc_paths: [ ext/Eigen/src ] 
+    lib_paths: []
     lib_names: []
 load_sets:
   - systems: []
-    command: "mkdir -p ext/Eigen/src &&
-              cd ext/Eigen/src &&
-              wget http://bitbucket.org/eigen/eigen/get/default.tar.gz &&
-              tar xzf default.tar.gz &&
-              cd eigen* &&
-              mkdir -p build_rel &&
-              cd build_rel &&
-              cmake .. -DCMAKE_INSTALL_PREFIX=`pwd`/../../../install &&
-              make &&
-              make install"
+    command: "mkdir -p ext/Eigen &&
+              cd ext/Eigen &&
+              git clone https://gitlab.com/libeigen/eigen.git src
+             "
