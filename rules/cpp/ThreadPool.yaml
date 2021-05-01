@@ -1,0 +1,13 @@
+includes: [ ThreadPool.h ]
+flag_sets:
+  - systems:   []
+    inc_paths: [ ext/ThreadPool/ ]
+    lib_paths: []
+    lib_names: [ pthread ]
+load_sets:
+  - systems: []
+    command: "
+              mkdir -p ext && 
+              cd ext && 
+              git clone https://github.com/progschj/ThreadPool.git
+             "
