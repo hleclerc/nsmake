@@ -51,7 +51,7 @@
     "coffeescript": "^1.12.1",
     "console-stamp": "^0.2.7",
     "css-tokens": "^2.0.0",
-    "fibers": "^5.0.0",
+    "fibers": "^5.0.3",
     "getos": "^3.2.1",
     "glob": "^7.1.6",
     "heap": "^0.2.6",
