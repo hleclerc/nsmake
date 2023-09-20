@@ -8,7 +8,7 @@
 class Task {
 public:
     struct CnData {
-        void write_to_stream( std::ostream &os ) const { PO( os, signature, outputs, exe_data ); }
+        void write_to_stream( std::ostream &os ) const { /*PO( os, signature, outputs, exe_data );*/ }
 
         std::string              signature;
         std::vector<std::string> outputs;
